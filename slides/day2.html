@@ -297,7 +297,7 @@ GROUP BY week
 ORDER BY week;</code></pre>
   <ul class="bullets mt">
     <li>The expression in SELECT and in GROUP BY must be the same; the alias saves retyping it</li>
-    <li><code>date_trunc</code> on a timestamp returns a timestamp: cast it to <code>DATE</code> for a clean label</li>
+    <li>In DuckDB <code>date_trunc</code> returns a timestamp, even on a <code>DATE</code>: cast it to <code>DATE</code> for a clean label</li>
   </ul>
   <aside class="notes"><p>DuckDB accepts the alias in GROUP BY; some engines need the expression repeated. Both are correct SQL in DuckDB.</p></aside>
 </section>

@@ -101,11 +101,12 @@ JOIN insp ON insp.return_id = t.return_id;
   <div class="kicker">The habit</div>
   <h2>Before every join, write the grain of both sides and of the result</h2>
   <table class="t">
-    <tr><th>Left side</th><th>Right side</th><th>Result</th><th>Safe to sum the left's money?</th></tr>
-    <tr><td>one row per return</td><td>one row per reason</td><td>one row per return</td><td>yes</td></tr>
-    <tr><td>one row per return</td><td>one row per inspection</td><td>one row per inspection</td><td><b>no</b></td></tr>
-    <tr><td>one row per return</td><td>one row per return (aggregated)</td><td>one row per return</td><td>yes</td></tr>
+    <tr><th>Left</th><th>Right</th><th>Result</th><th>Sum left?</th></tr>
+    <tr><td>return</td><td>reason</td><td>return</td><td>yes</td></tr>
+    <tr><td>return</td><td>inspection</td><td>inspection</td><td><b>no</b></td></tr>
+    <tr><td>return</td><td>return (aggregated)</td><td>return</td><td>yes</td></tr>
   </table>
+  <p class="caption">Each grain is "one row per ..." the word in the cell. "Sum left?": is it safe to sum the left side's money after the join?</p>
   <aside class="notes"><p>Ask participants to write these three grains as comments above their queries in today's lab. The capstone rubric rewards it.</p></aside>
 </section>
 
@@ -266,12 +267,12 @@ FROM returns;</code></pre>
   <div class="kicker">Ranking</div>
   <h2>ROW_NUMBER, RANK and DENSE_RANK differ only at ties</h2>
   <table class="t small">
-    <tr><th>product_ref</th><th class="num">units</th><th class="num">ROW_NUMBER</th><th class="num">RANK</th><th class="num">DENSE_RANK</th></tr>
-    <tr><td>X-101</td><td class="num">4</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
-    <tr><td>X-412</td><td class="num">4</td><td class="num">2</td><td class="num">1</td><td class="num">1</td></tr>
-    <tr><td>X-118</td><td class="num">3</td><td class="num">3</td><td class="num">3</td><td class="num">2</td></tr>
-    <tr><td>X-205</td><td class="num">3</td><td class="num">4</td><td class="num">3</td><td class="num">2</td></tr>
-    <tr><td>X-330</td><td class="num">1</td><td class="num">5</td><td class="num">5</td><td class="num">3</td></tr>
+    <tr><th>product (units)</th><th class="num">ROW_<br>NUMBER</th><th class="num">RANK</th><th class="num">DENSE_<br>RANK</th></tr>
+    <tr><td>X-101 (4)</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-412 (4)</td><td class="num">2</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-118 (3)</td><td class="num">3</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-205 (3)</td><td class="num">4</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-330 (1)</td><td class="num">5</td><td class="num">5</td><td class="num">3</td></tr>
   </table>
   <p class="caption">Returned units per product at the returns desk, ordered by units from the most.</p>
   <aside class="notes"><p>"Top two" with ROW_NUMBER picks X-101 and X-412 here, but between X-118 and X-205 it would pick by chance without a tie-breaker. RANK keeps ties together and skips the next place.</p></aside>
@@ -402,7 +403,7 @@ SELECT * FROM ranked WHERE place = 1;   -- the largest refund of each reason</co
   <div class="kicker">Checkpoint</div>
   <h2>Which seven-day average is right after a closed weekend?</h2>
   <div class="quiz" data-type="single" data-lo="LO4">
-    <p class="lead">A pharmacy's daily sales table has no rows for two closed days. The report wants the average of each day's sales over the last seven calendar days with sales.</p>
+    <p class="lead">A pharmacy's daily sales table has no rows for two closed days. For each day, the report wants the average daily sales of the days that had sales within the last seven calendar days, that day included.</p>
     <div class="opts">
       <div class="opt" data-ok>AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)</div>
       <div class="opt" data-why="Counts seven rows, which reach back nine calendar days after the closure">AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)</div>

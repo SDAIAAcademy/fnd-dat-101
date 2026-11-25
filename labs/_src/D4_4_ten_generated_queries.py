@@ -7,10 +7,10 @@
 #
 # Day 4 · Session 4 (Testing queries against known answers) · 35 min.
 #
-# A colleague asked an assistant ten questions about revenue and pasted the SQL it returned into
-# a report. Before anyone reads the report, you test the ten queries: you work out each answer by
-# hand on the mini tables, small enough to check on paper, run every query against them, and
-# classify each failure as fan-out, wrong grain or a missing business rule.
+# Ten revenue queries, written the way SQL generated from a question often comes out, are about
+# to go into a report. Before anyone reads the report, you test the ten queries: you work out each
+# answer by hand on the mini tables, small enough to check on paper, run every query against them,
+# and classify each failure as fan-out, wrong grain or a missing business rule.
 #
 # Where the queries come from: the ten in `data/verification/generated_queries.sql` were written
 # for this course to reproduce mistakes that SQL generated from a question often contains. No
@@ -183,7 +183,7 @@ else:
 # against answers someone worked out by hand.
 # </details>
 #
-# <details><summary>4. Your colleague generated the queries. Should they also write the expected answers?</summary>
+# <details><summary>4. At work, a colleague generates queries like these with an assistant. Should the same colleague also write the expected answers?</summary>
 #
 # No. Segregation of duties: the person who produced a query does not also produce the answer it
 # is tested against, or one misunderstanding of the rule passes both. You worked them out; a

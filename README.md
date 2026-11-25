@@ -152,6 +152,7 @@ Each line is a capability; the examples are interchangeable.
 - [Personal Data Protection Law (SDAIA), English text](https://sdaia.gov.sa/en/SDAIA/about/Documents/PersonalDataProtectionLaw.pdf)
 - [Minimum Personal Data Determination Guideline, version 1.0, August 2024 (SDAIA)](https://sdaia.gov.sa/Documents/MinmumPDGuideline.pdf)
 - [Data Classification Policy, version 1 (National Data Management Office, SDAIA)](https://sdaia.gov.sa/en/SDAIA/about/Documents/DataClassificationPolicy.pdf)
+- [Generative Artificial Intelligence Guidelines for Government, 2025 (SDAIA), section 3.5 Privacy and Security](https://sdaia.gov.sa/en/SDAIA/about/Files/GenAIGuidelinesForGovernmentENCompressed.pdf)
 - [Data & AI Academic Programs Standards Framework, Second Version, September 2026 (SDAIA)](https://sdaia.gov.sa/en/MediaCenter/KnowledgeCenter/ResearchLibrary/Academic-Programs-Standards-Framework-Q3.pdf)
 
 ### Engines and tools
@@ -173,3 +174,4 @@ Each line is a capability; the examples are interchangeable.
 - Personal Data Protection Law (PDPL): data minimisation, in the view exercise: https://sdaia.gov.sa/en/SDAIA/about/Documents/PersonalDataProtectionLaw.pdf (Article 11 on collecting the minimum necessary; read in English, the Arabic file's text could not be extracted). The Minimum Personal Data Determination Guideline (version 1.0, August 2024) explains the principle: https://sdaia.gov.sa/Documents/MinmumPDGuideline.pdf
 - NDMO Data Classification Policy: levels used to label tables: https://sdaia.gov.sa/en/SDAIA/about/Documents/DataClassificationPolicy.pdf (version 1, the version linked from SDAIA's regulations page on 25 November 2026: levels Top Secret, Secret, Restricted and Public)
 - SDAIA Data & AI Academic Programs Standards Framework (2026): DM-Relational and DM-Querying units: https://sdaia.gov.sa/en/MediaCenter/KnowledgeCenter/ResearchLibrary/Academic-Programs-Standards-Framework-Q3.pdf (Second Version, September 2026)
+- Also cited: SDAIA's Generative Artificial Intelligence Guidelines for Government (2025), section 3.5 Privacy and Security, on entering only data classified Public into generative AI tools; written for government entities, applied in lab 4.2 as the company's own rule: https://sdaia.gov.sa/en/SDAIA/about/Files/GenAIGuidelinesForGovernmentENCompressed.pdf

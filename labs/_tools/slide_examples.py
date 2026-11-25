@@ -7,7 +7,11 @@ number on a slide that comes from them is printed here, under the slide id that 
 """
 from __future__ import annotations
 
+import sys
+
 import duckdb
+
+sys.stdout.reconfigure(encoding="utf-8")  # the plans print box-drawing characters
 
 SETUP = """
 CREATE TABLE reasons (reason_code VARCHAR PRIMARY KEY, label VARCHAR NOT NULL);

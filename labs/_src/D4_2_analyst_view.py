@@ -98,6 +98,12 @@ U.check_pairs("l42_identifiers", IDENTIFIERS)
 # | Public | disclosure has none of these effects: what the company has published, and what the data owner has labelled Public (the schema descriptions and the written business rules) |
 # | not yet labelled | treated as Restricted until it is labelled |
 #
+# The company's rule for generative AI tools: only Public data goes into one. It follows SDAIA's
+# Generative Artificial Intelligence Guidelines for Government (2025), section 3.5 (Privacy and
+# Security), which tells employees of government entities to enter no data classified Restricted
+# or higher and to use these tools only with data classified Public. The company is a private
+# business: the rule is its own, modelled on that guideline.
+#
 # The store list (store, region, opening date, floor area) is printed on the company's public
 # store pages.
 #

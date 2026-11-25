@@ -390,7 +390,7 @@ WHERE reason_code = 'R1'
     <tr><td><code>label ILIKE '%item%'</code></td><td>"item" anywhere, in any letter case</td></tr>
     <tr><td><code>LOWER(label) = 'late'</code></td><td>"late", "Late", "LATE"</td></tr>
   </table>
-  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>LIKE</code> is case-sensitive in most engines: <code>LIKE '%Item%'</code> misses "wrong item".</div>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> In DuckDB <code>LIKE</code> is case-sensitive: <code>LIKE '%Item%'</code> misses "wrong item". SQLite ignores case for plain letters: the same query behaves differently in another engine.</div>
   <aside class="notes"><p>ILIKE is supported by DuckDB and several other engines but not by every one; LOWER on both sides works everywhere.</p></aside>
 </section>
 
