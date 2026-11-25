@@ -162,7 +162,9 @@ U.check("l13_two_engines", SQL_4, con=U.mini())
 # <details><summary>2. Where should the region of a store be corrected, and why?</summary>
 #
 # In `stores`, once. Then the wide table is rebuilt from the schema. Fixing copies leaves some
-# rows behind, as exercise 3 showed.
+# rows behind, as exercise 3 showed. The analyst who spots the error reports it; the owner of the
+# store list makes the change and someone other than the person who made it checks it before the
+# rebuild: segregation of duties, so one mistaken edit does not reach every report unseen.
 # </details>
 #
 # <details><summary>3. What would change if the data lived in a client-server database?</summary>
