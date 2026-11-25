@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="deck" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capstone · Capstone: the business orders brief · SQL and Relational Data</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<link rel="icon" href="../_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="capstone.md">
+<link rel="describedby" href="../llms.txt">
+<link rel="stylesheet" href="../_engine/academy.css">
+</head>
+<body>
+<div class="deck" data-course="SQL and Relational Data" data-track="foundations" data-day="Capstone">
+<section class="slide title" id="title" data-auto="title" data-label="Welcome" data-n="1">
+  <div class="kicker">SDAIA Academy · SQL and Relational Data</div>
+  <h1>Capstone: the business orders brief</h1>
+  <p class="lead mt">Capstone: For each participant: five minutes of live adaptation of one query, then two of questions on the assumptions note</p>
+  <div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>5 min talk and demo · 2 min Q&amp;A</span><span>FND-DAT-101</span></div>
+  <aside class="notes"><p>Today is the participants'. Keep your own talking to the opening, the reviews and the close. Before anyone arrives: the timed check printed (one per participant, from the trainer's pack), a clone of each capstone repository on the trainer's laptop with <code>capstone/cap.py</code> run, and the list of changed questions for the live adaptations.</p></aside>
+</section>
+
+<section class="slide" id="agenda" data-label="Agenda" data-n="2">
+  <div class="kicker">Capstone day</div>
+  <h2>How the day runs</h2>
+  <div class="agenda">
+    <div class="item now"><div><b>Opening</b><small>the rubric and the format</small></div></div>
+    <div class="item"><div><b>Timed check</b><small>assistant off, on paper</small></div></div>
+    <div class="item"><div><b>Final preparation</b><small>finish the repository, run the tests, push</small></div></div>
+    <div class="item"><div><b>Live adaptations</b><small>one query each, then questions on the assumptions note</small></div></div>
+    <div class="item"><div><b>Reviews and next steps</b><small>peer review, the trainer's review, the follow-up task</small></div></div>
+  </div>
+  <aside class="notes"><p>Minutes for a cohort of 16: opening 15, check 40, preparation 120, adaptations 16 × (5 + 2 + 1 changeover) = 128, peer review 50, trainer review 42, follow-up brief 25. Take breaks between blocks, not inside them.</p></aside>
+</section>
+
+<section class="slide" id="rubric" data-label="The rubric" data-n="3">
+  <div class="kicker">How the repository is scored · 30% of the course</div>
+  <h2>The rubric</h2>
+  <div class="bars">
+    <div class="row"><span>Correct: the ten queries match the key on the full data</span><div class="bar c-teal" style="--w:100%"></div><span class="val">35%</span></div>
+    <div class="row"><span>Tests against a fixture checked by hand, and they pass</span><div class="bar c-cyan" style="--w:57%"></div><span class="val">20%</span></div>
+    <div class="row"><span>Grain stated for every query and join</span><div class="bar c-coral" style="--w:43%"></div><span class="val">15%</span></div>
+    <div class="row"><span>Assumptions note: every rule stated, applied and traced</span><div class="bar c-purple" style="--w:43%"></div><span class="val">15%</span></div>
+    <div class="row"><span>Verification log of generated SQL</span><div class="bar c-amber" style="--w:29%"></div><span class="val">10%</span></div>
+    <div class="row"><span>Minimal exposure: no personal data a question does not need</span><div class="bar c-teal" style="--w:14%"></div><span class="val">5%</span></div>
+  </div>
+  <aside class="notes"><p>Walk through each criterion with one example of full marks: a q02 whose header says "one row per category; shipments summed to the line before the join", and an expected file whose numbers were worked on paper.</p><p>The repository counts for 30% of the course, the timed check for 30%, the lab query files for 30% and the live adaptation for 10%: see the README.</p></aside>
+</section>
+
+<section class="slide" id="format" data-label="Format" data-n="4">
+  <div class="kicker">Format</div>
+  <h2>Five minutes to adapt one query live, then two minutes of questions</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>1 · The change</h4><p class="small mb0">The trainer reads a changed version of one of your ten questions.</p></div>
+    <div class="card c-cyan"><h4>2 · The query</h4><p class="small mb0">You change it, add a fixture row if needed, and run its test.</p></div>
+    <div class="card c-coral"><h4>3 · The reason</h4><p class="small mb0">You say what changed in the grain or the rules.</p></div>
+  </div>
+  <div class="callout note mt"><b>Then two minutes on your assumptions note.</b> Expect "where is this rule applied?" and "why did you decide this?"</div>
+  <aside class="notes"><p>The changed questions are in the trainer's pack, one per query; choose a query the participant did not pick to show. A query that does not finish in five minutes can still score on what was said.</p></aside>
+</section>
+
+<section class="slide dark" id="timed-check" data-label="Timed check" data-n="5">
+  <div class="kicker">Timed check · assistant off</div>
+  <h1>Ten questions · 40 minutes</h1>
+  <div class="timer" data-minutes="40"></div>
+  <p class="lead">Two printed tables, ten short questions. Predict, explain, write one query on paper.</p>
+  <aside class="notes"><p>Laptops closed. Press T to start the timer. Collect the papers when it ends; mark them during the preparation block with the key in the trainer's pack. Two numbers from the course plan, not to be confused: passing the course needs at least 60% on this timed check; outcome LO2 is evidenced by eight of ten correct on it.</p></aside>
+</section>
+
+<section class="slide dark" id="final-prep" data-label="Final preparation" data-n="6">
+  <div class="kicker">Before the first adaptation</div>
+  <h1>Final preparation · 120 minutes</h1>
+  <div class="timer" data-minutes="120"></div>
+  <p class="lead">Run <code>uv run pytest capstone/tests -q</code>, fill in the notes, commit and push.</p>
+  <aside class="notes"><p>Press T to start. Walk the room: check that every repository is public, that its history has more than one commit, and that <code>data/full/</code> is not committed. Pull each repository again at the end of the block.</p></aside>
+</section>
+
+<section class="slide order" id="running-order" data-label="Running order" data-read="scaled" data-n="7">
+  <div class="kicker">Running order</div>
+  <h2>Who adapts when</h2>
+  <table class="t small">
+    <tr><th>#</th><th>Participant</th><th>Query to adapt</th><th>#</th><th>Participant</th><th>Query to adapt</th></tr>
+    <tr><td>1</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>9</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>2</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>10</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>3</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>11</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>4</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>12</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>5</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>13</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>6</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>14</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>7</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>15</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>8</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>16</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+  </table>
+  <aside class="notes">Type the names in at the start; the fields can be edited live and are not saved, so keep the list in your notes too.</aside>
+</section>
+
+<section class="slide dark presenting" id="now-presenting" data-label="Now adapting" data-n="8">
+  <div class="kicker center">Now adapting</div>
+  <div class="center"><input placeholder="Participant · query"></div>
+  <aside class="notes">Type the participant and the query, read the changed question aloud, and press T to start the five-minute timer. Then two minutes of questions on the assumptions note. Reuse this slide for every participant.</aside>
+</section>
+
+<section class="slide" id="peer-review" data-label="Peer review" data-n="9">
+  <div class="kicker">Peer review · 50 minutes</div>
+  <h2>Run a classmate's tests and read one of their queries against the rules</h2>
+  <ul class="bullets">
+    <li>Clone the repository of the participant after you in the running order</li>
+    <li>Run its tests; pick one query and check its grain comment against the query</li>
+    <li>Write one strength, one question and one suggestion as an issue on their repository</li>
+  </ul>
+  <aside class="notes"><p>Pairs follow the running order: 1 reviews 2, ..., 16 reviews 1. The issue stays on the repository as evidence of the review.</p></aside>
+</section>
+
+<section class="slide" id="review" data-label="Trainer review" data-n="10">
+  <div class="kicker">Trainer review</div>
+  <h2>What the repositories showed</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>Strongest patterns</h4><p class="small mb0">What several repositories got right.</p></div>
+    <div class="card c-coral"><h4>Common gaps</h4><p class="small mb0">The traps most answers fell into.</p></div>
+    <div class="card c-purple"><h4>One surprise</h4><p class="small mb0">Something nobody expected.</p></div>
+  </div>
+  <aside class="notes">Fill these in from the key comparison during the preparation block. The trainer's pack lists the trap behind each question. Name repositories for strengths; keep gaps anonymous.</aside>
+</section>
+
+<section class="slide" id="follow-up" data-label="The follow-up task" data-n="11">
+  <div class="kicker">Follow-up task · within two weeks</div>
+  <h2>Two new questions from the business orders service, answered the same way</h2>
+  <ul class="bullets">
+    <li>The trainer sends two questions after the course; you add <code>q11.sql</code> and <code>q12.sql</code> to your repository</li>
+    <li>Each with its grain comment, its expected rows worked by hand and a passing test</li>
+    <li>About an hour; the commits on your repository are the record that it was done</li>
+  </ul>
+  <aside class="notes"><p>This is the tracked follow-up task of the course plan (60 minutes of self-study). Note the commit dates when you check it.</p></aside>
+</section>
+
+<section class="slide" id="what-next" data-label="After the course" data-n="12">
+  <div class="kicker">After the course</div>
+  <h2>Keep going</h2>
+  <ul class="bullets">
+    <li><b>Your repository stays yours:</b> keep its tests running when you change a query</li>
+    <li><b>Next Academy course:</b> FND-DAT-102 Data Wrangling with DataFrames, then FND-DAT-103 Data Formats, Interfaces and Quality Checks</li>
+  </ul>
+  <aside class="notes"><p>FND-DAT-102 expects short Python programs with functions, lists and dictionaries (FND-PRG-101 or equivalent); this course required none. Point participants without Python to FND-PRG-101 first.</p></aside>
+</section>
+
+<section class="slide dark" id="thanks" data-label="Thank you" data-n="13">
+  <div class="kicker">SDAIA Academy</div>
+  <h1>Thank you</h1>
+  <p class="lead">SQL and Relational Data</p>
+</section>
+</div>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"../index.html"},"deck":{"id":"capstone","kind":"capstone","day":5,"label":"Capstone","title":"Capstone: the business orders brief","prev":"day4.html","next":null,"md":"capstone.md","alt":{}},"sessions":[],"slides":[{"id":"title","n":1,"title":"Capstone: the business orders brief","kind":"title","session":0,"hash":"ad9c017a","md":"#### [capstone#title] Capstone: the business orders brief\n\n*SDAIA Academy · SQL and Relational Data*\n\nCapstone: For each participant: five minutes of live adaptation of one query, then two of questions on the assumptions note\n\nData & AI Foundations Track · 4 teaching days + capstone day · 5 min talk and demo · 2 min Q&A · FND-DAT-101","notes":"Today is the participants'. Keep your own talking to the opening, the reviews and the close. Before anyone arrives: the timed check printed (one per participant, from the trainer's pack), a clone of each capstone repository on the trainer's laptop with `capstone/cap.py` run, and the list of changed questions for the live adaptations.","minutes":null,"lo":[]},{"id":"agenda","n":2,"title":"How the day runs","kind":"content","session":0,"hash":"a70b81d3","md":"#### [capstone#agenda] How the day runs\n\n*Capstone day*\n\n- **Opening**: the rubric and the format\n- **Timed check**: assistant off, on paper\n- **Final preparation**: finish the repository, run the tests, push\n- **Live adaptations**: one query each, then questions on the assumptions note\n- **Reviews and next steps**: peer review, the trainer's review, the follow-up task","notes":"Minutes for a cohort of 16: opening 15, check 40, preparation 120, adaptations 16 × (5 + 2 + 1 changeover) = 128, peer review 50, trainer review 42, follow-up brief 25. Take breaks between blocks, not inside them.","minutes":null,"lo":[]},{"id":"rubric","n":3,"title":"The rubric","kind":"content","session":0,"hash":"f1254ec0","md":"#### [capstone#rubric] The rubric\n\n*How the repository is scored · 30% of the course*\n\n| Item | Value |\n| --- | --- |\n| Correct: the ten queries match the key on the full data | 35% |\n| Tests against a fixture checked by hand, and they pass | 20% |\n| Grain stated for every query and join | 15% |\n| Assumptions note: every rule stated, applied and traced | 15% |\n| Verification log of generated SQL | 10% |\n| Minimal exposure: no personal data a question does not need | 5% |","notes":"Walk through each criterion with one example of full marks: a q02 whose header says \"one row per category; shipments summed to the line before the join\", and an expected file whose numbers were worked on paper.\n\nThe repository counts for 30% of the course, the timed check for 30%, the lab query files for 30% and the live adaptation for 10%: see the README.","minutes":null,"lo":[]},{"id":"format","n":4,"title":"Five minutes to adapt one query live, then two minutes of questions","kind":"content","session":0,"hash":"38bbd116","md":"#### [capstone#format] Five minutes to adapt one query live, then two minutes of questions\n\n*Format*\n\n- **1 · The change.** The trainer reads a changed version of one of your ten questions.\n- **2 · The query.** You change it, add a fixture row if needed, and run its test.\n- **3 · The reason.** You say what changed in the grain or the rules.\n\n> **Then two minutes on your assumptions note.** Expect \"where is this rule applied?\" and \"why did you decide this?\"","notes":"The changed questions are in the trainer's pack, one per query; choose a query the participant did not pick to show. A query that does not finish in five minutes can still score on what was said.","minutes":null,"lo":[]},{"id":"timed-check","n":5,"title":"Ten questions · 40 minutes","kind":"content","session":0,"hash":"885ad27f","md":"#### [capstone#timed-check] Ten questions · 40 minutes\n\n*Timed check · assistant off*\n\nTwo printed tables, ten short questions. Predict, explain, write one query on paper.","notes":"Laptops closed. Press T to start the timer. Collect the papers when it ends; mark them during the preparation block with the key in the trainer's pack. Two numbers from the course plan, not to be confused: passing the course needs at least 60% on this timed check; outcome LO2 is evidenced by eight of ten correct on it.","minutes":null,"lo":[]},{"id":"final-prep","n":6,"title":"Final preparation · 120 minutes","kind":"content","session":0,"hash":"bbcd882d","md":"#### [capstone#final-prep] Final preparation · 120 minutes\n\n*Before the first adaptation*\n\nRun `uv run pytest capstone/tests -q`, fill in the notes, commit and push.","notes":"Press T to start. Walk the room: check that every repository is public, that its history has more than one commit, and that `data/full/` is not committed. Pull each repository again at the end of the block.","minutes":null,"lo":[]},{"id":"running-order","n":7,"title":"Who adapts when","kind":"order","session":0,"hash":"12b2e204","md":"#### [capstone#running-order] Who adapts when\n\n*Running order*\n\n| # | Participant | Query to adapt | # | Participant | Query to adapt |\n| --- | --- | --- | --- | --- | --- |\n| 1 |  |  | 9 |  |  |\n| 2 |  |  | 10 |  |  |\n| 3 |  |  | 11 |  |  |\n| 4 |  |  | 12 |  |  |\n| 5 |  |  | 13 |  |  |\n| 6 |  |  | 14 |  |  |\n| 7 |  |  | 15 |  |  |\n| 8 |  |  | 16 |  |  |","notes":"Type the names in at the start; the fields can be edited live and are not saved, so keep the list in your notes too.","minutes":null,"lo":[]},{"id":"now-presenting","n":8,"title":"Now adapting","kind":"presenting","session":0,"hash":"cf230b09","md":"#### [capstone#now-presenting] Now adapting\n\n*Now adapting*","notes":"Type the participant and the query, read the changed question aloud, and press T to start the five-minute timer. Then two minutes of questions on the assumptions note. Reuse this slide for every participant.","minutes":null,"lo":[]},{"id":"peer-review","n":9,"title":"Run a classmate's tests and read one of their queries against the rules","kind":"content","session":0,"hash":"9f5b6fbd","md":"#### [capstone#peer-review] Run a classmate's tests and read one of their queries against the rules\n\n*Peer review · 50 minutes*\n\n- Clone the repository of the participant after you in the running order\n- Run its tests; pick one query and check its grain comment against the query\n- Write one strength, one question and one suggestion as an issue on their repository","notes":"Pairs follow the running order: 1 reviews 2, ..., 16 reviews 1. The issue stays on the repository as evidence of the review.","minutes":null,"lo":[]},{"id":"review","n":10,"title":"What the repositories showed","kind":"content","session":0,"hash":"12d793ab","md":"#### [capstone#review] What the repositories showed\n\n*Trainer review*\n\n- **Strongest patterns.** What several repositories got right.\n- **Common gaps.** The traps most answers fell into.\n- **One surprise.** Something nobody expected.","notes":"Fill these in from the key comparison during the preparation block. The trainer's pack lists the trap behind each question. Name repositories for strengths; keep gaps anonymous.","minutes":null,"lo":[]},{"id":"follow-up","n":11,"title":"Two new questions from the business orders service, answered the same way","kind":"content","session":0,"hash":"cf418858","md":"#### [capstone#follow-up] Two new questions from the business orders service, answered the same way\n\n*Follow-up task · within two weeks*\n\n- The trainer sends two questions after the course; you add `q11.sql` and `q12.sql` to your repository\n- Each with its grain comment, its expected rows worked by hand and a passing test\n- About an hour; the commits on your repository are the record that it was done","notes":"This is the tracked follow-up task of the course plan (60 minutes of self-study). Note the commit dates when you check it.","minutes":null,"lo":[]},{"id":"what-next","n":12,"title":"Keep going","kind":"content","session":0,"hash":"54827d72","md":"#### [capstone#what-next] Keep going\n\n*After the course*\n\n- **Your repository stays yours:** keep its tests running when you change a query\n- **Next Academy course:** FND-DAT-102 Data Wrangling with DataFrames, then FND-DAT-103 Data Formats, Interfaces and Quality Checks","notes":"FND-DAT-102 expects short Python programs with functions, lists and dictionaries (FND-PRG-101 or equivalent); this course required none. Point participants without Python to FND-PRG-101 first.","minutes":null,"lo":[]},{"id":"thanks","n":13,"title":"Thank you","kind":"content","session":0,"hash":"a18c93b0","md":"#### [capstone#thanks] Thank you\n\n*SDAIA Academy*\n\nSQL and Relational Data","notes":"","minutes":null,"lo":[]}],"activities":[],"ai":{"context":{"course":"../context/course.md","courseJs":"../context/course.js","day":"capstone.md","llms":"../llms.txt"},"tasks":[],"tools":[]},"bridge":{"allowedOrigins":[]},"features":{},"strings":{}}</script>
+<script src="../_engine/academy.js"></script>
+</body>
+</html>

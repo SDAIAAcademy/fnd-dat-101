@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="deck" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 2 · One table, then two · SQL and Relational Data</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<link rel="icon" href="../_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="day2.md">
+<link rel="describedby" href="../llms.txt">
+<link rel="stylesheet" href="../_engine/academy.css">
+</head>
+<body>
+<div class="deck" data-course="SQL and Relational Data" data-track="foundations" data-day="Day 2">
+<section class="slide title" id="title" data-auto="title" data-label="Welcome" data-n="1">
+  <div class="kicker">SDAIA Academy · SQL and Relational Data</div>
+  <h1>One table, then two</h1>
+  <p class="lead mt">Day 2: Conditions, NULL, groups and the four kinds of join</p>
+  <div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>4 sessions · 4 labs</span><span>FND-DAT-101</span></div>
+  <aside class="notes"><p>Welcome back. Yesterday: keys, grain, filters. Today the queries combine rows: conditions as columns, unknown values, groups, and two tables at once.</p><p>Ask who finished questions 1 to 4. Those who did not can run lab 1.4's notebook again at a break; its part file is all the checker needs.</p></aside>
+</section>
+
+<section class="slide" id="agenda" data-auto="agenda" data-label="Agenda" data-n="2">
+  <div class="kicker">Today</div>
+  <h2>One table, then two</h2>
+  <div class="agenda"><div class="item"><div><b>Session 1 · CASE expressions and set operations</b><small>CASE turns rules into columns; UNION, INTERSECT and EXCEPT combine whole result sets</small></div></div><div class="item"><div><b>Session 2 · NULL and three-valued logic</b><small>NULL is unknown, not zero or empty: comparisons with it are neither true nor false</small></div></div><div class="item"><div><b>Session 3 · Grouping and having</b><small>GROUP BY changes the grain of the result; HAVING filters groups after they are formed</small></div></div><div class="item"><div><b>Session 4 · Inner, outer, semi and anti joins</b><small>Which rows survive a join, and how to ask for rows that have, or lack, a partner</small></div></div></div>
+</section>
+
+<section class="slide" id="review-day1" data-lo="LO1" data-n="3">
+  <div class="kicker">Review of Day 1</div>
+  <h2>Which statement about the returns desk's tables is right?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1" data-id="review-day1-q1">
+    <p class="lead"><code>returns</code> has 5 rows and 4 distinct <code>order_ref</code> values; <code>inspections</code> can hold two rows for one return.</p>
+    <div class="opts">
+      <div class="opt" data-why="Takes a column that looks like an identifier for a key: 4 distinct values for 5 rows" data-k="A">order_ref is a key of returns</div>
+      <div class="opt" data-why="Reads the grain from the first column instead of from what one row records" data-k="B">The grain of inspections is one row per return</div>
+      <div class="opt" data-ok data-k="C">Joining returns to inspections can repeat a return</div>
+      <div class="opt" data-why="Believes a join never changes the number of rows of the left table" data-k="D">A join to inspections keeps exactly 5 rows</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> A return inspected twice matches two rows of <code>inspections</code>, so it appears twice after the join.</div>
+  </div>
+  <aside class="notes"><p>Answer: the join can repeat a return. This is the thread that Day 3 opens with.</p></aside>
+</section>
+
+<!-- Session 1 -->
+
+<section class="slide section" id="s1" data-auto="section" data-session="1" data-n="4">
+  <div class="kicker">Session 1</div>
+  <h1>CASE expressions and set operations</h1>
+  <ul class="bullets outcomes"><li>Write a CASE expression that sorts rows into bands</li><li>Count by condition with CASE inside an aggregate</li><li>Combine two result sets with UNION, INTERSECT or EXCEPT</li></ul>
+  <div class="sess-no">01</div>
+</section>
+
+<section class="slide" id="case-turns-rules" data-lo="LO3" data-n="5" data-session="1">
+  <div class="kicker">CASE</div>
+  <h2>CASE turns a rule into a column</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> return_id, item_no, qty,
+  <span class="hljs-keyword">CASE</span> <span class="hljs-keyword">WHEN</span> qty <span class="hljs-operator">=</span> <span class="hljs-number">1</span>  <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;single&#x27;</span>
+       <span class="hljs-keyword">WHEN</span> qty <span class="hljs-operator">&lt;=</span> <span class="hljs-number">3</span> <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;few&#x27;</span>
+       <span class="hljs-keyword">ELSE</span> <span class="hljs-string">&#x27;many&#x27;</span>
+  <span class="hljs-keyword">END</span> <span class="hljs-keyword">AS</span> band
+<span class="hljs-keyword">FROM</span> return_items;</code></pre>
+    <ul class="bullets">
+      <li>Branches are tried <b>in order</b>; the first true one wins</li>
+      <li><code>ELSE</code> catches the rest; without it, the rest is NULL</li>
+      <li>Every branch returns the same type</li>
+    </ul>
+  </div>
+  <div class="callout warn mt"><b>What goes wrong.</b> Put <code>qty &lt;= 3</code> first and a quantity of 1 becomes "few".</div>
+  <aside class="notes"><p>Ask the room to band the 8 items of the returns desk by hand: 4 single, 3 few, 1 many (printed by <code>_tools/slide_examples.py</code>).</p></aside>
+</section>
+
+<section class="slide" id="case-in-aggregate" data-lo="LO3" data-n="6" data-session="1">
+  <div class="kicker">Counting by condition</div>
+  <h2>A CASE inside SUM counts the rows that meet a condition</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> reason_code,
+       <span class="hljs-built_in">SUM</span>(<span class="hljs-keyword">CASE</span> <span class="hljs-keyword">WHEN</span> refund <span class="hljs-operator">&gt;=</span> <span class="hljs-number">15</span> <span class="hljs-keyword">THEN</span> <span class="hljs-number">1</span> <span class="hljs-keyword">ELSE</span> <span class="hljs-number">0</span> <span class="hljs-keyword">END</span>) <span class="hljs-keyword">AS</span> <span class="hljs-keyword">large</span>,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FILTER</span> (<span class="hljs-keyword">WHERE</span> refund <span class="hljs-operator">&lt;</span> <span class="hljs-number">15</span>)            <span class="hljs-keyword">AS</span> small
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> reason_code;</code></pre>
+  <ul class="bullets mt">
+    <li>Two counts side by side, from one pass over the table</li>
+    <li><code>FILTER (WHERE ...)</code> says the same thing more briefly where the engine supports it</li>
+    <li>A refund that is NULL is neither large nor small: count it on purpose if it matters</li>
+  </ul>
+  <aside class="notes"><p>This is the shape of question 6, on another table and another condition. Do not write question 6 on the board.</p></aside>
+</section>
+
+<section class="slide" id="set-operations" data-lo="LO3" data-n="7" data-session="1">
+  <div class="kicker">Set operations</div>
+  <h2>UNION, INTERSECT and EXCEPT combine whole result sets</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>UNION</h4><p class="small mb0">In either set, duplicates removed. <code>UNION ALL</code> keeps them.</p></div>
+    <div class="card c-cyan"><h4>INTERSECT</h4><p class="small mb0">In both sets.</p></div>
+    <div class="card c-purple"><h4>EXCEPT</h4><p class="small mb0">In the first set and not in the second.</p></div>
+  </div>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> product_ref <span class="hljs-keyword">FROM</span> return_items <span class="hljs-keyword">WHERE</span> return_id <span class="hljs-keyword">IN</span> (<span class="hljs-string">&#x27;T1&#x27;</span>, <span class="hljs-string">&#x27;T2&#x27;</span>)
+<span class="hljs-keyword">INTERSECT</span>
+<span class="hljs-keyword">SELECT</span> product_ref <span class="hljs-keyword">FROM</span> return_items <span class="hljs-keyword">WHERE</span> return_id <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;T5&#x27;</span>;
+<span class="hljs-comment">-- X-101, X-205: products returned in both groups</span></code></pre>
+  <aside class="notes"><p>Both sides must return the same number of columns, of matching types. The sets compare whole rows.</p></aside>
+</section>
+
+<section class="slide" id="sets-compare-rows" data-lo="LO3" data-n="8" data-session="1">
+  <div class="kicker">The catch</div>
+  <h2>Set operations compare whole rows, so choose the columns first</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Too many columns</h4><p class="small mb0"><code>SELECT *</code> on both sides: two different returns never match, so <code>EXCEPT</code> takes nothing away.</p></div>
+    <div class="card c-teal"><h4>The column the question is about</h4><p class="small mb0"><code>SELECT product_ref</code> on both sides: the comparison is between products, as asked.</p></div>
+  </div>
+  <div class="callout tip mt"><b>Habit.</b> Say "a set of what?" before writing either side.</div>
+  <aside class="notes"><p>Question 7 is a set of customers, which is why its two sides select only the customer id.</p></aside>
+</section>
+
+<section class="slide" id="union-all" data-lo="LO3" data-n="9" data-session="1">
+  <div class="kicker">UNION or UNION ALL</div>
+  <h2>UNION removes duplicates; UNION ALL keeps every row</h2>
+  <table class="t">
+    <tr><th>You want</th><th>Use</th></tr>
+    <tr><td>A list of distinct products returned in May or June</td><td><code>UNION</code></td></tr>
+    <tr><td>All return items of May and June, to sum quantities</td><td><code>UNION ALL</code>: duplicates are real items</td></tr>
+  </table>
+  <div class="callout warn mt"><b>What goes wrong.</b> <code>UNION</code> under a sum silently merges two identical items of different returns, and the total shrinks.</div>
+  <aside class="notes"><p>The notebook of lab 2.1 shows both counts on the real tables after question 7.</p></aside>
+</section>
+
+<section class="slide" id="check-case" data-lo="LO3" data-n="10" data-session="1">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which query lists products returned in May but not in June?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3" data-id="check-case-q1">
+    <p class="lead">The returns desk wants the distinct product codes returned in May 2026 that were not returned in June 2026.</p>
+    <div class="opts">
+      <div class="opt" data-ok data-k="A">May's product codes EXCEPT June's product codes</div>
+      <div class="opt" data-why="Compares whole rows: two item rows of different returns never match, so nothing is removed" data-k="B">May's item rows EXCEPT June's item rows</div>
+      <div class="opt" data-why="Combines the two sets instead of taking one from the other" data-k="C">May's product codes UNION June's product codes</div>
+      <div class="opt" data-why="Keeps only what the two months share, the opposite of the question" data-k="D">May's product codes INTERSECT June's product codes</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> The question is about a set of products, so both sides select the product code, and EXCEPT removes June's.</div>
+  </div>
+  <aside class="notes"><p>Answer: product codes with EXCEPT. If many choose the item rows, return to the "whole rows" slide.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-2-1" data-auto="lab" data-lab="2.1" data-label="Lab 2.1" data-n="11" data-session="1">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 2.1 · 30 min</div><h2>Questions 5 to 7: bands and sets</h2><p class="lead small">Predict, then answer three business questions with CASE bands, conditional counts and a set operation; save them to your answer file</p><a class="nb" href="../labs/D2_1_questions_5_to_7.ipynb">D2_1_questions_5_to_7.ipynb</a></div><ul class="checklist"><li>Write a prediction for each of the three questions <span class="min">4 min</span></li><li>Question 5: order lines in quantity bands <span class="min">8 min</span></li><li>Question 6: paid and free delivery per order status <span class="min">8 min</span></li><li>Question 7: January customers who did not order in June <span class="min">7 min</span></li><li>Save the part file <span class="min">3 min</span></li><li class="stretch">✱ Stretch: Answer question 7 again with NOT EXISTS and confirm both give the same count</li></ul></div>
+  <aside class="notes"><p>Predictions first, assistant off. Common failures: question 5 with the WHEN branches in the wrong order; question 7 with EXCEPT over whole order rows, which returns all January customers.</p><p>Debrief: ask two participants to read their prediction for question 7 and the result. A gap of thousands is worth a minute of discussion.</p></aside>
+</section>
+
+<!-- Session 2 -->
+
+<section class="slide section" id="s2" data-auto="section" data-session="2" data-n="12">
+  <div class="kicker">Session 2</div>
+  <h1>NULL and three-valued logic</h1>
+  <ul class="bullets outcomes"><li>Predict the rows a comparison with NULL keeps</li><li>Use IS NULL, COALESCE and IS DISTINCT FROM on purpose</li><li>Explain why NOT IN with a NULL returns no rows</li></ul>
+  <div class="sess-no">02</div>
+</section>
+
+<section class="slide" id="null-is-unknown" data-lo="LO2" data-n="13" data-session="2">
+  <div class="kicker">NULL</div>
+  <h2>NULL means unknown: not zero, not empty text, not false</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>Unknown</h4><p class="small mb0">T4's refund has not been decided.</p></div>
+    <div class="card c-cyan"><h4>Not applicable</h4><p class="small mb0">A line with no discount, in some designs.</p></div>
+    <div class="card c-purple"><h4>Not recorded</h4><p class="small mb0">A customer who gave no region.</p></div>
+  </div>
+  <div class="callout note mt"><b>One marker, several meanings.</b> The schema rarely says which. The business rule does: the finance rule of this course says an empty discount means none.</div>
+  <aside class="notes"><p>The point: NULL is a placeholder for a missing value, and the question decides how to treat it. Day 3's revenue rule settles it for discounts.</p></aside>
+</section>
+
+<section class="slide" id="three-valued" data-lo="LO2" data-n="14" data-session="2">
+  <div class="kicker">Three-valued logic</div>
+  <h2>A comparison with NULL is neither true nor false: it is unknown</h2>
+  <table class="t">
+    <tr><th>Condition on T4 (refund NULL)</th><th>Result</th><th>Kept by WHERE?</th></tr>
+    <tr><td><code>refund = 12.00</code></td><td>unknown</td><td>no</td></tr>
+    <tr><td><code>refund &lt;&gt; 12.00</code></td><td>unknown</td><td>no</td></tr>
+    <tr><td><code>refund = NULL</code></td><td>unknown</td><td>no</td></tr>
+    <tr class="hl"><td><code>refund IS NULL</code></td><td>true</td><td>yes</td></tr>
+  </table>
+  <p class="caption">WHERE keeps a row only when its condition is true.</p>
+  <aside class="notes"><p>So <code>refund &lt;&gt; 12.00</code> keeps 3 of the 5 returns, not 4: T4 drops out. And <code>refund = NULL</code> keeps none. Both numbers come from the slide examples script.</p></aside>
+</section>
+
+<section class="slide" id="and-or-unknown" data-lo="LO2" data-n="15" data-session="2">
+  <div class="kicker">Combining unknowns</div>
+  <h2>AND, OR and NOT carry the unknown through</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>AND</h4><p class="small mb0">false AND unknown = <b>false</b><br>true AND unknown = <b>unknown</b></p></div>
+    <div class="card c-cyan"><h4>OR</h4><p class="small mb0">true OR unknown = <b>true</b><br>false OR unknown = <b>unknown</b></p></div>
+    <div class="card c-purple"><h4>NOT</h4><p class="small mb0">NOT unknown = <b>unknown</b></p></div>
+  </div>
+  <div class="callout warn mt"><b>What goes wrong.</b> <code>NOT (refund = 12.00)</code> does not bring T4 back: the NOT of unknown is still unknown.</div>
+  <aside class="notes"><p>Work one row through each operator on the board. Lab 2.2 has twelve such predictions; this table is the tool for them.</p></aside>
+</section>
+
+<section class="slide" id="null-tools" data-lo="LO2" data-n="16" data-session="2">
+  <div class="kicker">Saying what you mean</div>
+  <h2>Three tools make NULL behave the way the question needs</h2>
+  <table class="t">
+    <tr><th>Tool</th><th>Use it when</th></tr>
+    <tr><td><code>x IS NULL</code>, <code>x IS NOT NULL</code></td><td>you ask whether a value is missing</td></tr>
+    <tr><td><code>COALESCE(x, 0)</code></td><td>a missing value means a known default</td></tr>
+    <tr><td><code>x IS DISTINCT FROM y</code></td><td>you want "different", with NULL treated as a value</td></tr>
+  </table>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> <span class="hljs-keyword">WHERE</span> refund <span class="hljs-keyword">IS</span> <span class="hljs-keyword">DISTINCT</span> <span class="hljs-keyword">FROM</span> <span class="hljs-number">12.00</span>;  <span class="hljs-comment">-- 4: T4 included</span></code></pre>
+  <aside class="notes"><p>IS DISTINCT FROM is standard SQL and supported by DuckDB and SQLite (SQLite also writes it IS NOT). Name it as the clean answer to "not equal, missing included".</p></aside>
+</section>
+
+<section class="slide" id="not-in-trap" data-lo="LO2" data-n="17" data-session="2">
+  <div class="kicker">The classic trap</div>
+  <h2>NOT IN with a NULL in the list keeps no row at all</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>Written</b><code>code NOT IN ('R1', NULL)</code></div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>Means</b><code>code &lt;&gt; 'R1' AND code &lt;&gt; NULL</code></div>
+    <div class="arrow">→</div>
+    <div class="step c-coral"><b>Becomes</b>something AND unknown: never true</div>
+  </div>
+  <div class="callout tip mt"><b>Use NOT EXISTS</b> when the list comes from a subquery that might contain a NULL.</div>
+  <aside class="notes"><p>The stretch of lab 2.2 shows it on the mini tables. In production it happens when a subquery returns a column with one missing value, and a report quietly goes empty.</p></aside>
+</section>
+
+<section class="slide" id="null-in-aggregates" data-lo="LO2" data-n="18" data-session="2">
+  <div class="kicker">Aggregates</div>
+  <h2>Aggregates skip NULLs, except COUNT(*)</h2>
+  <div class="cols cols-4">
+    <div class="stat center"><div class="big">5</div><div class="lbl">COUNT(*)</div></div>
+    <div class="stat center"><div class="big">4</div><div class="lbl">COUNT(refund)</div></div>
+    <div class="stat center"><div class="big">69.75</div><div class="lbl">SUM(refund)</div></div>
+    <div class="stat center"><div class="big">17.44</div><div class="lbl">AVG(refund)</div></div>
+  </div>
+  <p class="mt">AVG divides 69.75 by the 4 known refunds. If an unknown refund should count as 0, the question wants <code>AVG(COALESCE(refund, 0))</code> = 13.95.</p>
+  <p class="caption">The returns desk, 5 returns, one refund NULL (<code>_tools/slide_examples.py</code>).</p>
+  <aside class="notes"><p>Neither average is wrong: they answer different questions. The analyst's job is to know which one was asked.</p></aside>
+</section>
+
+<section class="slide" id="check-null" data-lo="LO2" data-n="19" data-session="2">
+  <div class="kicker">Checkpoint</div>
+  <h2>How many inspections does this query count?</h2>
+  <div class="quiz" data-type="single" data-lo="LO2" data-id="check-null-q1">
+    <p class="lead">An inspections table has 6 rows. <code>result</code> is 'pass' in 3, 'fail' in 1 and NULL in 2. What does <code>SELECT COUNT(*) FROM inspections WHERE result &lt;&gt; 'pass'</code> return?</p>
+    <div class="opts">
+      <div class="opt" data-why="Treats NULL as a value that differs from 'pass'; the comparison is unknown, so those rows are dropped" data-k="A">3</div>
+      <div class="opt" data-why="Counts the passes instead of the rows that are not passes" data-k="B">6</div>
+      <div class="opt" data-why="Believes any NULL in the column makes the whole query return nothing" data-k="C">0</div>
+      <div class="opt" data-ok data-k="D">1</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Only the 'fail' row makes the condition true. For the two NULL rows the condition is unknown, and WHERE keeps only true rows.</div>
+  </div>
+  <aside class="notes"><p>Answer: 1. Ask the room to rewrite it so the two unknown results are counted too: <code>result IS DISTINCT FROM 'pass'</code>, which gives 3.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-2-2" data-auto="lab" data-lab="2.2" data-label="Lab 2.2" data-n="20" data-session="2">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 2.2 · 35 min</div><h2>Predict, then run: twelve NULL comparisons</h2><p class="lead small">With the assistant off, predict the row count of twelve short queries on the printed mini tables, run them, mark each prediction and repair the ones that did not say what was meant</p><a class="nb" href="../labs/D2_2_null_predictions.ipynb">D2_2_null_predictions.ipynb</a></div><ul class="checklist"><li>Print the mini customers and order lines <span class="min">3 min</span></li><li>Predict the row count of each of the twelve queries on paper <span class="min">12 min</span></li><li>Run the twelve and mark each prediction <span class="min">8 min</span></li><li>Rewrite three queries so they say what was meant <span class="min">9 min</span></li><li>Write the NULL rule you will keep <span class="min">3 min</span></li><li class="stretch">✱ Stretch: Show NOT IN returning no rows when the list holds a NULL, and the NOT EXISTS that does not</li></ul></div>
+  <aside class="notes"><p>This lab is AI-off from start to finish of the predictions. Ask participants to write on paper first, then type into the cell. The predictions are practice for the timed check on the capstone day.</p><p>Debrief by asking which query surprised the most people. n08 (NOT IN with a NULL) and n12 (COUNT of a column) usually win.</p></aside>
+</section>
+
+<!-- Session 3 -->
+
+<section class="slide section" id="s3" data-auto="section" data-session="3" data-n="21">
+  <div class="kicker">Session 3</div>
+  <h1>Grouping and having</h1>
+  <ul class="bullets outcomes"><li>Predict the number of rows a GROUP BY returns</li><li>Choose between WHERE and HAVING for a condition</li><li>Count distinct values inside a group</li></ul>
+  <div class="sess-no">03</div>
+</section>
+
+<section class="slide" id="group-changes-grain" data-lo="LO2 LO3" data-n="22" data-session="3">
+  <div class="kicker">GROUP BY</div>
+  <h2>GROUP BY changes the grain: one row per group</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> reason_code,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>)    <span class="hljs-keyword">AS</span> <span class="hljs-keyword">returns</span>,
+       <span class="hljs-built_in">SUM</span>(refund) <span class="hljs-keyword">AS</span> refunds
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> reason_code;</code></pre>
+    <table class="t small">
+      <tr><th>reason_code</th><th class="num">returns</th><th class="num">refunds</th></tr>
+      <tr><td>R1</td><td class="num">2</td><td class="num">20.25</td></tr>
+      <tr><td>R2</td><td class="num">2</td><td class="num">49.50</td></tr>
+      <tr><td>R3</td><td class="num">1</td><td class="num">NULL</td></tr>
+    </table>
+  </div>
+  <p class="mt">Five rows in, three out: <b>one row per reason that occurs</b>. R4 has no return, so no group.</p>
+  <aside class="notes"><p>Predict the number of output rows before running any GROUP BY: it is the number of distinct values of the grouping columns among the rows that pass WHERE.</p><p>R3's sum is NULL because its only refund is unknown.</p></aside>
+</section>
+
+<section class="slide" id="select-what-groups" data-lo="LO3" data-n="23" data-session="3">
+  <div class="kicker">The rule</div>
+  <h2>After GROUP BY, SELECT may show only group columns and aggregates</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Refused, or meaningless</h4><p class="small mb0"><code>SELECT reason_code, return_id, COUNT(*) ... GROUP BY reason_code</code>: which of R1's two returns would the row show?</p></div>
+    <div class="card c-teal"><h4>Fine</h4><p class="small mb0"><code>SELECT reason_code, COUNT(*), MAX(received_on) ... GROUP BY reason_code</code></p></div>
+  </div>
+  <div class="callout tip mt"><b>Read it as</b> "for each reason code, tell me ...". Anything else needs an aggregate.</div>
+  <aside class="notes"><p>DuckDB refuses the first query with a binder error that names the column. Read the message aloud: it tells you exactly which column to group by or aggregate.</p></aside>
+</section>
+
+<section class="slide" id="where-vs-having" data-lo="LO2 LO3" data-n="24" data-session="3">
+  <div class="kicker">WHERE or HAVING</div>
+  <h2>WHERE filters rows before grouping; HAVING filters groups after</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>FROM</b>returns</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>WHERE</b>refund IS NOT NULL</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>GROUP BY</b>reason_code</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>HAVING</b>COUNT(*) &gt;= 2</div>
+    <div class="arrow">→</div>
+    <div class="step c-green"><b>SELECT, ORDER BY</b></div>
+  </div>
+  <p class="mt">Without the WHERE, the reasons with at least two returns are R1 and R2. A condition on a single row's value goes in WHERE; a condition on a count or a sum goes in HAVING.</p>
+  <aside class="notes"><p>Ask: with the WHERE in place, does the result change? (No: R1 and R2 each still have two known refunds.) Then ask what would change if T1's refund were NULL.</p></aside>
+</section>
+
+<section class="slide" id="count-distinct" data-lo="LO3" data-n="25" data-session="3">
+  <div class="kicker">Counting things, not rows</div>
+  <h2>COUNT(DISTINCT x) counts different values inside each group</h2>
+  <table class="t">
+    <tr><th>Expression</th><th>Counts</th><th>Returns desk, all items</th></tr>
+    <tr><td><code>COUNT(*)</code></td><td>rows</td><td class="num">8</td></tr>
+    <tr><td><code>COUNT(DISTINCT return_id)</code></td><td>different returns</td><td class="num">5</td></tr>
+    <tr><td><code>COUNT(DISTINCT product_ref)</code></td><td>different products</td><td class="num">5</td></tr>
+  </table>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> "How many customers ordered in May" with <code>COUNT(*)</code> counts orders.</div>
+  <aside class="notes"><p>Question 10 asks for both in one row per month: the number of orders and the number of different customers.</p></aside>
+</section>
+
+<section class="slide" id="group-by-expression" data-lo="LO3" data-n="26" data-session="3">
+  <div class="kicker">Groups of time</div>
+  <h2>Group by an expression to get one row per month, week or band</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">CAST</span>(date_trunc(<span class="hljs-string">&#x27;week&#x27;</span>, received_on) <span class="hljs-keyword">AS</span> <span class="hljs-type">DATE</span>) <span class="hljs-keyword">AS</span> week,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> week
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> week;</code></pre>
+  <ul class="bullets mt">
+    <li>The expression in SELECT and in GROUP BY must be the same; the alias saves retyping it</li>
+    <li>In DuckDB <code>date_trunc</code> returns a timestamp, even on a <code>DATE</code>: cast it to <code>DATE</code> for a clean label</li>
+  </ul>
+  <aside class="notes"><p>DuckDB accepts the alias in GROUP BY; some engines need the expression repeated. Both are correct SQL in DuckDB.</p></aside>
+</section>
+
+<section class="slide" id="check-group" data-lo="LO2" data-n="27" data-session="3">
+  <div class="kicker">Checkpoint</div>
+  <h2>How many rows does this grouped query return?</h2>
+  <div class="quiz" data-type="single" data-lo="LO2" data-id="check-group-q1">
+    <p class="lead">A table of 40 deliveries covers 6 couriers; courier K9 made only 1 delivery. <code>SELECT courier_id, COUNT(*) FROM deliveries GROUP BY courier_id HAVING COUNT(*) &gt; 1</code>. How many rows come back?</p>
+    <div class="opts">
+      <div class="opt" data-why="Counts input rows: GROUP BY returns one row per group, not per delivery" data-k="A">39</div>
+      <div class="opt" data-ok data-k="B">5</div>
+      <div class="opt" data-why="Forgets that HAVING removes the group of the courier with a single delivery" data-k="C">6</div>
+      <div class="opt" data-why="Thinks HAVING filters rows before grouping, so it applies to single deliveries" data-k="D">0</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Six couriers make six groups; HAVING removes the group whose count is 1.</div>
+  </div>
+  <aside class="notes"><p>Answer: 5. This is the kind of item on the timed check: a small table, a query, a number.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-2-3" data-auto="lab" data-lab="2.3" data-label="Lab 2.3" data-n="28" data-session="3">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 2.3 · 35 min</div><h2>Questions 8 to 11: groups</h2><p class="lead small">Predict, then answer four grouping questions: orders per store, busy customers, months and best-selling products; save them to your answer file</p><a class="nb" href="../labs/D2_3_questions_8_to_11.ipynb">D2_3_questions_8_to_11.ipynb</a></div><ul class="checklist"><li>Write a prediction for each of the four questions <span class="min">5 min</span></li><li>Question 8: delivered orders per store <span class="min">7 min</span></li><li>Question 9: customers with many orders, using HAVING <span class="min">8 min</span></li><li>Question 10: orders and distinct customers per month <span class="min">7 min</span></li><li>Question 11: products on many order lines <span class="min">5 min</span></li><li>Save the part file <span class="min">3 min</span></li><li class="stretch">✱ Stretch: Explain why COUNT(discount) and COUNT(*) differ on the order lines</li></ul></div>
+  <aside class="notes"><p>Ask each participant to write the grain of each result as a comment above the query. Common failures: question 9 with the count condition in WHERE; question 10 grouped by the timestamp itself, which gives one row per order.</p><p>Debrief with question 8: one store region has a single store, which is why two stores dispatch about twice as many orders as the others.</p></aside>
+</section>
+
+<!-- Session 4 -->
+
+<section class="slide section" id="s4" data-auto="section" data-session="4" data-n="29">
+  <div class="kicker">Session 4</div>
+  <h1>Inner, outer, semi and anti joins</h1>
+  <ul class="bullets outcomes"><li>Predict the rows an inner and a left join return on small tables</li><li>Find rows without a partner with an anti join</li><li>Keep rows that have a partner without multiplying them, with a semi join</li></ul>
+  <div class="sess-no">04</div>
+</section>
+
+<section class="slide" id="inner-join" data-lo="LO2 LO3" data-n="30" data-session="4">
+  <div class="kicker">Inner join</div>
+  <h2>An inner join keeps only the pairs of rows that match</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> t.return_id, i.result
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+<span class="hljs-keyword">JOIN</span> inspections i
+  <span class="hljs-keyword">ON</span> i.return_id <span class="hljs-operator">=</span> t.return_id;
+<span class="hljs-comment">-- 4 rows</span></code></pre>
+    <ul class="bullets">
+      <li>T1 once, T2 twice, T5 once: <b>4 rows</b></li>
+      <li>T3 and T4 were never inspected: <b>gone</b></li>
+      <li>The ON condition says which rows belong together</li>
+    </ul>
+  </div>
+  <div class="callout warn mt"><b>Two silent effects.</b> Rows without a partner disappear; rows with several partners repeat.</div>
+  <aside class="notes"><p>Draw the two tables on the board and connect the matching rows with lines; count the lines. Every line is an output row.</p></aside>
+</section>
+
+<section class="slide" id="left-join" data-lo="LO2 LO3" data-n="31" data-session="4">
+  <div class="kicker">Outer joins</div>
+  <h2>A left join keeps every row of the left table, matched or not</h2>
+  <table class="t small">
+    <tr><th>return_id</th><th>result</th></tr>
+    <tr><td>T1</td><td>pass</td></tr>
+    <tr><td>T2</td><td>pass</td></tr>
+    <tr><td>T2</td><td>fail</td></tr>
+    <tr class="hl"><td>T3</td><td>NULL</td></tr>
+    <tr class="hl"><td>T4</td><td>NULL</td></tr>
+    <tr><td>T5</td><td>pass</td></tr>
+  </table>
+  <p class="mt"><code>returns LEFT JOIN inspections</code>: <b>6 rows</b>. The unmatched returns come back with NULL in every column of the right side. A right join keeps the right side; a full join keeps both.</p>
+  <aside class="notes"><p>The NULLs here mean "no partner", a fourth meaning of NULL on top of those of session 2.</p></aside>
+</section>
+
+<section class="slide" id="anti-join" data-lo="LO2 LO3" data-n="32" data-session="4">
+  <div class="kicker">Anti join</div>
+  <h2>An anti join keeps the rows that have no partner</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> t.return_id
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+<span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> (
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-number">1</span> <span class="hljs-keyword">FROM</span> inspections i
+  <span class="hljs-keyword">WHERE</span> i.return_id <span class="hljs-operator">=</span> t.return_id
+);
+<span class="hljs-comment">-- T3, T4</span></code></pre>
+    <ul class="bullets">
+      <li>"Returns never inspected", "products never sold", "customers who never ordered"</li>
+      <li>Also written as a left join with <code>WHERE i.return_id IS NULL</code></li>
+      <li>Avoid <code>NOT IN (subquery)</code>: one NULL in it empties the result</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>NOT EXISTS reads like the question. The left-join form is common in older code; recognise both.</p></aside>
+</section>
+
+<section class="slide" id="semi-join" data-lo="LO2 LO3" data-n="33" data-session="4">
+  <div class="kicker">Semi join</div>
+  <h2>A semi join keeps each row that has a partner, once</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>)
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+<span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">EXISTS</span> (
+  <span class="hljs-keyword">SELECT</span> <span class="hljs-number">1</span> <span class="hljs-keyword">FROM</span> inspections i
+  <span class="hljs-keyword">WHERE</span> i.return_id <span class="hljs-operator">=</span> t.return_id
+);
+<span class="hljs-comment">-- 3</span></code></pre>
+    <div class="card c-coral"><h4>Not the same as an inner join</h4><p class="small mb0">The inner join counted 4 rows: T2 twice. "How many returns were inspected?" is 3. EXISTS never repeats a row.</p></div>
+  </div>
+  <aside class="notes"><p>This is the bridge to Day 3: when the question is about the left table, filter with EXISTS rather than joining and then trying to undo the repeats.</p></aside>
+</section>
+
+<section class="slide" id="which-join" data-lo="LO2 LO3" data-n="34" data-session="4">
+  <div class="kicker">Choosing</div>
+  <h2>Choose the join from the question's words</h2>
+  <table class="t">
+    <tr><th>The question says</th><th>Join</th></tr>
+    <tr><td>"each ... with its ..."</td><td>inner</td></tr>
+    <tr><td>"every ..., including those without ..."</td><td>left</td></tr>
+    <tr><td>"... that never ...", "... without any ..."</td><td>anti: <code>NOT EXISTS</code></td></tr>
+    <tr><td>"... that had at least one ..."</td><td>semi: <code>EXISTS</code></td></tr>
+  </table>
+  <aside class="notes"><p>Lab 2.4 has one question of each kind. Ask the room to classify them from <code>data/twenty_questions.md</code> before opening the notebook.</p></aside>
+</section>
+
+<section class="slide" id="check-join" data-lo="LO2" data-n="35" data-session="4">
+  <div class="kicker">Checkpoint</div>
+  <h2>How many rows does the left join return?</h2>
+  <div class="quiz" data-type="single" data-lo="LO2" data-id="check-join-q1">
+    <p class="lead"><code>couriers</code> has 4 rows. <code>shifts</code> has 7 rows: courier A has 3 shifts, B has 2, C has 2, D has none. How many rows does <code>couriers LEFT JOIN shifts</code> return?</p>
+    <div class="opts">
+      <div class="opt" data-why="Counts the left table only, as if a join could not repeat its rows" data-k="A">4</div>
+      <div class="opt" data-why="Counts the matches but drops courier D, as an inner join would" data-k="B">7</div>
+      <div class="opt" data-ok data-k="C">8</div>
+      <div class="opt" data-why="Multiplies the tables as if every courier matched every shift" data-k="D">28</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Seven matched pairs, plus one row for D with NULL shift columns.</div>
+  </div>
+  <aside class="notes"><p>Answer: 8. 28 is the cross join: mention it as the join without an ON condition.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-2-4" data-auto="lab" data-lab="2.4" data-label="Lab 2.4" data-n="36" data-session="4">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 2.4 · 35 min</div><h2>Questions 12 to 15: joins</h2><p class="lead small">Predict, then answer four questions, one for each kind of join; save them to your answer file</p><a class="nb" href="../labs/D2_4_questions_12_to_15.ipynb">D2_4_questions_12_to_15.ipynb</a></div><ul class="checklist"><li>Write a prediction for each of the four questions <span class="min">5 min</span></li><li>Question 12: delivered orders per store region <span class="min">7 min</span></li><li>Question 13: customers and never-ordered customers per region <span class="min">8 min</span></li><li>Question 14: active products that were never sold <span class="min">7 min</span></li><li>Question 15: customers with at least one failed attempt <span class="min">5 min</span></li><li>Save the part file <span class="min">3 min</span></li><li class="stretch">✱ Stretch: Write question 13 with a left join and with NOT EXISTS, and say which one a reader understands first</li></ul></div>
+  <aside class="notes"><p>Common failures: question 13 with COUNT(*) after the left join, which counts orders; question 14 with NOT IN, which works here but is a habit to drop; question 15 with an inner join and COUNT(*), which counts failed attempts.</p></aside>
+</section>
+
+<section class="slide" id="wrap-up" data-n="37" data-session="4">
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 2</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>NULL is unknown</h4><p class="small mb0">WHERE keeps only true rows. Ask IS NULL, or COALESCE on purpose.</p></div>
+    <div class="card c-cyan"><h4>Groups set the grain</h4><p class="small mb0">One row per group; conditions on counts go in HAVING.</p></div>
+    <div class="card c-purple"><h4>Joins drop and repeat</h4><p class="small mb0">Choose inner, left, anti or semi from the question's words.</p></div>
+  </div>
+  <aside class="notes"><p>Ask each participant which of the three cost them a wrong prediction today.</p></aside>
+</section>
+
+<section class="slide dark" id="next" data-n="38" data-session="4">
+  <div class="kicker">Next</div>
+  <h2>Day 3: count once, build in steps, then windows</h2>
+  <ul class="bullets">
+    <li>Finish questions 5 to 15 if you did not: about 30 minutes</li>
+    <li>Keep <code>answers/</code>: the checker runs over all twenty tomorrow</li>
+    <li>Read <code>data/revenue_rule.md</code> once before Day 3</li>
+  </ul>
+  <aside class="notes"><p>The revenue rule matters for question 19 and returns in the verification lab on Day 4.</p></aside>
+</section>
+</div>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"../index.html"},"deck":{"id":"day2","kind":"day","day":2,"label":"Day 2","title":"One table, then two","prev":"day1.html","next":"day3.html","md":"day2.md","alt":{}},"sessions":[{"n":1,"label":"Session 1","title":"CASE expressions and set operations","slide":"s1","outcomes":["Write a CASE expression that sorts rows into bands","Count by condition with CASE inside an aggregate","Combine two result sets with UNION, INTERSECT or EXCEPT"],"minutes":60,"lab":{"id":"2.1","title":"Questions 5 to 7: bands and sets","minutes":30,"href":"../labs/D2_1_questions_5_to_7.ipynb"}},{"n":2,"label":"Session 2","title":"NULL and three-valued logic","slide":"s2","outcomes":["Predict the rows a comparison with NULL keeps","Use IS NULL, COALESCE and IS DISTINCT FROM on purpose","Explain why NOT IN with a NULL returns no rows"],"minutes":60,"lab":{"id":"2.2","title":"Predict, then run: twelve NULL comparisons","minutes":35,"href":"../labs/D2_2_null_predictions.ipynb"}},{"n":3,"label":"Session 3","title":"Grouping and having","slide":"s3","outcomes":["Predict the number of rows a GROUP BY returns","Choose between WHERE and HAVING for a condition","Count distinct values inside a group"],"minutes":60,"lab":{"id":"2.3","title":"Questions 8 to 11: groups","minutes":35,"href":"../labs/D2_3_questions_8_to_11.ipynb"}},{"n":4,"label":"Session 4","title":"Inner, outer, semi and anti joins","slide":"s4","outcomes":["Predict the rows an inner and a left join return on small tables","Find rows without a partner with an anti join","Keep rows that have a partner without multiplying them, with a semi join"],"minutes":60,"lab":{"id":"2.4","title":"Questions 12 to 15: joins","minutes":35,"href":"../labs/D2_4_questions_12_to_15.ipynb"}}],"slides":[{"id":"title","n":1,"title":"One table, then two","kind":"title","session":0,"hash":"b0f5956e","md":"#### [day2#title] One table, then two\n\n*SDAIA Academy · SQL and Relational Data*\n\nDay 2: Conditions, NULL, groups and the four kinds of join\n\nData & AI Foundations Track · 4 teaching days + capstone day · 4 sessions · 4 labs · FND-DAT-101","notes":"Welcome back. Yesterday: keys, grain, filters. Today the queries combine rows: conditions as columns, unknown values, groups, and two tables at once.\n\nAsk who finished questions 1 to 4. Those who did not can run lab 1.4's notebook again at a break; its part file is all the checker needs.","minutes":null,"lo":[]},{"id":"agenda","n":2,"title":"One table, then two","kind":"content","session":0,"hash":"2fd1379c","md":"#### [day2#agenda] One table, then two\n\n*Today*\n\n- **Session 1 · CASE expressions and set operations**: CASE turns rules into columns; UNION, INTERSECT and EXCEPT combine whole result sets\n- **Session 2 · NULL and three-valued logic**: NULL is unknown, not zero or empty: comparisons with it are neither true nor false\n- **Session 3 · Grouping and having**: GROUP BY changes the grain of the result; HAVING filters groups after they are formed\n- **Session 4 · Inner, outer, semi and anti joins**: Which rows survive a join, and how to ask for rows that have, or lack, a partner","notes":"","minutes":null,"lo":[]},{"id":"review-day1","n":3,"title":"Which statement about the returns desk's tables is right?","kind":"quiz","session":0,"hash":"600595b3","md":"#### [day2#review-day1] Which statement about the returns desk's tables is right?\n\n*Review of Day 1*\n\n**Question:** `returns` has 5 rows and 4 distinct `order_ref` values; `inspections` can hold two rows for one return.\n\n- A. order_ref is a key of returns\n- B. The grain of inspections is one row per return\n- C. Joining returns to inspections can repeat a return\n- D. A join to inspections keeps exactly 5 rows","notes":"Answer: the join can repeat a return. This is the thread that Day 3 opens with.","minutes":null,"lo":["LO1"]},{"id":"s1","n":4,"title":"CASE expressions and set operations","kind":"section","session":1,"hash":"4a2656b2","md":"#### [day2#s1] CASE expressions and set operations\n\n*Session 1*\n\n- Write a CASE expression that sorts rows into bands\n- Count by condition with CASE inside an aggregate\n- Combine two result sets with UNION, INTERSECT or EXCEPT","notes":"","minutes":null,"lo":["LO3"]},{"id":"case-turns-rules","n":5,"title":"CASE turns a rule into a column","kind":"content","session":1,"hash":"c06ea7e3","md":"#### [day2#case-turns-rules] CASE turns a rule into a column\n\n*CASE*\n\n```sql\n-- file: returns desk\nSELECT return_id, item_no, qty,\n  CASE WHEN qty = 1  THEN 'single'\n       WHEN qty \u003c= 3 THEN 'few'\n       ELSE 'many'\n  END AS band\nFROM return_items;\n```\n\n- Branches are tried **in order**; the first true one wins\n- `ELSE` catches the rest; without it, the rest is NULL\n- Every branch returns the same type\n\n> **What goes wrong.** Put `qty \u003c= 3` first and a quantity of 1 becomes \"few\".","notes":"Ask the room to band the 8 items of the returns desk by hand: 4 single, 3 few, 1 many (printed by `_tools/slide_examples.py`).","minutes":null,"lo":["LO3"]},{"id":"case-in-aggregate","n":6,"title":"A CASE inside SUM counts the rows that meet a condition","kind":"content","session":1,"hash":"c8ce03d8","md":"#### [day2#case-in-aggregate] A CASE inside SUM counts the rows that meet a condition\n\n*Counting by condition*\n\n```sql\n-- file: returns desk\nSELECT reason_code,\n       SUM(CASE WHEN refund >= 15 THEN 1 ELSE 0 END) AS large,\n       COUNT(*) FILTER (WHERE refund \u003c 15)            AS small\nFROM returns\nGROUP BY reason_code;\n```\n\n- Two counts side by side, from one pass over the table\n- `FILTER (WHERE ...)` says the same thing more briefly where the engine supports it\n- A refund that is NULL is neither large nor small: count it on purpose if it matters","notes":"This is the shape of question 6, on another table and another condition. Do not write question 6 on the board.","minutes":null,"lo":["LO3"]},{"id":"set-operations","n":7,"title":"UNION, INTERSECT and EXCEPT combine whole result sets","kind":"content","session":1,"hash":"425d5af8","md":"#### [day2#set-operations] UNION, INTERSECT and EXCEPT combine whole result sets\n\n*Set operations*\n\n- **UNION.** In either set, duplicates removed. `UNION ALL` keeps them.\n- **INTERSECT.** In both sets.\n- **EXCEPT.** In the first set and not in the second.\n\n```sql\n-- file: returns desk\nSELECT product_ref FROM return_items WHERE return_id IN ('T1', 'T2')\nINTERSECT\nSELECT product_ref FROM return_items WHERE return_id = 'T5';\n-- X-101, X-205: products returned in both groups\n```","notes":"Both sides must return the same number of columns, of matching types. The sets compare whole rows.","minutes":null,"lo":["LO3"]},{"id":"sets-compare-rows","n":8,"title":"Set operations compare whole rows, so choose the columns first","kind":"content","session":1,"hash":"0569f4e1","md":"#### [day2#sets-compare-rows] Set operations compare whole rows, so choose the columns first\n\n*The catch*\n\n- **Too many columns.** `SELECT *` on both sides: two different returns never match, so `EXCEPT` takes nothing away.\n- **The column the question is about.** `SELECT product_ref` on both sides: the comparison is between products, as asked.\n\n> **Habit.** Say \"a set of what?\" before writing either side.","notes":"Question 7 is a set of customers, which is why its two sides select only the customer id.","minutes":null,"lo":["LO3"]},{"id":"union-all","n":9,"title":"UNION removes duplicates; UNION ALL keeps every row","kind":"content","session":1,"hash":"0e1b6c54","md":"#### [day2#union-all] UNION removes duplicates; UNION ALL keeps every row\n\n*UNION or UNION ALL*\n\n| You want | Use |\n| --- | --- |\n| A list of distinct products returned in May or June | `UNION` |\n| All return items of May and June, to sum quantities | `UNION ALL`: duplicates are real items |\n\n> **What goes wrong.** `UNION` under a sum silently merges two identical items of different returns, and the total shrinks.","notes":"The notebook of lab 2.1 shows both counts on the real tables after question 7.","minutes":null,"lo":["LO3"]},{"id":"check-case","n":10,"title":"Which query lists products returned in May but not in June?","kind":"quiz","session":1,"hash":"ee4f05a9","md":"#### [day2#check-case] Which query lists products returned in May but not in June?\n\n*Checkpoint*\n\n**Question:** The returns desk wants the distinct product codes returned in May 2026 that were not returned in June 2026.\n\n- A. May's product codes EXCEPT June's product codes\n- B. May's item rows EXCEPT June's item rows\n- C. May's product codes UNION June's product codes\n- D. May's product codes INTERSECT June's product codes","notes":"Answer: product codes with EXCEPT. If many choose the item rows, return to the \"whole rows\" slide.","minutes":null,"lo":["LO3"]},{"id":"lab-2-1","n":11,"title":"Questions 5 to 7: bands and sets","kind":"lab","session":1,"hash":"c7d11176","md":"#### [day2#lab-2-1] Questions 5 to 7: bands and sets\n\nLab 2.1 · 30 min\n\nPredict, then answer three business questions with CASE bands, conditional counts and a set operation; save them to your answer file\n\n[D2_1_questions_5_to_7.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_1_questions_5_to_7.ipynb)\n\n- [ ] Write a prediction for each of the three questions (4 min)\n- [ ] Question 5: order lines in quantity bands (8 min)\n- [ ] Question 6: paid and free delivery per order status (8 min)\n- [ ] Question 7: January customers who did not order in June (7 min)\n- [ ] Save the part file (3 min)\n- [ ] ✱ Stretch: Answer question 7 again with NOT EXISTS and confirm both give the same count","notes":"Predictions first, assistant off. Common failures: question 5 with the WHEN branches in the wrong order; question 7 with EXCEPT over whole order rows, which returns all January customers.\n\nDebrief: ask two participants to read their prediction for question 7 and the result. A gap of thousands is worth a minute of discussion.","minutes":null,"lo":[]},{"id":"s2","n":12,"title":"NULL and three-valued logic","kind":"section","session":2,"hash":"e4cd05ec","md":"#### [day2#s2] NULL and three-valued logic\n\n*Session 2*\n\n- Predict the rows a comparison with NULL keeps\n- Use IS NULL, COALESCE and IS DISTINCT FROM on purpose\n- Explain why NOT IN with a NULL returns no rows","notes":"","minutes":null,"lo":["LO2"]},{"id":"null-is-unknown","n":13,"title":"NULL means unknown: not zero, not empty text, not false","kind":"content","session":2,"hash":"01b8dc5f","md":"#### [day2#null-is-unknown] NULL means unknown: not zero, not empty text, not false\n\n*NULL*\n\n- **Unknown.** T4's refund has not been decided.\n- **Not applicable.** A line with no discount, in some designs.\n- **Not recorded.** A customer who gave no region.\n\n> **One marker, several meanings.** The schema rarely says which. The business rule does: the finance rule of this course says an empty discount means none.","notes":"The point: NULL is a placeholder for a missing value, and the question decides how to treat it. Day 3's revenue rule settles it for discounts.","minutes":null,"lo":["LO2"]},{"id":"three-valued","n":14,"title":"A comparison with NULL is neither true nor false: it is unknown","kind":"content","session":2,"hash":"f5fca2b1","md":"#### [day2#three-valued] A comparison with NULL is neither true nor false: it is unknown\n\n*Three-valued logic*\n\n| Condition on T4 (refund NULL) | Result | Kept by WHERE? |\n| --- | --- | --- |\n| `refund = 12.00` | unknown | no |\n| `refund \u003c> 12.00` | unknown | no |\n| `refund = NULL` | unknown | no |\n| `refund IS NULL` | true | yes |\n\nWHERE keeps a row only when its condition is true.","notes":"So `refund \u003c> 12.00` keeps 3 of the 5 returns, not 4: T4 drops out. And `refund = NULL` keeps none. Both numbers come from the slide examples script.","minutes":null,"lo":["LO2"]},{"id":"and-or-unknown","n":15,"title":"AND, OR and NOT carry the unknown through","kind":"content","session":2,"hash":"bcf28c62","md":"#### [day2#and-or-unknown] AND, OR and NOT carry the unknown through\n\n*Combining unknowns*\n\n- **AND.** false AND unknown = **false**\n  true AND unknown = **unknown**\n- **OR.** true OR unknown = **true**\n  false OR unknown = **unknown**\n- **NOT.** NOT unknown = **unknown**\n\n> **What goes wrong.** `NOT (refund = 12.00)` does not bring T4 back: the NOT of unknown is still unknown.","notes":"Work one row through each operator on the board. Lab 2.2 has twelve such predictions; this table is the tool for them.","minutes":null,"lo":["LO2"]},{"id":"null-tools","n":16,"title":"Three tools make NULL behave the way the question needs","kind":"content","session":2,"hash":"cccb01e5","md":"#### [day2#null-tools] Three tools make NULL behave the way the question needs\n\n*Saying what you mean*\n\n| Tool | Use it when |\n| --- | --- |\n| `x IS NULL`, `x IS NOT NULL` | you ask whether a value is missing |\n| `COALESCE(x, 0)` | a missing value means a known default |\n| `x IS DISTINCT FROM y` | you want \"different\", with NULL treated as a value |\n\n```sql\n-- file: returns desk\nSELECT COUNT(*) FROM returns WHERE refund IS DISTINCT FROM 12.00;  -- 4: T4 included\n```","notes":"IS DISTINCT FROM is standard SQL and supported by DuckDB and SQLite (SQLite also writes it IS NOT). Name it as the clean answer to \"not equal, missing included\".","minutes":null,"lo":["LO2"]},{"id":"not-in-trap","n":17,"title":"NOT IN with a NULL in the list keeps no row at all","kind":"content","session":2,"hash":"5268d848","md":"#### [day2#not-in-trap] NOT IN with a NULL in the list keeps no row at all\n\n*The classic trap*\n\n1. **Written** `code NOT IN ('R1', NULL)`\n2. **Means** `code \u003c> 'R1' AND code \u003c> NULL`\n3. **Becomes** something AND unknown: never true\n\n> **Use NOT EXISTS** when the list comes from a subquery that might contain a NULL.","notes":"The stretch of lab 2.2 shows it on the mini tables. In production it happens when a subquery returns a column with one missing value, and a report quietly goes empty.","minutes":null,"lo":["LO2"]},{"id":"null-in-aggregates","n":18,"title":"Aggregates skip NULLs, except COUNT(*)","kind":"content","session":2,"hash":"f23ac7ff","md":"#### [day2#null-in-aggregates] Aggregates skip NULLs, except COUNT(\\*)\n\n*Aggregates*\n\n- **5** COUNT(\\*)\n- **4** COUNT(refund)\n- **69.75** SUM(refund)\n- **17.44** AVG(refund)\n\nAVG divides 69.75 by the 4 known refunds. If an unknown refund should count as 0, the question wants `AVG(COALESCE(refund, 0))` = 13.95.\n\nThe returns desk, 5 returns, one refund NULL (`_tools/slide_examples.py`).","notes":"Neither average is wrong: they answer different questions. The analyst's job is to know which one was asked.","minutes":null,"lo":["LO2"]},{"id":"check-null","n":19,"title":"How many inspections does this query count?","kind":"quiz","session":2,"hash":"f3b22393","md":"#### [day2#check-null] How many inspections does this query count?\n\n*Checkpoint*\n\n**Question:** An inspections table has 6 rows. `result` is 'pass' in 3, 'fail' in 1 and NULL in 2. What does `SELECT COUNT(*) FROM inspections WHERE result \u003c> 'pass'` return?\n\n- A. 3\n- B. 6\n- C. 0\n- D. 1","notes":"Answer: 1. Ask the room to rewrite it so the two unknown results are counted too: `result IS DISTINCT FROM 'pass'`, which gives 3.","minutes":null,"lo":["LO2"]},{"id":"lab-2-2","n":20,"title":"Predict, then run: twelve NULL comparisons","kind":"lab","session":2,"hash":"847375e3","md":"#### [day2#lab-2-2] Predict, then run: twelve NULL comparisons\n\nLab 2.2 · 35 min\n\nWith the assistant off, predict the row count of twelve short queries on the printed mini tables, run them, mark each prediction and repair the ones that did not say what was meant\n\n[D2_2_null_predictions.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_2_null_predictions.ipynb)\n\n- [ ] Print the mini customers and order lines (3 min)\n- [ ] Predict the row count of each of the twelve queries on paper (12 min)\n- [ ] Run the twelve and mark each prediction (8 min)\n- [ ] Rewrite three queries so they say what was meant (9 min)\n- [ ] Write the NULL rule you will keep (3 min)\n- [ ] ✱ Stretch: Show NOT IN returning no rows when the list holds a NULL, and the NOT EXISTS that does not","notes":"This lab is AI-off from start to finish of the predictions. Ask participants to write on paper first, then type into the cell. The predictions are practice for the timed check on the capstone day.\n\nDebrief by asking which query surprised the most people. n08 (NOT IN with a NULL) and n12 (COUNT of a column) usually win.","minutes":null,"lo":[]},{"id":"s3","n":21,"title":"Grouping and having","kind":"section","session":3,"hash":"de875033","md":"#### [day2#s3] Grouping and having\n\n*Session 3*\n\n- Predict the number of rows a GROUP BY returns\n- Choose between WHERE and HAVING for a condition\n- Count distinct values inside a group","notes":"","minutes":null,"lo":["LO2","LO3"]},{"id":"group-changes-grain","n":22,"title":"GROUP BY changes the grain: one row per group","kind":"content","session":3,"hash":"54d313d1","md":"#### [day2#group-changes-grain] GROUP BY changes the grain: one row per group\n\n*GROUP BY*\n\n```sql\n-- file: returns desk\nSELECT reason_code,\n       COUNT(*)    AS returns,\n       SUM(refund) AS refunds\nFROM returns\nGROUP BY reason_code;\n```\n\n| reason_code | returns | refunds |\n| --- | --- | --- |\n| R1 | 2 | 20.25 |\n| R2 | 2 | 49.50 |\n| R3 | 1 | NULL |\n\nFive rows in, three out: **one row per reason that occurs**. R4 has no return, so no group.","notes":"Predict the number of output rows before running any GROUP BY: it is the number of distinct values of the grouping columns among the rows that pass WHERE.\n\nR3's sum is NULL because its only refund is unknown.","minutes":null,"lo":["LO2","LO3"]},{"id":"select-what-groups","n":23,"title":"After GROUP BY, SELECT may show only group columns and aggregates","kind":"content","session":3,"hash":"25b3a8ab","md":"#### [day2#select-what-groups] After GROUP BY, SELECT may show only group columns and aggregates\n\n*The rule*\n\n- **Refused, or meaningless.** `SELECT reason_code, return_id, COUNT(*) ... GROUP BY reason_code`: which of R1's two returns would the row show?\n- **Fine.** `SELECT reason_code, COUNT(*), MAX(received_on) ... GROUP BY reason_code`\n\n> **Read it as** \"for each reason code, tell me ...\". Anything else needs an aggregate.","notes":"DuckDB refuses the first query with a binder error that names the column. Read the message aloud: it tells you exactly which column to group by or aggregate.","minutes":null,"lo":["LO3"]},{"id":"where-vs-having","n":24,"title":"WHERE filters rows before grouping; HAVING filters groups after","kind":"content","session":3,"hash":"b03a03fc","md":"#### [day2#where-vs-having] WHERE filters rows before grouping; HAVING filters groups after\n\n*WHERE or HAVING*\n\n1. **FROM** returns\n2. **WHERE** refund IS NOT NULL\n3. **GROUP BY** reason_code\n4. **HAVING** COUNT(\\*) >= 2\n5. **SELECT, ORDER BY**\n\nWithout the WHERE, the reasons with at least two returns are R1 and R2. A condition on a single row's value goes in WHERE; a condition on a count or a sum goes in HAVING.","notes":"Ask: with the WHERE in place, does the result change? (No: R1 and R2 each still have two known refunds.) Then ask what would change if T1's refund were NULL.","minutes":null,"lo":["LO2","LO3"]},{"id":"count-distinct","n":25,"title":"COUNT(DISTINCT x) counts different values inside each group","kind":"content","session":3,"hash":"50751727","md":"#### [day2#count-distinct] COUNT(DISTINCT x) counts different values inside each group\n\n*Counting things, not rows*\n\n| Expression | Counts | Returns desk, all items |\n| --- | --- | --- |\n| `COUNT(*)` | rows | 8 |\n| `COUNT(DISTINCT return_id)` | different returns | 5 |\n| `COUNT(DISTINCT product_ref)` | different products | 5 |\n\n> **What goes wrong.** \"How many customers ordered in May\" with `COUNT(*)` counts orders.","notes":"Question 10 asks for both in one row per month: the number of orders and the number of different customers.","minutes":null,"lo":["LO3"]},{"id":"group-by-expression","n":26,"title":"Group by an expression to get one row per month, week or band","kind":"content","session":3,"hash":"f4945386","md":"#### [day2#group-by-expression] Group by an expression to get one row per month, week or band\n\n*Groups of time*\n\n```sql\n-- file: returns desk\nSELECT CAST(date_trunc('week', received_on) AS DATE) AS week,\n       COUNT(*) AS returns\nFROM returns\nGROUP BY week\nORDER BY week;\n```\n\n- The expression in SELECT and in GROUP BY must be the same; the alias saves retyping it\n- In DuckDB `date_trunc` returns a timestamp, even on a `DATE`: cast it to `DATE` for a clean label","notes":"DuckDB accepts the alias in GROUP BY; some engines need the expression repeated. Both are correct SQL in DuckDB.","minutes":null,"lo":["LO3"]},{"id":"check-group","n":27,"title":"How many rows does this grouped query return?","kind":"quiz","session":3,"hash":"de74496d","md":"#### [day2#check-group] How many rows does this grouped query return?\n\n*Checkpoint*\n\n**Question:** A table of 40 deliveries covers 6 couriers; courier K9 made only 1 delivery. `SELECT courier_id, COUNT(*) FROM deliveries GROUP BY courier_id HAVING COUNT(*) > 1`. How many rows come back?\n\n- A. 39\n- B. 5\n- C. 6\n- D. 0","notes":"Answer: 5. This is the kind of item on the timed check: a small table, a query, a number.","minutes":null,"lo":["LO2"]},{"id":"lab-2-3","n":28,"title":"Questions 8 to 11: groups","kind":"lab","session":3,"hash":"fd7bd150","md":"#### [day2#lab-2-3] Questions 8 to 11: groups\n\nLab 2.3 · 35 min\n\nPredict, then answer four grouping questions: orders per store, busy customers, months and best-selling products; save them to your answer file\n\n[D2_3_questions_8_to_11.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_3_questions_8_to_11.ipynb)\n\n- [ ] Write a prediction for each of the four questions (5 min)\n- [ ] Question 8: delivered orders per store (7 min)\n- [ ] Question 9: customers with many orders, using HAVING (8 min)\n- [ ] Question 10: orders and distinct customers per month (7 min)\n- [ ] Question 11: products on many order lines (5 min)\n- [ ] Save the part file (3 min)\n- [ ] ✱ Stretch: Explain why COUNT(discount) and COUNT(\\*) differ on the order lines","notes":"Ask each participant to write the grain of each result as a comment above the query. Common failures: question 9 with the count condition in WHERE; question 10 grouped by the timestamp itself, which gives one row per order.\n\nDebrief with question 8: one store region has a single store, which is why two stores dispatch about twice as many orders as the others.","minutes":null,"lo":[]},{"id":"s4","n":29,"title":"Inner, outer, semi and anti joins","kind":"section","session":4,"hash":"1a6c266b","md":"#### [day2#s4] Inner, outer, semi and anti joins\n\n*Session 4*\n\n- Predict the rows an inner and a left join return on small tables\n- Find rows without a partner with an anti join\n- Keep rows that have a partner without multiplying them, with a semi join","notes":"","minutes":null,"lo":["LO2","LO3"]},{"id":"inner-join","n":30,"title":"An inner join keeps only the pairs of rows that match","kind":"content","session":4,"hash":"a9f6dc9a","md":"#### [day2#inner-join] An inner join keeps only the pairs of rows that match\n\n*Inner join*\n\n```sql\n-- file: returns desk\nSELECT t.return_id, i.result\nFROM returns t\nJOIN inspections i\n  ON i.return_id = t.return_id;\n-- 4 rows\n```\n\n- T1 once, T2 twice, T5 once: **4 rows**\n- T3 and T4 were never inspected: **gone**\n- The ON condition says which rows belong together\n\n> **Two silent effects.** Rows without a partner disappear; rows with several partners repeat.","notes":"Draw the two tables on the board and connect the matching rows with lines; count the lines. Every line is an output row.","minutes":null,"lo":["LO2","LO3"]},{"id":"left-join","n":31,"title":"A left join keeps every row of the left table, matched or not","kind":"content","session":4,"hash":"6ee46c3d","md":"#### [day2#left-join] A left join keeps every row of the left table, matched or not\n\n*Outer joins*\n\n| return_id | result |\n| --- | --- |\n| T1 | pass |\n| T2 | pass |\n| T2 | fail |\n| T3 | NULL |\n| T4 | NULL |\n| T5 | pass |\n\n`returns LEFT JOIN inspections`: **6 rows**. The unmatched returns come back with NULL in every column of the right side. A right join keeps the right side; a full join keeps both.","notes":"The NULLs here mean \"no partner\", a fourth meaning of NULL on top of those of session 2.","minutes":null,"lo":["LO2","LO3"]},{"id":"anti-join","n":32,"title":"An anti join keeps the rows that have no partner","kind":"content","session":4,"hash":"532b573d","md":"#### [day2#anti-join] An anti join keeps the rows that have no partner\n\n*Anti join*\n\n```sql\n-- file: returns desk\nSELECT t.return_id\nFROM returns t\nWHERE NOT EXISTS (\n  SELECT 1 FROM inspections i\n  WHERE i.return_id = t.return_id\n);\n-- T3, T4\n```\n\n- \"Returns never inspected\", \"products never sold\", \"customers who never ordered\"\n- Also written as a left join with `WHERE i.return_id IS NULL`\n- Avoid `NOT IN (subquery)`: one NULL in it empties the result","notes":"NOT EXISTS reads like the question. The left-join form is common in older code; recognise both.","minutes":null,"lo":["LO2","LO3"]},{"id":"semi-join","n":33,"title":"A semi join keeps each row that has a partner, once","kind":"content","session":4,"hash":"4d7c22db","md":"#### [day2#semi-join] A semi join keeps each row that has a partner, once\n\n*Semi join*\n\n```sql\n-- file: returns desk\nSELECT COUNT(*)\nFROM returns t\nWHERE EXISTS (\n  SELECT 1 FROM inspections i\n  WHERE i.return_id = t.return_id\n);\n-- 3\n```\n\n- **Not the same as an inner join.** The inner join counted 4 rows: T2 twice. \"How many returns were inspected?\" is 3. EXISTS never repeats a row.","notes":"This is the bridge to Day 3: when the question is about the left table, filter with EXISTS rather than joining and then trying to undo the repeats.","minutes":null,"lo":["LO2","LO3"]},{"id":"which-join","n":34,"title":"Choose the join from the question's words","kind":"content","session":4,"hash":"0fa8fbab","md":"#### [day2#which-join] Choose the join from the question's words\n\n*Choosing*\n\n| The question says | Join |\n| --- | --- |\n| \"each ... with its ...\" | inner |\n| \"every ..., including those without ...\" | left |\n| \"... that never ...\", \"... without any ...\" | anti: `NOT EXISTS` |\n| \"... that had at least one ...\" | semi: `EXISTS` |","notes":"Lab 2.4 has one question of each kind. Ask the room to classify them from `data/twenty_questions.md` before opening the notebook.","minutes":null,"lo":["LO2","LO3"]},{"id":"check-join","n":35,"title":"How many rows does the left join return?","kind":"quiz","session":4,"hash":"86b98208","md":"#### [day2#check-join] How many rows does the left join return?\n\n*Checkpoint*\n\n**Question:** `couriers` has 4 rows. `shifts` has 7 rows: courier A has 3 shifts, B has 2, C has 2, D has none. How many rows does `couriers LEFT JOIN shifts` return?\n\n- A. 4\n- B. 7\n- C. 8\n- D. 28","notes":"Answer: 8. 28 is the cross join: mention it as the join without an ON condition.","minutes":null,"lo":["LO2"]},{"id":"lab-2-4","n":36,"title":"Questions 12 to 15: joins","kind":"lab","session":4,"hash":"7ef0f63a","md":"#### [day2#lab-2-4] Questions 12 to 15: joins\n\nLab 2.4 · 35 min\n\nPredict, then answer four questions, one for each kind of join; save them to your answer file\n\n[D2_4_questions_12_to_15.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_4_questions_12_to_15.ipynb)\n\n- [ ] Write a prediction for each of the four questions (5 min)\n- [ ] Question 12: delivered orders per store region (7 min)\n- [ ] Question 13: customers and never-ordered customers per region (8 min)\n- [ ] Question 14: active products that were never sold (7 min)\n- [ ] Question 15: customers with at least one failed attempt (5 min)\n- [ ] Save the part file (3 min)\n- [ ] ✱ Stretch: Write question 13 with a left join and with NOT EXISTS, and say which one a reader understands first","notes":"Common failures: question 13 with COUNT(\\*) after the left join, which counts orders; question 14 with NOT IN, which works here but is a habit to drop; question 15 with an inner join and COUNT(\\*), which counts failed attempts.","minutes":null,"lo":[]},{"id":"wrap-up","n":37,"title":"Three things to keep from Day 2","kind":"content","session":4,"hash":"e424a159","md":"#### [day2#wrap-up] Three things to keep from Day 2\n\n*Wrap-up*\n\n- **NULL is unknown.** WHERE keeps only true rows. Ask IS NULL, or COALESCE on purpose.\n- **Groups set the grain.** One row per group; conditions on counts go in HAVING.\n- **Joins drop and repeat.** Choose inner, left, anti or semi from the question's words.","notes":"Ask each participant which of the three cost them a wrong prediction today.","minutes":null,"lo":[]},{"id":"next","n":38,"title":"Day 3: count once, build in steps, then windows","kind":"content","session":4,"hash":"59a94d1e","md":"#### [day2#next] Day 3: count once, build in steps, then windows\n\n*Next*\n\n- Finish questions 5 to 15 if you did not: about 30 minutes\n- Keep `answers/`: the checker runs over all twenty tomorrow\n- Read `data/revenue_rule.md` once before Day 3","notes":"The revenue rule matters for question 19 and returns in the verification lab on Day 4.","minutes":null,"lo":[]}],"activities":[{"id":"review-day1-q1","slide":"review-day1","type":"single","prompt":"returns has 5 rows and 4 distinct order_ref values; inspections can hold two rows for one return.","options":[{"key":"A","text":"order_ref is a key of returns"},{"key":"B","text":"The grain of inspections is one row per return"},{"key":"C","text":"Joining returns to inspections can repeat a return"},{"key":"D","text":"A join to inspections keeps exactly 5 rows"}],"correct":[2],"explanation":"A return inspected twice matches two rows of inspections, so it appears twice after the join.","misconceptions":["Takes a column that looks like an identifier for a key: 4 distinct values for 5 rows","Reads the grain from the first column instead of from what one row records","","Believes a join never changes the number of rows of the left table"],"lo":["LO1"]},{"id":"check-case-q1","slide":"check-case","type":"single","prompt":"The returns desk wants the distinct product codes returned in May 2026 that were not returned in June 2026.","options":[{"key":"A","text":"May's product codes EXCEPT June's product codes"},{"key":"B","text":"May's item rows EXCEPT June's item rows"},{"key":"C","text":"May's product codes UNION June's product codes"},{"key":"D","text":"May's product codes INTERSECT June's product codes"}],"correct":[0],"explanation":"The question is about a set of products, so both sides select the product code, and EXCEPT removes June's.","misconceptions":["","Compares whole rows: two item rows of different returns never match, so nothing is removed","Combines the two sets instead of taking one from the other","Keeps only what the two months share, the opposite of the question"],"lo":["LO3"]},{"id":"check-null-q1","slide":"check-null","type":"single","prompt":"An inspections table has 6 rows. result is 'pass' in 3, 'fail' in 1 and NULL in 2. What does SELECT COUNT(*) FROM inspections WHERE result \u003c> 'pass' return?","options":[{"key":"A","text":"3"},{"key":"B","text":"6"},{"key":"C","text":"0"},{"key":"D","text":"1"}],"correct":[3],"explanation":"Only the 'fail' row makes the condition true. For the two NULL rows the condition is unknown, and WHERE keeps only true rows.","misconceptions":["Treats NULL as a value that differs from 'pass'; the comparison is unknown, so those rows are dropped","Counts the passes instead of the rows that are not passes","Believes any NULL in the column makes the whole query return nothing",""],"lo":["LO2"]},{"id":"check-group-q1","slide":"check-group","type":"single","prompt":"A table of 40 deliveries covers 6 couriers; courier K9 made only 1 delivery. SELECT courier_id, COUNT(*) FROM deliveries GROUP BY courier_id HAVING COUNT(*) > 1. How many rows come back?","options":[{"key":"A","text":"39"},{"key":"B","text":"5"},{"key":"C","text":"6"},{"key":"D","text":"0"}],"correct":[1],"explanation":"Six couriers make six groups; HAVING removes the group whose count is 1.","misconceptions":["Counts input rows: GROUP BY returns one row per group, not per delivery","","Forgets that HAVING removes the group of the courier with a single delivery","Thinks HAVING filters rows before grouping, so it applies to single deliveries"],"lo":["LO2"]},{"id":"check-join-q1","slide":"check-join","type":"single","prompt":"couriers has 4 rows. shifts has 7 rows: courier A has 3 shifts, B has 2, C has 2, D has none. How many rows does couriers LEFT JOIN shifts return?","options":[{"key":"A","text":"4"},{"key":"B","text":"7"},{"key":"C","text":"8"},{"key":"D","text":"28"}],"correct":[2],"explanation":"Seven matched pairs, plus one row for D with NULL shift columns.","misconceptions":["Counts the left table only, as if a join could not repeat its rows","Counts the matches but drops courier D, as an inner join would","","Multiplies the tables as if every courier matched every shift"],"lo":["LO2"]}],"ai":{"context":{"course":"../context/course.md","courseJs":"../context/course.js","day":"day2.md","llms":"../llms.txt"},"tasks":[],"tools":[]},"bridge":{"allowedOrigins":[]},"features":{},"strings":{}}</script>
+<script src="../_engine/academy.js"></script>
+</body>
+</html>

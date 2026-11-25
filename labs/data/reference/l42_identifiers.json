@@ -1,0 +1,10 @@
+{
+ "customer_id": "indirect; a key that links all of one person's orders",
+ "joined_on": "indirect; an exact date, combined with region it narrows the group",
+ "region": "indirect; coarse alone, narrows the group with other columns",
+ "full_name": "direct; names the person",
+ "phone": "direct; reaches the person",
+ "email": "direct; reaches the person",
+ "birth_year": "indirect; with region and join date it can single a person out",
+ "marketing_opt_in": "neither; a choice the person made, identifies no one"
+}

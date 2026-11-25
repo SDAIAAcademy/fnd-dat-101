@@ -1,0 +1,1008 @@
+{
+  "v": 1,
+  "engine": "1.0.0",
+  "build": {
+    "at": "2026-11-25T05:37:20Z",
+    "version": "2027.1.0",
+    "commit": "65f9e39"
+  },
+  "lang": "en",
+  "dir": "ltr",
+  "langs": [
+    "en"
+  ],
+  "alt": {},
+  "course": {
+    "id": "fnd-dat-101",
+    "code": "FND-DAT-101",
+    "version": "2027.1.0",
+    "title": "SQL and Relational Data",
+    "tagline": "Query relational data in SQL, predict the result before you run it, and prove the answer right against a known one",
+    "description": "Participants query relational data in SQL and check that the answers are right. In an embedded analytical engine on a laptop they move from keys and constraints through joins, grouping and common table expressions to window functions. They predict results before running queries, catch the silent errors that joins and NULLs cause, and test assistant-written SQL against known answers. The capstone answers a stakeholder brief on an unseen dataset.",
+    "track": "foundations",
+    "track_name": "Data & AI Foundations Track",
+    "level": 100,
+    "badge": null,
+    "audience": "Beginners. Anyone starting technical data or AI work, including future analysts, data scientists, data engineers and AI engineers who can code but have not yet worked with messy real data.",
+    "prerequisites": [
+      "Comfortable with spreadsheets: filters, sorting and simple formulas",
+      "No programming experience required"
+    ],
+    "url": "https://sdaiaacademy.github.io/fnd-dat-101/",
+    "repo": "SDAIAAcademy/fnd-dat-101",
+    "home": "../index.html",
+    "format": "intensive",
+    "format_note": "Intensive: 4 teaching days and a capstone day, with guided pre-work and a tracked follow-up task",
+    "shape": "4 teaching days + capstone day",
+    "hours": {
+      "instruction": 7,
+      "lab": 9,
+      "guided_self_study": 7,
+      "assessment": 2,
+      "capstone": 5,
+      "total": 30
+    },
+    "unit": "day",
+    "outcomes": [
+      {
+        "id": "LO1",
+        "text": "Explain the relational model: tables, keys, constraints, NULL and the grain of a table, given a six-table synthetic delivery schema",
+        "level": "Awareness",
+        "evidence": "an annotated schema with keys, cardinalities and grain matching the reference"
+      },
+      {
+        "id": "LO2",
+        "text": "Identify the output of joins, grouping and NULL comparisons before running them, given small printed tables",
+        "level": "Awareness",
+        "evidence": "supervised AI-off check, eight of ten correct"
+      },
+      {
+        "id": "LO3",
+        "text": "Write queries with filters, joins, grouping, subqueries and common table expressions that answer business questions, given a synthetic dataset of about a million order lines",
+        "level": "Applied",
+        "evidence": "a query file passing the automatic checker on 16 of 20 questions"
+      },
+      {
+        "id": "LO4",
+        "text": "Apply window functions to rank rows, compare periods and compute running and moving totals, given daily order tables",
+        "level": "Applied",
+        "evidence": "queries matching reference outputs, each partition explained in a comment"
+      },
+      {
+        "id": "LO5",
+        "text": "Implement a small schema with keys and constraints, load raw files into it and report rejected rows, given extracts with seeded defects",
+        "level": "Applied",
+        "evidence": "a definition script and a load log accounting for every rejected row"
+      },
+      {
+        "id": "LO6",
+        "text": "Identify silent errors in assistant-written SQL, such as join fan-out, wrong grain and missing business rules, given ten generated queries and a revenue rule documented outside the schema",
+        "level": "Awareness",
+        "evidence": "a verification note judging each query, with a test result"
+      }
+    ],
+    "case_study": {
+      "name": "The grocery delivery company",
+      "summary": "An online grocery and household goods delivery business in one city of five regions, dispatching from eight stores; every lab works on its synthetic six-table schema of about a million order lines from January to June 2026, with planted traps: delivery attempts that multiply rows, discounts left NULL, cancelled lines, closed days and a revenue rule finance keeps outside the schema. The capstone uses an unseen dataset from the company's business orders service; all data is synthetic and people appear only as roles and codes."
+    },
+    "days": [
+      {
+        "id": "day1",
+        "kind": "day",
+        "n": 1,
+        "number": 1,
+        "label": "Day 1",
+        "title": "Tables, keys and grain",
+        "subtitle": "What a row means before any query is written",
+        "shape": "4 sessions · 4 labs",
+        "deck": "../slides/day1.html",
+        "md": "../slides/day1.md",
+        "url": "https://sdaiaacademy.github.io/fnd-dat-101/slides/day1.html",
+        "sessions": [
+          {
+            "n": 1,
+            "label": "Session 1",
+            "title": "Tables, types, keys and constraints",
+            "summary": "A table is a set of rows of one kind; keys name a row, constraints refuse a bad one",
+            "outcomes": [
+              "Name the type and the role of each column of a table",
+              "Test a candidate key with a counting query",
+              "Read the message a database gives when a constraint refuses a row"
+            ],
+            "lo": [
+              "LO1"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "1.1",
+              "title": "Six tables and their keys",
+              "summary": "List the six tables of the grocery delivery company, read their columns and types, test each candidate key by counting, and watch a key and a check refuse bad rows",
+              "minutes": 35,
+              "href": "../labs/D1_1_tables_and_keys.ipynb",
+              "steps": [
+                {
+                  "text": "List the six tables with their row counts",
+                  "minutes": 5
+                },
+                {
+                  "text": "Describe the columns and types of each table",
+                  "minutes": 7
+                },
+                {
+                  "text": "Test each candidate key: COUNT(*) against COUNT(DISTINCT key)",
+                  "minutes": 10
+                },
+                {
+                  "text": "Break a key and a check on the mini tables and read the refusals",
+                  "minutes": 8
+                },
+                {
+                  "text": "Write down what each table refuses and why",
+                  "minutes": 5
+                }
+              ],
+              "stretch": "Find one column whose type is weaker than its meaning and say what that lets in"
+            }
+          },
+          {
+            "n": 2,
+            "label": "Session 2",
+            "title": "Grain and cardinality",
+            "summary": "What one row stands for, and how many rows of one table meet one row of another",
+            "outcomes": [
+              "State the grain of a table in one sentence",
+              "Confirm a grain with a counting query",
+              "Measure a one-to-many relationship and name its maximum"
+            ],
+            "lo": [
+              "LO1"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "1.2",
+              "title": "The annotated schema",
+              "summary": "Write the key and the grain of each of the six tables, confirm them with counting queries, measure the cardinality of every relationship and check the annotated schema against the reference",
+              "minutes": 35,
+              "href": "../labs/D1_2_annotated_schema.ipynb",
+              "steps": [
+                {
+                  "text": "Write the grain of each table in one sentence",
+                  "minutes": 6
+                },
+                {
+                  "text": "Confirm each grain with a counting query",
+                  "minutes": 10
+                },
+                {
+                  "text": "Measure lines per order, attempts per order and orders per customer",
+                  "minutes": 10
+                },
+                {
+                  "text": "Fill in the annotated schema and run its check",
+                  "minutes": 9
+                }
+              ],
+              "stretch": "List every join of the schema that can multiply rows, and the column that causes it"
+            }
+          },
+          {
+            "n": 3,
+            "label": "Session 3",
+            "title": "Normal forms, wide tables and embedded engines",
+            "summary": "Why operational tables are split, why analytical tables are wide, and where the engine runs",
+            "outcomes": [
+              "Explain the repetition that normal forms remove",
+              "Build a wide analytical table from a join and name its risks",
+              "Contrast an embedded engine with a client-server database"
+            ],
+            "lo": [
+              "LO1"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "1.3",
+              "title": "One wide table, and what it repeats",
+              "summary": "Join order lines to their order, store and product into one wide table, count what it repeats, make one copy disagree, and run the same count in a second embedded engine",
+              "minutes": 30,
+              "href": "../labs/D1_3_wide_table.ipynb",
+              "steps": [
+                {
+                  "text": "Build a wide table of order lines with store and product columns",
+                  "minutes": 8
+                },
+                {
+                  "text": "Count how often each store's region is repeated",
+                  "minutes": 6
+                },
+                {
+                  "text": "Change one region in the wide table and find the rows that now disagree",
+                  "minutes": 8
+                },
+                {
+                  "text": "Run the same count in the second embedded engine",
+                  "minutes": 8
+                }
+              ],
+              "stretch": "Write two sentences on when the wide table is the right choice and who must rebuild it"
+            }
+          },
+          {
+            "n": 4,
+            "label": "Session 4",
+            "title": "Filters, sorting and expressions",
+            "summary": "WHERE on text and dates, ORDER BY with ties, and expressions that compute a value per row",
+            "outcomes": [
+              "Filter rows on text patterns and date ranges",
+              "Sort with a tie-breaker and keep the top rows",
+              "Compute a value per row with an expression that handles a NULL"
+            ],
+            "lo": [
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "1.4",
+              "title": "Questions 1 to 4, predicted first",
+              "summary": "Write a prediction, then the query, for the first four of the twenty business questions: text filters, a date range, a sorted top ten and a line value; save them to your answer file",
+              "minutes": 35,
+              "href": "../labs/D1_4_questions_1_to_4.ipynb",
+              "steps": [
+                {
+                  "text": "Read the four questions and write a prediction for each",
+                  "minutes": 5
+                },
+                {
+                  "text": "Answer questions 1 and 2: a text filter and a date range",
+                  "minutes": 12
+                },
+                {
+                  "text": "Answer questions 3 and 4: a sorted top ten and a line value",
+                  "minutes": 12
+                },
+                {
+                  "text": "Compare each result with your prediction and save the part file",
+                  "minutes": 6
+                }
+              ],
+              "stretch": "Rewrite question 2 with a half-open date range and explain why it is safer than BETWEEN"
+            }
+          }
+        ]
+      },
+      {
+        "id": "day2",
+        "kind": "day",
+        "n": 2,
+        "number": 2,
+        "label": "Day 2",
+        "title": "One table, then two",
+        "subtitle": "Conditions, NULL, groups and the four kinds of join",
+        "shape": "4 sessions · 4 labs",
+        "deck": "../slides/day2.html",
+        "md": "../slides/day2.md",
+        "url": "https://sdaiaacademy.github.io/fnd-dat-101/slides/day2.html",
+        "sessions": [
+          {
+            "n": 1,
+            "label": "Session 1",
+            "title": "CASE expressions and set operations",
+            "summary": "CASE turns rules into columns; UNION, INTERSECT and EXCEPT combine whole result sets",
+            "outcomes": [
+              "Write a CASE expression that sorts rows into bands",
+              "Count by condition with CASE inside an aggregate",
+              "Combine two result sets with UNION, INTERSECT or EXCEPT"
+            ],
+            "lo": [
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "2.1",
+              "title": "Questions 5 to 7: bands and sets",
+              "summary": "Predict, then answer three business questions with CASE bands, conditional counts and a set operation; save them to your answer file",
+              "minutes": 30,
+              "href": "../labs/D2_1_questions_5_to_7.ipynb",
+              "steps": [
+                {
+                  "text": "Write a prediction for each of the three questions",
+                  "minutes": 4
+                },
+                {
+                  "text": "Question 5: order lines in quantity bands",
+                  "minutes": 8
+                },
+                {
+                  "text": "Question 6: paid and free delivery per order status",
+                  "minutes": 8
+                },
+                {
+                  "text": "Question 7: January customers who did not order in June",
+                  "minutes": 7
+                },
+                {
+                  "text": "Save the part file",
+                  "minutes": 3
+                }
+              ],
+              "stretch": "Answer question 7 again with NOT EXISTS and confirm both give the same count"
+            }
+          },
+          {
+            "n": 2,
+            "label": "Session 2",
+            "title": "NULL and three-valued logic",
+            "summary": "NULL is unknown, not zero or empty: comparisons with it are neither true nor false",
+            "outcomes": [
+              "Predict the rows a comparison with NULL keeps",
+              "Use IS NULL, COALESCE and IS DISTINCT FROM on purpose",
+              "Explain why NOT IN with a NULL returns no rows"
+            ],
+            "lo": [
+              "LO2"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "2.2",
+              "title": "Predict, then run: twelve NULL comparisons",
+              "summary": "With the assistant off, predict the row count of twelve short queries on the printed mini tables, run them, mark each prediction and repair the ones that did not say what was meant",
+              "minutes": 35,
+              "href": "../labs/D2_2_null_predictions.ipynb",
+              "steps": [
+                {
+                  "text": "Print the mini customers and order lines",
+                  "minutes": 3
+                },
+                {
+                  "text": "Predict the row count of each of the twelve queries on paper",
+                  "minutes": 12
+                },
+                {
+                  "text": "Run the twelve and mark each prediction",
+                  "minutes": 8
+                },
+                {
+                  "text": "Rewrite three queries so they say what was meant",
+                  "minutes": 9
+                },
+                {
+                  "text": "Write the NULL rule you will keep",
+                  "minutes": 3
+                }
+              ],
+              "stretch": "Show NOT IN returning no rows when the list holds a NULL, and the NOT EXISTS that does not"
+            }
+          },
+          {
+            "n": 3,
+            "label": "Session 3",
+            "title": "Grouping and having",
+            "summary": "GROUP BY changes the grain of the result; HAVING filters groups after they are formed",
+            "outcomes": [
+              "Predict the number of rows a GROUP BY returns",
+              "Choose between WHERE and HAVING for a condition",
+              "Count distinct values inside a group"
+            ],
+            "lo": [
+              "LO2",
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "2.3",
+              "title": "Questions 8 to 11: groups",
+              "summary": "Predict, then answer four grouping questions: orders per store, busy customers, months and best-selling products; save them to your answer file",
+              "minutes": 35,
+              "href": "../labs/D2_3_questions_8_to_11.ipynb",
+              "steps": [
+                {
+                  "text": "Write a prediction for each of the four questions",
+                  "minutes": 5
+                },
+                {
+                  "text": "Question 8: delivered orders per store",
+                  "minutes": 7
+                },
+                {
+                  "text": "Question 9: customers with many orders, using HAVING",
+                  "minutes": 8
+                },
+                {
+                  "text": "Question 10: orders and distinct customers per month",
+                  "minutes": 7
+                },
+                {
+                  "text": "Question 11: products on many order lines",
+                  "minutes": 5
+                },
+                {
+                  "text": "Save the part file",
+                  "minutes": 3
+                }
+              ],
+              "stretch": "Explain why COUNT(discount) and COUNT(*) differ on the order lines"
+            }
+          },
+          {
+            "n": 4,
+            "label": "Session 4",
+            "title": "Inner, outer, semi and anti joins",
+            "summary": "Which rows survive a join, and how to ask for rows that have, or lack, a partner",
+            "outcomes": [
+              "Predict the rows an inner and a left join return on small tables",
+              "Find rows without a partner with an anti join",
+              "Keep rows that have a partner without multiplying them, with a semi join"
+            ],
+            "lo": [
+              "LO2",
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "2.4",
+              "title": "Questions 12 to 15: joins",
+              "summary": "Predict, then answer four questions, one for each kind of join; save them to your answer file",
+              "minutes": 35,
+              "href": "../labs/D2_4_questions_12_to_15.ipynb",
+              "steps": [
+                {
+                  "text": "Write a prediction for each of the four questions",
+                  "minutes": 5
+                },
+                {
+                  "text": "Question 12: delivered orders per store region",
+                  "minutes": 7
+                },
+                {
+                  "text": "Question 13: customers and never-ordered customers per region",
+                  "minutes": 8
+                },
+                {
+                  "text": "Question 14: active products that were never sold",
+                  "minutes": 7
+                },
+                {
+                  "text": "Question 15: customers with at least one failed attempt",
+                  "minutes": 5
+                },
+                {
+                  "text": "Save the part file",
+                  "minutes": 3
+                }
+              ],
+              "stretch": "Write question 13 with a left join and with NOT EXISTS, and say which one a reader understands first"
+            }
+          }
+        ]
+      },
+      {
+        "id": "day3",
+        "kind": "day",
+        "n": 3,
+        "number": 3,
+        "label": "Day 3",
+        "title": "Combining safely, then windows",
+        "subtitle": "Count once, build in steps, then rank and compare without losing rows",
+        "shape": "4 sessions · 4 labs",
+        "deck": "../slides/day3.html",
+        "md": "../slides/day3.md",
+        "url": "https://sdaiaacademy.github.io/fnd-dat-101/slides/day3.html",
+        "sessions": [
+          {
+            "n": 1,
+            "label": "Session 1",
+            "title": "Join fan-out and double counting",
+            "summary": "A join to a many side repeats the rows of the one side, and every sum over them grows",
+            "outcomes": [
+              "Detect fan-out by counting rows before and after a join",
+              "Aggregate to the right grain before joining",
+              "Explain a wrong total from the grain of each table it joined"
+            ],
+            "lo": [
+              "LO2",
+              "LO3",
+              "LO6"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "3.1",
+              "title": "Questions 16 and 17: count once",
+              "summary": "See a sum grow when order lines meet delivery attempts, then answer two questions that need lines and attempts together without double counting; save them to your answer file",
+              "minutes": 35,
+              "href": "../labs/D3_1_questions_16_and_17.ipynb",
+              "steps": [
+                {
+                  "text": "Count rows before and after joining delivery attempts",
+                  "minutes": 6
+                },
+                {
+                  "text": "Write a prediction for each of the two questions",
+                  "minutes": 4
+                },
+                {
+                  "text": "Question 16: line value of orders that needed a second attempt",
+                  "minutes": 10
+                },
+                {
+                  "text": "Question 17: orders and attempts per store in one result",
+                  "minutes": 10
+                },
+                {
+                  "text": "Save the part file",
+                  "minutes": 5
+                }
+              ],
+              "stretch": "Find the share by which the naive sum of line values overstates the true one"
+            }
+          },
+          {
+            "n": 2,
+            "label": "Session 2",
+            "title": "Subqueries and common table expressions",
+            "summary": "Build an answer in named steps, each of which you can run and check on its own",
+            "outcomes": [
+              "Use a subquery in WHERE and in FROM",
+              "Write a query as a chain of common table expressions",
+              "Check each step of a chain before trusting the last"
+            ],
+            "lo": [
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "3.2",
+              "title": "Questions 18 to 20, and the checker",
+              "summary": "Predict, then answer the last three questions in steps, one of them by the finance rule; then run the automatic checker over all twenty",
+              "minutes": 35,
+              "href": "../labs/D3_2_questions_18_to_20.ipynb",
+              "steps": [
+                {
+                  "text": "Write a prediction for each of the three questions",
+                  "minutes": 4
+                },
+                {
+                  "text": "Question 18: products above their category's average price",
+                  "minutes": 8
+                },
+                {
+                  "text": "Question 19: net revenue by month of delivery, by the finance rule",
+                  "minutes": 9
+                },
+                {
+                  "text": "Question 20: the five customers with the highest net revenue",
+                  "minutes": 8
+                },
+                {
+                  "text": "Run the checker over all your part files and fix one failure",
+                  "minutes": 6
+                }
+              ],
+              "stretch": "Rewrite question 19 as one query without common table expressions and compare how easy each is to check"
+            }
+          },
+          {
+            "n": 3,
+            "label": "Session 3",
+            "title": "Partitions, ranking, lag and lead",
+            "summary": "A window computes over related rows and keeps every row: PARTITION BY, ORDER BY, RANK, LAG",
+            "outcomes": [
+              "Write a window with a partition and an ordering",
+              "Choose between ROW_NUMBER, RANK and DENSE_RANK at ties",
+              "Compare a row with the one before it using LAG"
+            ],
+            "lo": [
+              "LO4"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "3.3",
+              "title": "Window drills 1: top items per region",
+              "summary": "Rank products within each region, compare three ranking functions at ties, and measure the days between a customer's orders with LAG; each partition explained in a comment",
+              "minutes": 30,
+              "href": "../labs/D3_3_window_drills_1.ipynb",
+              "steps": [
+                {
+                  "text": "Drill 1: the top three products per region by quantity",
+                  "minutes": 10
+                },
+                {
+                  "text": "Drill 2: ROW_NUMBER, RANK and DENSE_RANK on the same ties",
+                  "minutes": 6
+                },
+                {
+                  "text": "Drill 3: days since the customer's previous order, with LAG",
+                  "minutes": 8
+                },
+                {
+                  "text": "Write the partition comments and save the drills",
+                  "minutes": 6
+                }
+              ],
+              "stretch": "Return the top three per region with QUALIFY and with a subquery, and confirm they agree"
+            }
+          },
+          {
+            "n": 4,
+            "label": "Session 4",
+            "title": "Running and moving aggregates",
+            "summary": "Running totals, week-on-week change and seven-day averages, and the frame that decides them",
+            "outcomes": [
+              "Compute a running total that restarts in each partition",
+              "Compute a week-on-week change with LAG over weekly totals",
+              "Choose a ROWS or a RANGE frame when days are missing"
+            ],
+            "lo": [
+              "LO4"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "3.4",
+              "title": "Window drills 2: weeks and seven days",
+              "summary": "From the daily order table, compute week-on-week change per store, a running total within each month and seven-day averages that stay right across closed days; run the window checker",
+              "minutes": 35,
+              "href": "../labs/D3_4_window_drills_2.ipynb",
+              "steps": [
+                {
+                  "text": "Drill 4: weekly orders per store and the change from the week before",
+                  "minutes": 10
+                },
+                {
+                  "text": "Drill 5: running net sales per store within each month",
+                  "minutes": 8
+                },
+                {
+                  "text": "Drill 6: seven-day average net sales, ROWS against RANGE",
+                  "minutes": 10
+                },
+                {
+                  "text": "Save the drills and run the window checker",
+                  "minutes": 7
+                }
+              ],
+              "stretch": "Fill the closed days with zero rows from a calendar and compare the three seven-day averages"
+            }
+          }
+        ]
+      },
+      {
+        "id": "day4",
+        "kind": "day",
+        "n": 4,
+        "number": 4,
+        "label": "Day 4",
+        "title": "Building and checking",
+        "subtitle": "Constraints that refuse, views that limit, plans that explain, tests that prove",
+        "shape": "4 sessions · 4 labs",
+        "deck": "../slides/day4.html",
+        "md": "../slides/day4.md",
+        "url": "https://sdaiaacademy.github.io/fnd-dat-101/slides/day4.html",
+        "sessions": [
+          {
+            "n": 1,
+            "label": "Session 1",
+            "title": "Loading into constrained tables, and transactions",
+            "summary": "Stage the raw file, sort out what the constraints would refuse, load the rest in one transaction, account for every row",
+            "outcomes": [
+              "Write table definitions with keys, foreign keys and checks",
+              "Load a raw file through a staging table and record each rejected row with its reason",
+              "Group inserts, updates and deletes in a transaction and roll back on a failed check"
+            ],
+            "lo": [
+              "LO5"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "4.1",
+              "title": "Load the extracts and log every rejected row",
+              "summary": "Define three constrained tables, stage the defective July extracts, give each bad row a reason, and log every file as loaded plus rejected",
+              "minutes": 35,
+              "href": "../labs/D4_1_load_with_log.ipynb",
+              "steps": [
+                {
+                  "text": "Write the three table definitions with their keys and checks",
+                  "minutes": 10
+                },
+                {
+                  "text": "Load the three extracts into all-text staging tables",
+                  "minutes": 4
+                },
+                {
+                  "text": "Write the reject rules for orders and order lines, each with a reason",
+                  "minutes": 10
+                },
+                {
+                  "text": "Insert the valid rows inside a transaction and write the load log",
+                  "minutes": 8
+                },
+                {
+                  "text": "Check that read equals loaded plus rejected for every file",
+                  "minutes": 3
+                }
+              ],
+              "stretch": "Correct one rejected order with an UPDATE inside a transaction, roll it back and confirm nothing changed"
+            }
+          },
+          {
+            "n": 2,
+            "label": "Session 2",
+            "title": "Views that limit what is exposed",
+            "summary": "A view gives each reader the columns and rows the purpose needs, and no more",
+            "outcomes": [
+              "Mark the personal-data columns of a table",
+              "Label tables with classification levels under a stated rule",
+              "Build a view that exposes only what an analyst needs, and test it"
+            ],
+            "lo": [
+              "LO5"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "4.2",
+              "title": "Label the tables and build the analyst view",
+              "summary": "Mark the personal-data columns, label each table under the company's rule, and build a view the analysts can query without names, phones or e-mail",
+              "minutes": 35,
+              "href": "../labs/D4_2_analyst_view.ipynb",
+              "steps": [
+                {
+                  "text": "Open the supplied July database",
+                  "minutes": 3
+                },
+                {
+                  "text": "Mark each customer column: direct identifier, indirect identifier or neither",
+                  "minutes": 8
+                },
+                {
+                  "text": "Label each table with a classification level and a reason",
+                  "minutes": 6
+                },
+                {
+                  "text": "Write the analyst view with only the columns the purpose needs",
+                  "minutes": 10
+                },
+                {
+                  "text": "Run the analysts' three questions on the view and test that the identifiers are absent",
+                  "minutes": 8
+                }
+              ],
+              "stretch": "Write a second view for the delivery team and list what it needs that the analysts do not"
+            }
+          },
+          {
+            "n": 3,
+            "label": "Session 3",
+            "title": "Query plans and indexes",
+            "summary": "EXPLAIN shows how the engine will run a query; an index changes a lookup, rarely a scan of everything",
+            "outcomes": [
+              "Read the operators of a query plan from the bottom up",
+              "Find where a filter is applied in a plan",
+              "Predict when an index changes a plan and when it does not"
+            ],
+            "lo": [
+              "LO3"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "4.3",
+              "title": "Read two plans and watch an index change one",
+              "summary": "Read a join plan in DuckDB, then watch an index turn a scan into a search in SQLite; plan shapes only, no timings",
+              "minutes": 30,
+              "href": "../labs/D4_3_plans_and_indexes.ipynb",
+              "steps": [
+                {
+                  "text": "Read the plan of a join and group query",
+                  "minutes": 8
+                },
+                {
+                  "text": "Find where the filter is applied",
+                  "minutes": 5
+                },
+                {
+                  "text": "Read the plan of a lookup in the second engine before an index",
+                  "minutes": 5
+                },
+                {
+                  "text": "Create the index and read the new plan",
+                  "minutes": 6
+                },
+                {
+                  "text": "Write when an index helps an analytical query and when it does not",
+                  "minutes": 6
+                }
+              ],
+              "stretch": "Create a two-column index and find which order of the columns the lookup can use"
+            }
+          },
+          {
+            "n": 4,
+            "label": "Session 4",
+            "title": "Testing queries against known answers",
+            "summary": "A query is right when it matches answers you worked out by hand on data small enough to check",
+            "outcomes": [
+              "Build a small fixture and work out the expected answer by hand",
+              "Write a test that compares a query's result with the expected rows",
+              "Classify a failing generated query: fan-out, wrong grain or a missing business rule"
+            ],
+            "lo": [
+              "LO6"
+            ],
+            "minutes": 60,
+            "lab": {
+              "id": "4.4",
+              "title": "Ten generated queries against hand-checked answers",
+              "summary": "Hand-check the answers of ten questions on the mini tables, run ten supplied generated-style queries through tests against them, classify each failure against the revenue rule and write the verification note",
+              "minutes": 35,
+              "href": "../labs/D4_4_ten_generated_queries.ipynb",
+              "steps": [
+                {
+                  "text": "Read the revenue rule and the ten questions",
+                  "minutes": 5
+                },
+                {
+                  "text": "Work out the expected answers on the mini tables by hand",
+                  "minutes": 10
+                },
+                {
+                  "text": "Run the ten queries through the tests",
+                  "minutes": 8
+                },
+                {
+                  "text": "Classify each failure: fan-out, grain or a missing rule",
+                  "minutes": 7
+                },
+                {
+                  "text": "Write the verification note with each test result",
+                  "minutes": 5
+                }
+              ],
+              "stretch": "Ask an approved assistant for the same ten questions, given only the schema, and run its queries through the same tests"
+            }
+          }
+        ]
+      },
+      {
+        "id": "capstone",
+        "kind": "capstone",
+        "n": 5,
+        "number": null,
+        "label": "Capstone",
+        "title": "Capstone: the business orders brief",
+        "subtitle": "For each participant: five minutes of live adaptation of one query, then two of questions on the assumptions note",
+        "shape": "",
+        "deck": "../slides/capstone.html",
+        "md": "../slides/capstone.md",
+        "url": "https://sdaiaacademy.github.io/fnd-dat-101/slides/capstone.html",
+        "sessions": []
+      }
+    ],
+    "capstone": {
+      "summary": "A ten-question stakeholder brief on a new synthetic dataset, answered in a repository of tested SQL with a note on assumptions, plus a timed AI-off check and a live adaptation of one query to a changed question",
+      "submission": "Individual. A public GitHub repository link holding the answers to the ten questions of the business orders brief (labs/capstone/): one SQL file per question with a comment on its grain, a pytest test per question against a hand-checked fixture, the assumptions note and the log of any generated SQL and how it was checked, with the history kept. On the capstone day: the timed AI-off check, then five minutes of live adaptation of one query to a changed question and two minutes of questions on the assumptions note.",
+      "talk_minutes": 5,
+      "qa_minutes": 2,
+      "rubric": [
+        {
+          "criterion": "Correct answers: the ten queries return the trainer's key on the full business orders data",
+          "weight": 35
+        },
+        {
+          "criterion": "Tests: each query has a pytest test against a small fixture whose expected rows were worked out by hand, and the tests pass",
+          "weight": 20
+        },
+        {
+          "criterion": "Grain: each query states the grain of its result and of every table it joins, and no total is counted twice",
+          "weight": 15
+        },
+        {
+          "criterion": "Assumptions note: every business rule of the brief stated, applied and traced to the query that uses it",
+          "weight": 15
+        },
+        {
+          "criterion": "Verification log: every query an assistant wrote or changed is recorded with the test that caught or passed it",
+          "weight": 10
+        },
+        {
+          "criterion": "Minimal exposure: no answer returns a personal-data column the question does not need",
+          "weight": 5
+        }
+      ]
+    },
+    "labs": {
+      "kind": "notebooks",
+      "base": "labs/"
+    },
+    "tools": [
+      {
+        "slot": "Embedded analytical SQL engine",
+        "examples": [
+          "DuckDB",
+          "SQLite"
+        ]
+      },
+      {
+        "slot": "Query checking",
+        "examples": [
+          "pytest comparing result sets",
+          "the Academy's query grader"
+        ]
+      },
+      {
+        "slot": "Assistant for the text-to-SQL exercises",
+        "examples": [
+          "a locally served open-weight model",
+          "any approved assistant"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "group": "National references",
+        "items": [
+          {
+            "title": "Personal Data Protection Law (SDAIA), English text",
+            "url": "https://sdaia.gov.sa/en/SDAIA/about/Documents/PersonalDataProtectionLaw.pdf"
+          },
+          {
+            "title": "Minimum Personal Data Determination Guideline, version 1.0, August 2024 (SDAIA)",
+            "url": "https://sdaia.gov.sa/Documents/MinmumPDGuideline.pdf"
+          },
+          {
+            "title": "Data Classification Policy, version 1 (National Data Management Office, SDAIA)",
+            "url": "https://sdaia.gov.sa/en/SDAIA/about/Documents/DataClassificationPolicy.pdf"
+          },
+          {
+            "title": "Generative Artificial Intelligence Guidelines for Government, 2025 (SDAIA), section 3.5 Privacy and Security",
+            "url": "https://sdaia.gov.sa/en/SDAIA/about/Files/GenAIGuidelinesForGovernmentENCompressed.pdf"
+          },
+          {
+            "title": "Data & AI Academic Programs Standards Framework, Second Version, September 2026 (SDAIA)",
+            "url": "https://sdaia.gov.sa/en/MediaCenter/KnowledgeCenter/ResearchLibrary/Academic-Programs-Standards-Framework-Q3.pdf"
+          }
+        ]
+      },
+      {
+        "group": "Engines and tools",
+        "items": [
+          {
+            "title": "DuckDB: Why DuckDB",
+            "url": "https://duckdb.org/why_duckdb"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: constraints",
+            "url": "https://duckdb.org/docs/stable/sql/constraints"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: window functions",
+            "url": "https://duckdb.org/docs/stable/sql/functions/window_functions"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: EXPLAIN",
+            "url": "https://duckdb.org/docs/stable/guides/meta/explain"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: indexes",
+            "url": "https://duckdb.org/docs/2.0/sql/indexes.html"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: CREATE VIEW",
+            "url": "https://duckdb.org/docs/stable/sql/statements/create_view"
+          },
+          {
+            "title": "DuckDB 2.0 documentation: transaction management",
+            "url": "https://duckdb.org/docs/stable/sql/statements/transactions"
+          },
+          {
+            "title": "SQLite: SQLite Is Serverless",
+            "url": "https://www.sqlite.org/serverless.html"
+          },
+          {
+            "title": "SQLite: EXPLAIN QUERY PLAN",
+            "url": "https://www.sqlite.org/eqp.html"
+          },
+          {
+            "title": "pytest documentation",
+            "url": "https://docs.pytest.org/en/stable/"
+          }
+        ]
+      }
+    ]
+  }
+}

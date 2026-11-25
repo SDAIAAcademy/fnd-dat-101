@@ -1,0 +1,6 @@
+product_id,product_name,category,list_price,is_active
+P01,Fresh milk 1 L,Dairy,6.50,true
+P02,Brown bread loaf,Bakery,4.00,true
+P03,Rice 5 kg,Pantry,32.00,true
+P04,Dish soap 1 L,,9.50,true
+P05,Dates 1 kg,Pantry,28.00,true

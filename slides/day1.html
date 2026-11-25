@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="deck" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 1 · Tables, keys and grain · SQL and Relational Data</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<link rel="icon" href="../_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="day1.md">
+<link rel="describedby" href="../llms.txt">
+<link rel="stylesheet" href="../_engine/academy.css">
+</head>
+<body>
+<div class="deck" data-course="SQL and Relational Data" data-track="foundations" data-day="Day 1">
+<section class="slide title" id="title" data-auto="title" data-label="Welcome" data-n="1">
+  <div class="kicker">SDAIA Academy · SQL and Relational Data</div>
+  <h1>Tables, keys and grain</h1>
+  <p class="lead mt">Day 1: What a row means before any query is written</p>
+  <div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>4 sessions · 4 labs</span><span>FND-DAT-101</span></div>
+  <aside class="notes"><p>Welcome the room and introduce yourself. Ask one calibrating question: "Who has used a filter or a pivot table in a spreadsheet this month?" Most hands should go up: that is the prerequisite, and it is enough.</p><p>The rhythm of every day: four sessions of an hour, each about 25 minutes of ideas and then a lab of 30 or 35 minutes. Predictions are written before queries run, always.</p></aside>
+</section>
+
+<section class="slide" id="agenda" data-auto="agenda" data-label="Agenda" data-n="2">
+  <div class="kicker">Today</div>
+  <h2>Tables, keys and grain</h2>
+  <div class="agenda"><div class="item"><div><b>Session 1 · Tables, types, keys and constraints</b><small>A table is a set of rows of one kind; keys name a row, constraints refuse a bad one</small></div></div><div class="item"><div><b>Session 2 · Grain and cardinality</b><small>What one row stands for, and how many rows of one table meet one row of another</small></div></div><div class="item"><div><b>Session 3 · Normal forms, wide tables and embedded engines</b><small>Why operational tables are split, why analytical tables are wide, and where the engine runs</small></div></div><div class="item"><div><b>Session 4 · Filters, sorting and expressions</b><small>WHERE on text and dates, ORDER BY with ties, and expressions that compute a value per row</small></div></div></div>
+</section>
+
+<section class="slide" id="setup-check" data-n="3">
+  <div class="kicker">Before the first session</div>
+  <h2>One notebook proves your setup works</h2>
+  <div class="cols cols-2">
+    <div class="stack">
+      <p>Open <code>labs/00_setup_check.ipynb</code> in Colab or on your laptop and run every cell. It writes the company's six tables, builds the database file and runs one query.</p>
+      <ul class="bullets">
+        <li>It ends with <b>setup ok</b> and the six table names</li>
+        <li>The first run takes about half a minute; later runs reuse the file</li>
+        <li>No model, no key and no account is needed for any lab</li>
+      </ul>
+    </div>
+    <div class="card c-teal"><h4>On a laptop</h4><p class="small mb0">From the <code>labs</code> folder: <code>uv run --with jupyterlab jupyter lab</code>, then open the notebook. In Colab the first cell clones the course and installs the two packages.</p></div>
+  </div>
+  <aside class="notes"><p>Ask everyone to run the setup notebook during the welcome. Walk the room: the usual failure in Colab is running a later cell before the first one; the fix is Runtime, Run all.</p><p>On a laptop the usual failure is opening the notebook from the wrong folder. The setup cell climbs to <code>labs/</code> by itself, but only from inside the course folder.</p></aside>
+</section>
+
+<!-- Session 1 -->
+
+<section class="slide section" id="s1" data-auto="section" data-session="1" data-n="4">
+  <div class="kicker">Session 1</div>
+  <h1>Tables, types, keys and constraints</h1>
+  <ul class="bullets outcomes"><li>Name the type and the role of each column of a table</li><li>Test a candidate key with a counting query</li><li>Read the message a database gives when a constraint refuses a row</li></ul>
+  <div class="sess-no">01</div>
+</section>
+
+<section class="slide" id="table-holds-one-kind" data-lo="LO1" data-n="5" data-session="1">
+  <div class="kicker">What a table is</div>
+  <h2>A table holds rows of one kind, each with the same columns</h2>
+  <table class="t small">
+    <tr><th>return_id</th><th>order_ref</th><th>reason_code</th><th class="num">refund</th><th>received_on</th></tr>
+    <tr><td>T1</td><td>O-A11</td><td>R1</td><td class="num">12.00</td><td>2026-05-02</td></tr>
+    <tr><td>T2</td><td>O-A12</td><td>R2</td><td class="num">30.50</td><td>2026-05-02</td></tr>
+    <tr><td>T3</td><td>O-A15</td><td>R1</td><td class="num">8.25</td><td>2026-05-03</td></tr>
+    <tr><td>T4</td><td>O-A15</td><td>R3</td><td class="num">NULL</td><td>2026-05-04</td></tr>
+    <tr><td>T5</td><td>O-A20</td><td>R2</td><td class="num">19.00</td><td>2026-05-06</td></tr>
+  </table>
+  <p class="caption">The company's returns desk: the <code>returns</code> table. The slides use this department; the labs use the delivery tables.</p>
+  <div class="callout tip mt-s"><b>Unlike a sheet.</b> No merged cells, no totals row, no colour that means something. Every fact sits in a column with a name.</div>
+  <aside class="notes"><p>Contrast with a spreadsheet: a sheet lets anything go in any cell. A table promises that each row is one returned parcel and each column one fact about it.</p><p>Point at T4: the refund is NULL, unknown, because the refund has not been decided yet. Day 2 spends a session on that word.</p></aside>
+</section>
+
+<section class="slide" id="types-decide-what-fits" data-lo="LO1" data-n="6" data-session="1">
+  <div class="kicker">Types</div>
+  <h2>Every column has a type, and the type decides what fits</h2>
+  <table class="t small">
+    <tr><th>Type</th><th>Holds</th><th>Example</th></tr>
+    <tr><td><code>VARCHAR</code></td><td>text</td><td><code>'R1'</code></td></tr>
+    <tr><td><code>INTEGER</code></td><td>whole numbers</td><td><code>3</code></td></tr>
+    <tr><td><code>DECIMAL(8,2)</code></td><td>exact amounts, two decimals</td><td><code>30.50</code></td></tr>
+    <tr><td><code>DATE</code>, <code>TIMESTAMP</code></td><td>a day; a day and a time of day</td><td><code>DATE '2026-05-02'</code></td></tr>
+    <tr><td><code>BOOLEAN</code></td><td>true or false</td><td><code>true</code></td></tr>
+  </table>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> An amount stored as text sorts as text: <code>'9.00'</code> comes after <code>'30.50'</code>. A date stored as text cannot be compared with a range.</div>
+  <aside class="notes"><p>Money is DECIMAL, never a floating-point number: 0.1 plus 0.2 is not exactly 0.3 in floating point, and finance notices.</p><p>Ask: which column of the returns table would break first if it were stored as text? (received_on: ranges stop working.)</p></aside>
+</section>
+
+<section class="slide" id="key-names-one-row" data-lo="LO1" data-n="7" data-session="1">
+  <div class="kicker">Keys</div>
+  <h2>A key is a column, or a set of columns, that names exactly one row</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>A single-column key</h4><p class="small mb0"><code>return_id</code> in <code>returns</code>: no two returns share it. Declared as <code>PRIMARY KEY</code>, the engine refuses a second T3.</p></div>
+    <div class="card c-cyan"><h4>A composite key</h4><p class="small mb0"><code>(return_id, item_no)</code> in <code>return_items</code>: a return has several items, so the return alone does not name an item; the pair does.</p></div>
+  </div>
+  <div class="callout note mt"><b>Not a key.</b> <code>order_ref</code> looks like an identifier, but one order can be returned twice: O-A15 appears in T3 and T4.</div>
+  <aside class="notes"><p>Ask the room to find the repeated order reference on the previous slide before you show the callout.</p><p>The point for the lab: a column called something_id is a candidate, not a proof. The proof is a count.</p></aside>
+</section>
+
+<section class="slide" id="key-by-counting" data-lo="LO1" data-n="8" data-session="1">
+  <div class="kicker">Proof, not belief</div>
+  <h2>Test a candidate key by counting rows and distinct values</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>)                  <span class="hljs-keyword">AS</span> n_rows,
+       <span class="hljs-built_in">COUNT</span>(<span class="hljs-keyword">DISTINCT</span> order_ref) <span class="hljs-keyword">AS</span> n_refs
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>;
+<span class="hljs-comment">-- n_rows 5, n_refs 4</span></code></pre>
+    <ul class="bullets">
+      <li>Equal numbers: no value repeats, <b>the candidate holds</b></li>
+      <li>Fewer distinct values: some value repeats, <b>not a key</b></li>
+      <li>For a pair, count the rows of <code>SELECT DISTINCT a, b</code>: 8 pairs for 8 rows of <code>return_items</code></li>
+    </ul>
+  </div>
+  <div class="callout tip mt"><b>Habit.</b> Before you trust a key, count. It takes one query.</div>
+  <aside class="notes"><p>Run it live on the returns desk if you have the slide examples open (<code>labs/_tools/slide_examples.py</code> prints these numbers).</p><p>Do not show the counts of the delivery tables: lab 1.1 asks for them.</p></aside>
+</section>
+
+<section class="slide" id="foreign-key-points" data-lo="LO1" data-n="9" data-session="1">
+  <div class="kicker">Between tables</div>
+  <h2>A foreign key points at a row that must exist in another table</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>return_items</b><code>return_id</code> T5</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>returns</b>row T5 must exist</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>reasons</b>its <code>reason_code</code> R2 must exist</div>
+  </div>
+  <p class="mt">Declared with <code>REFERENCES returns (return_id)</code>, an item for a return that does not exist is refused. Without it, the item would sit in the table, joined to nothing, and every total would quietly miss it.</p>
+  <aside class="notes"><p>A foreign key is a promise about two tables at once. It is why the order of loading matters on Day 4: the one side first, then the many side.</p></aside>
+</section>
+
+<section class="slide" id="constraints-refuse" data-lo="LO1" data-n="10" data-session="1">
+  <div class="kicker">Constraints</div>
+  <h2>Constraints refuse rows that make no sense, before anyone queries them</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>NOT NULL</h4><p class="small mb0">The value must be there: every return has a received date.</p></div>
+    <div class="card c-cyan"><h4>PRIMARY KEY, UNIQUE</h4><p class="small mb0">No two rows share the value.</p></div>
+    <div class="card c-purple"><h4>REFERENCES</h4><p class="small mb0">The value exists in the other table.</p></div>
+    <div class="card c-amber"><h4>CHECK</h4><p class="small mb0">A rule on the value: <code>qty &gt; 0</code>, <code>refund &gt;= 0</code>.</p></div>
+    <div class="card c-coral"><h4>Type</h4><p class="small mb0">Only that kind of value: no text in a date.</p></div>
+    <div class="card c-green"><h4>The message</h4><p class="small mb0">A refusal names the rule it broke. Read it.</p></div>
+  </div>
+  <aside class="notes"><p>Demo on the returns desk: <code>INSERT INTO return_items VALUES ('T1', 2, 'X-999', 0)</code>. The engine answers "CHECK constraint failed" and names the expression. Then try a second <code>('T1', 1, ...)</code> and read the key violation.</p><p>Sources: DuckDB constraints documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="six-tables" data-lo="LO1" data-n="11" data-session="1">
+  <div class="kicker">The case study</div>
+  <h2>The grocery delivery company keeps its orders in six tables</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>stores</h4><p class="small mb0">Eight dispatch stores across five regions</p></div>
+    <div class="card c-teal"><h4>products</h4><p class="small mb0">The catalogue: names, categories, list prices</p></div>
+    <div class="card c-teal"><h4>customers</h4><p class="small mb0">Registered customers, with personal data</p></div>
+    <div class="card c-cyan"><h4>orders</h4><p class="small mb0">Placed by a customer at a store, with a status</p></div>
+    <div class="card c-cyan"><h4>order_lines</h4><p class="small mb0">Products, quantities, prices, discounts</p></div>
+    <div class="card c-cyan"><h4>deliveries</h4><p class="small mb0">What happened when a courier went out</p></div>
+  </div>
+  <p class="caption">Synthetic: January to June 2026, about a million order lines. People appear only as codes and roles.</p>
+  <aside class="notes"><p>Introduce the roles, never names: the head of commercial reporting, who sent twenty questions; the finance controller, who owns the revenue rule; the data protection officer, who returns on Day 4; and the analyst, which is each participant.</p><p>Keep the keys and grains for the labs: do not answer them here.</p></aside>
+</section>
+
+<section class="slide" id="check-key" data-lo="LO1" data-n="12" data-session="1">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which column is a key of return_items?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1" data-id="check-key-q1">
+    <p class="lead">The returns desk's <code>return_items</code> has 8 rows. <code>COUNT(DISTINCT return_id)</code> is 5 and <code>COUNT(DISTINCT product_ref)</code> is 5. The distinct pairs <code>(return_id, item_no)</code> number 8. What names one row?</p>
+    <div class="opts">
+      <div class="opt" data-why="Takes the identifier-looking name as proof: 5 distinct values for 8 rows means return_id repeats" data-k="A">return_id alone</div>
+      <div class="opt" data-ok data-k="B">The pair return_id and item_no</div>
+      <div class="opt" data-why="Equates a product code with a row: the same product can come back in several returns" data-k="C">product_ref alone</div>
+      <div class="opt" data-why="Assumes every table must have a single-column key: a pair of columns is a key too" data-k="D">No column: the table has no key</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Eight distinct pairs for eight rows: no pair repeats, so the pair names exactly one row.</div>
+  </div>
+  <aside class="notes"><p>Answer: the pair. If many pick "no key", go back to the composite key card: a key can have two columns.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-1-1" data-auto="lab" data-lab="1.1" data-label="Lab 1.1" data-n="13" data-session="1">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 1.1 · 35 min</div><h2>Six tables and their keys</h2><p class="lead small">List the six tables of the grocery delivery company, read their columns and types, test each candidate key by counting, and watch a key and a check refuse bad rows</p><a class="nb" href="../labs/D1_1_tables_and_keys.ipynb">D1_1_tables_and_keys.ipynb</a></div><ul class="checklist"><li>List the six tables with their row counts <span class="min">5 min</span></li><li>Describe the columns and types of each table <span class="min">7 min</span></li><li>Test each candidate key: COUNT(*) against COUNT(DISTINCT key) <span class="min">10 min</span></li><li>Break a key and a check on the mini tables and read the refusals <span class="min">8 min</span></li><li>Write down what each table refuses and why <span class="min">5 min</span></li><li class="stretch">✱ Stretch: Find one column whose type is weaker than its meaning and say what that lets in</li></ul></div>
+  <aside class="notes"><p>Watch for participants who stop at the first table: each table has a candidate key to test. The mini tables in task 4 are in memory: nothing they break there touches the company's database, which opens read-only.</p><p>Debrief after the lab: order_lines repeats its order_id because an order has several lines; deliveries repeats it because an order can need several attempts. Two reasons, two grains: the next session.</p></aside>
+</section>
+
+<!-- Session 2 -->
+
+<section class="slide section" id="s2" data-auto="section" data-session="2" data-n="14">
+  <div class="kicker">Session 2</div>
+  <h1>Grain and cardinality</h1>
+  <ul class="bullets outcomes"><li>State the grain of a table in one sentence</li><li>Confirm a grain with a counting query</li><li>Measure a one-to-many relationship and name its maximum</li></ul>
+  <div class="sess-no">02</div>
+</section>
+
+<section class="slide" id="grain-one-row" data-lo="LO1" data-n="15" data-session="2">
+  <div class="kicker">Grain</div>
+  <h2>The grain is what one row stands for</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>returns</h4><p class="small mb0">One row per <b>returned parcel</b></p></div>
+    <div class="card c-cyan"><h4>return_items</h4><p class="small mb0">One row per <b>item inside one return</b></p></div>
+    <div class="card c-purple"><h4>inspections</h4><p class="small mb0">One row per <b>inspection of one return</b>; a return can be inspected twice</p></div>
+  </div>
+  <div class="callout tip mt"><b>Say it in one sentence.</b> "One row per ..." If you cannot finish the sentence, you cannot sum the table safely.</div>
+  <aside class="notes"><p>Grain is the single most useful word of the course. Every wrong total on Day 3 is a grain mistake.</p><p>Ask: what is the grain of a monthly sales report? (One row per month, or per month and store: the report must say which.)</p></aside>
+</section>
+
+<section class="slide" id="grain-sentences" data-lo="LO1" data-n="16" data-session="2">
+  <div class="kicker">Writing it down</div>
+  <h2>A good grain sentence names the thing and the one it belongs to</h2>
+  <table class="t">
+    <tr><th>Vague</th><th>Precise</th></tr>
+    <tr><td>"Items"</td><td>One row per item inside one return</td></tr>
+    <tr><td>"Inspection data"</td><td>One row per inspection of one return, on one day</td></tr>
+    <tr><td>"Refunds by reason"</td><td>One row per reason code, with the sum of refunds</td></tr>
+  </table>
+  <p class="caption">The precise sentence tells you the key: the thing, plus whatever tells two of them apart.</p>
+  <aside class="notes"><p>Read the vague column aloud and ask the room to improve each before revealing the precise one.</p></aside>
+</section>
+
+<section class="slide" id="cardinality-kinds" data-lo="LO1" data-n="17" data-session="2">
+  <div class="kicker">Cardinality</div>
+  <h2>Cardinality says how many rows of one table meet one row of another</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>One to one</h4><p class="small mb0">Each return has exactly one decision letter.</p></div>
+    <div class="card c-cyan"><h4>One to many</h4><p class="small mb0">Each return has one or more items.</p></div>
+    <div class="card c-purple"><h4>Many to many</h4><p class="small mb0">Products and returns: resolved through <code>return_items</code>.</p></div>
+  </div>
+  <div class="callout note mt"><b>Write it as a range.</b> "Items per return: 1..3" says more than "one to many": it gives the fewest and the most.</div>
+  <aside class="notes"><p>The range notation is what lab 1.2 asks for. The fewest is often 0, and 0 is where queries go wrong.</p></aside>
+</section>
+
+<section class="slide" id="measure-cardinality" data-lo="LO1" data-n="18" data-session="2">
+  <div class="kicker">Measure it</div>
+  <h2>Group the many side by the key of the one side, then read the smallest and largest group</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">MIN</span>(n) <span class="hljs-keyword">AS</span> fewest, <span class="hljs-built_in">MAX</span>(n) <span class="hljs-keyword">AS</span> most
+<span class="hljs-keyword">FROM</span> (<span class="hljs-keyword">SELECT</span> return_id, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> n
+      <span class="hljs-keyword">FROM</span> return_items
+      <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> return_id);
+<span class="hljs-comment">-- fewest 1, most 3</span></code></pre>
+  <div class="callout warn mt"><b>What goes wrong.</b> This query only sees returns that have items. A return with no item would not appear in the inner result, so "fewest" can never read 0 here.</div>
+  <aside class="notes"><p>Walk through the inner query first: it is a small table of its own, one row per return. Then the outer query reads two numbers from it.</p></aside>
+</section>
+
+<section class="slide" id="fewest-is-the-trap" data-lo="LO1" data-n="19" data-session="2">
+  <div class="kicker">The zero case</div>
+  <h2>To see the zeros, count from the one side</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> r.reason_code,
+       <span class="hljs-built_in">COUNT</span>(t.return_id) <span class="hljs-keyword">AS</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">FROM</span> reasons r
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> <span class="hljs-keyword">returns</span> t
+  <span class="hljs-keyword">ON</span> t.reason_code <span class="hljs-operator">=</span> r.reason_code
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> r.reason_code;</code></pre>
+    <table class="t small">
+      <tr><th>reason_code</th><th class="num">returns</th></tr>
+      <tr><td>R1</td><td class="num">2</td></tr>
+      <tr><td>R2</td><td class="num">2</td></tr>
+      <tr><td>R3</td><td class="num">1</td></tr>
+      <tr class="hl"><td>R4</td><td class="num">0</td></tr>
+    </table>
+  </div>
+  <p class="mt">Reasons to returns: <b>0..2</b>. Grouping <code>returns</code> alone would have said 1..2 and hidden R4.</p>
+  <aside class="notes"><p>The LEFT JOIN is a preview of Day 2; today it is enough to know it keeps every row of the left table. COUNT of a column counts only the rows where it is not NULL, which is why R4 shows 0.</p></aside>
+</section>
+
+<section class="slide" id="join-takes-finest-grain" data-lo="LO1" data-n="20" data-session="2">
+  <div class="kicker">Looking ahead</div>
+  <h2>A join takes the grain of its finest table</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>returns</b>5 rows, one per return</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>join inspections</b>a return inspected twice appears twice</div>
+    <div class="arrow">→</div>
+    <div class="step c-coral"><b>sum of refunds</b>counts that refund twice</div>
+  </div>
+  <div class="callout tip mt"><b>Keep for Day 3.</b> Before every join, write the grain of each side. If the result's grain is finer than the question's, aggregate first.</div>
+  <aside class="notes"><p>Plant the seed only: the full treatment is session 3.1. Ask which pairs of the delivery tables could do the same thing; the stretch of lab 1.2 asks exactly that.</p></aside>
+</section>
+
+<section class="slide" id="check-grain" data-lo="LO1" data-n="21" data-session="2">
+  <div class="kicker">Checkpoint</div>
+  <h2>What is the grain of the inspections table?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1" data-id="check-grain-q1">
+    <p class="lead">The returns desk inspects some returns once, some twice, and some never. <code>inspections</code> holds <code>return_id</code>, <code>inspected_on</code> and <code>result</code>. Which sentence states its grain?</p>
+    <div class="opts">
+      <div class="opt" data-why="Takes the return_id column for the grain: a return inspected twice has two rows" data-k="A">One row per return</div>
+      <div class="opt" data-why="Reads the grain from the result column, which is a fact about a row, not what the row stands for" data-k="B">One row per inspection result</div>
+      <div class="opt" data-why="Includes returns that were never inspected: they have no row at all" data-k="C">One row per return, inspected or not</div>
+      <div class="opt" data-ok data-k="D">One row per inspection of one return</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Each row records one inspection event. A return can have zero, one or two such rows.</div>
+  </div>
+  <aside class="notes"><p>Answer: one row per inspection of one return. If "one row per return" is popular, ask how many rows a return inspected twice has.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-1-2" data-auto="lab" data-lab="1.2" data-label="Lab 1.2" data-n="22" data-session="2">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 1.2 · 35 min</div><h2>The annotated schema</h2><p class="lead small">Write the key and the grain of each of the six tables, confirm them with counting queries, measure the cardinality of every relationship and check the annotated schema against the reference</p><a class="nb" href="../labs/D1_2_annotated_schema.ipynb">D1_2_annotated_schema.ipynb</a></div><ul class="checklist"><li>Write the grain of each table in one sentence <span class="min">6 min</span></li><li>Confirm each grain with a counting query <span class="min">10 min</span></li><li>Measure lines per order, attempts per order and orders per customer <span class="min">10 min</span></li><li>Fill in the annotated schema and run its check <span class="min">9 min</span></li><li class="stretch">✱ Stretch: List every join of the schema that can multiply rows, and the column that causes it</li></ul></div>
+  <aside class="notes"><p>The annotated schema of this lab is assessed (one of the five lab files). Its check compares keys and the fewest..most ranges with the reference; the grain sentences are read by the trainer.</p><p>Common failure: "fewest" orders per customer written as 1. Point them to the LEFT JOIN of the zero-case slide. Debrief: cancelled orders have no delivery attempt, so attempts per order start at 0.</p></aside>
+</section>
+
+<!-- Session 3 -->
+
+<section class="slide section" id="s3" data-label="Session 3 · Wide tables and engines" data-auto="section" data-session="3" data-n="23">
+  <div class="kicker">Session 3</div>
+  <h1>Normal forms, wide tables and embedded engines</h1>
+  <ul class="bullets outcomes"><li>Explain the repetition that normal forms remove</li><li>Build a wide analytical table from a join and name its risks</li><li>Contrast an embedded engine with a client-server database</li></ul>
+  <div class="sess-no">03</div>
+</section>
+
+<section class="slide" id="normal-forms-brief" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="24" data-session="3">
+  <div class="kicker">Normal forms, in brief</div>
+  <h2>Normalised tables store each fact once</h2>
+  <table class="t">
+    <tr><th>Form</th><th>The rule, in plain words</th><th>Returns desk example</th></tr>
+    <tr><td>First</td><td>One value per cell; no lists inside a cell</td><td>Items in their own rows, not "X-101, X-205" in one cell</td></tr>
+    <tr><td>Second</td><td>Every column depends on the whole key</td><td>The reason label is not in <code>return_items</code>: it depends on the return, not the item</td></tr>
+    <tr><td>Third</td><td>No column depends on another non-key column</td><td>The label lives in <code>reasons</code>, reached through <code>reason_code</code></td></tr>
+  </table>
+  <aside class="notes"><p>Keep this brief: the entry asks for normal forms "in brief". The idea to keep is the third column: each fact has one home.</p><p>Sources: SDAIA Academic Programs Standards Framework, DM-Relational topics include normalisation motivation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="update-anomaly" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="25" data-session="3">
+  <div class="kicker">Why it matters</div>
+  <h2>A fact written many times can disagree with itself</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Reason label copied onto every item</h4><p class="small mb0">Rename R2 from "wrong item" to "wrong product". Change 3 of the 5 rows that carry it and the table now holds both labels for the same code.</p></div>
+    <div class="card c-teal"><h4>Label stored once in reasons</h4><p class="small mb0">Change one row. Every query that joins to <code>reasons</code> sees the new label at once.</p></div>
+  </div>
+  <div class="callout warn mt"><b>The update anomaly.</b> It needs no bug: only a partial fix, which is what busy people make.</div>
+  <aside class="notes"><p>Lab 1.3 makes this happen on purpose with a store's region in a wide table.</p></aside>
+</section>
+
+<section class="slide" id="analytical-tables-wide" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="26" data-session="3">
+  <div class="kicker">The other side</div>
+  <h2>Analytical tables are wide on purpose</h2>
+  <ul class="bullets">
+    <li><b>Read far more than written</b>: an analysis reads millions of rows and changes none</li>
+    <li><b>Fewer joins</b> for every question: the category and region already sit on the line</li>
+    <li><b>Built from the normalised source</b> on a schedule, never edited by hand</li>
+    <li>Columnar engines store each column apart, so <b>unused wide columns cost little</b> to read</li>
+  </ul>
+  <div class="callout tip mt"><b>The rule.</b> A wide table is a copy. When it is wrong, fix the source and rebuild the copy.</div>
+  <aside class="notes"><p>This is why analysts and database designers argue: both are right for their workload. The entry asks why analytical tables are wider; this slide is that answer.</p></aside>
+</section>
+
+<section class="slide" id="embedded-vs-server" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="27" data-session="3">
+  <div class="kicker">Where the engine runs</div>
+  <h2>An embedded engine runs inside your program; a server runs apart and you connect to it</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>Embedded</h4><ul class="bullets small"><li>A library in your Python process</li><li>The database is a file</li><li>Nothing to install or administer</li><li>One writer at a time, on one machine</li></ul></div>
+    <div class="card c-purple"><h4>Client-server</h4><ul class="bullets small"><li>A separate server process, often another machine</li><li>Accounts, permissions, network</li><li>Many users reading and writing at once</li><li>Someone runs and backs it up</li></ul></div>
+  </div>
+  <p class="caption">The SQL you learn here runs on both, with small differences of dialect.</p>
+  <aside class="notes"><p>SQLite's own documentation describes it as serverless: no separate server process to install or manage. DuckDB's documentation says it runs embedded within a host process.</p><p>Sources: SQLite "SQLite Is Serverless"; DuckDB "Why DuckDB" (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="two-embedded-engines" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="28" data-session="3">
+  <div class="kicker">The tool slot</div>
+  <h2>Two embedded engines, built for different work</h2>
+  <table class="t">
+    <tr><th></th><th>Analytical engine (DuckDB)</th><th>Transactional engine (SQLite)</th></tr>
+    <tr><td>Built for</td><td>Scans and aggregates over many rows</td><td>Many small reads and writes</td></tr>
+    <tr><td>Stores</td><td>Column by column, processed in batches</td><td>Row by row</td></tr>
+    <tr><td>In this course</td><td>Every lab on the full data</td><td>Lab 1.3 on the mini tables; lab 4.3 for indexes</td></tr>
+  </table>
+  <p class="caption">Examples of a capability, not endorsements. Either engine is free and runs on a laptop processor.</p>
+  <aside class="notes"><p>DuckDB's documentation describes a columnar, vectorised execution engine. SQLite ships inside Python's standard library, which is why lab 1.3 needs no install for it.</p><p>Sources: DuckDB "Why DuckDB"; SQLite documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="check-wide" data-label="Session 3 · Wide tables and engines" data-lo="LO1" data-n="29" data-session="3">
+  <div class="kicker">Checkpoint</div>
+  <h2>The wide returns table shows two labels for R2. What do you do?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1" data-id="check-wide-q1">
+    <p class="lead">The returns desk's wide table copies the reason label onto every item. A colleague renamed R2 in some rows only, so both labels now appear. What is the right fix?</p>
+    <div class="opts">
+      <div class="opt" data-ok data-k="A">Correct the label once in reasons and rebuild the wide table</div>
+      <div class="opt" data-why="Repairs the copy by hand: the next partial edit recreates the disagreement" data-k="B">Update the remaining rows of the wide table</div>
+      <div class="opt" data-why="Hides the symptom: queries still return two labels for one code" data-k="C">Add DISTINCT to every report on the wide table</div>
+      <div class="opt" data-why="Throws away the source of truth: the wide table cannot be rebuilt once reasons is gone" data-k="D">Delete the reasons table and keep the wide one</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> The label has one home. A copy is rebuilt from it; it is never the place to fix a fact.</div>
+  </div>
+  <aside class="notes"><p>Answer: fix the source and rebuild. The second option is tempting because it works today; ask what happens next month.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-1-3" data-auto="lab" data-lab="1.3" data-label="Lab 1.3" data-n="30" data-session="3">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 1.3 · 30 min</div><h2>One wide table, and what it repeats</h2><p class="lead small">Join order lines to their order, store and product into one wide table, count what it repeats, make one copy disagree, and run the same count in a second embedded engine</p><a class="nb" href="../labs/D1_3_wide_table.ipynb">D1_3_wide_table.ipynb</a></div><ul class="checklist"><li>Build a wide table of order lines with store and product columns <span class="min">8 min</span></li><li>Count how often each store's region is repeated <span class="min">6 min</span></li><li>Change one region in the wide table and find the rows that now disagree <span class="min">8 min</span></li><li>Run the same count in the second embedded engine <span class="min">8 min</span></li><li class="stretch">✱ Stretch: Write two sentences on when the wide table is the right choice and who must rebuild it</li></ul></div>
+  <aside class="notes"><p>The wide table is built in memory from the read-only database, so the partial update in task 3 cannot damage anything. If the join in task 1 fails, the notebook builds the table so later tasks run.</p><p>Debrief: one store now carries two regions in the wide table, while <code>stores</code> still has one row for it. That is the update anomaly of the earlier slide, made by a partial fix.</p></aside>
+</section>
+
+<!-- Session 4 -->
+
+<section class="slide section" id="s4" data-auto="section" data-session="4" data-n="31">
+  <div class="kicker">Session 4</div>
+  <h1>Filters, sorting and expressions</h1>
+  <ul class="bullets outcomes"><li>Filter rows on text patterns and date ranges</li><li>Sort with a tie-breaker and keep the top rows</li><li>Compute a value per row with an expression that handles a NULL</li></ul>
+  <div class="sess-no">04</div>
+</section>
+
+<section class="slide" id="logical-order" data-lo="LO3" data-n="32" data-session="4">
+  <div class="kicker">How a query is read</div>
+  <h2>You write SELECT first, but the engine reads FROM first</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · FROM</b>which table</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · WHERE</b>which rows</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · SELECT</b>which columns, computed how</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · ORDER BY, LIMIT</b>in which order, how many</div>
+  </div>
+  <div class="callout tip mt"><b>Read in this order</b> when you predict a result: start with the table, then cross out rows, then pick columns.</div>
+  <aside class="notes"><p>Day 2 adds GROUP BY and HAVING between WHERE and SELECT. Tell the room this now so the order does not change on them later.</p></aside>
+</section>
+
+<section class="slide" id="where-keeps-true" data-lo="LO3" data-n="33" data-session="4">
+  <div class="kicker">Filters</div>
+  <h2>WHERE keeps the rows for which the condition is true</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> return_id, refund
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">WHERE</span> reason_code <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;R1&#x27;</span>
+  <span class="hljs-keyword">AND</span> refund <span class="hljs-operator">&gt;=</span> <span class="hljs-number">10</span>;
+<span class="hljs-comment">-- T1 12.00</span></code></pre>
+    <ul class="bullets">
+      <li>Comparisons: <code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&gt;=</code></li>
+      <li>Combine with <code>AND</code>, <code>OR</code>, <code>NOT</code>; use brackets when you mix them</li>
+      <li>A list: <code>reason_code IN ('R1', 'R2')</code></li>
+      <li>Text is in single quotes; column names are not</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>Ask the room to predict the result before you reveal the comment line. T3 is R1 too, but its refund is 8.25. T4's refund is NULL: Day 2 explains why it is not kept by either <code>&gt;= 10</code> or <code>&lt; 10</code>.</p></aside>
+</section>
+
+<section class="slide" id="text-patterns" data-lo="LO3" data-n="34" data-session="4">
+  <div class="kicker">Text</div>
+  <h2>= matches exactly; LIKE and ILIKE match a pattern</h2>
+  <table class="t">
+    <tr><th>Condition</th><th>Keeps</th></tr>
+    <tr><td><code>product_ref = 'X-101'</code></td><td>exactly that code</td></tr>
+    <tr><td><code>product_ref LIKE 'X-1%'</code></td><td>codes starting with X-1; <code>%</code> is any run of characters</td></tr>
+    <tr><td><code>label ILIKE '%item%'</code></td><td>"item" anywhere, in any letter case</td></tr>
+    <tr><td><code>LOWER(label) = 'late'</code></td><td>"late", "Late", "LATE"</td></tr>
+  </table>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> In DuckDB <code>LIKE</code> is case-sensitive: <code>LIKE '%Item%'</code> misses "wrong item". SQLite ignores case for plain letters: the same query behaves differently in another engine.</div>
+  <aside class="notes"><p>ILIKE is supported by DuckDB and several other engines but not by every one; LOWER on both sides works everywhere.</p></aside>
+</section>
+
+<section class="slide" id="half-open-dates" data-lo="LO3" data-n="35" data-session="4">
+  <div class="kicker">Dates and times</div>
+  <h2>Filter a period with a half-open range: from the first day, up to but not including the next</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>)
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">WHERE</span> received_on <span class="hljs-operator">&gt;=</span> <span class="hljs-type">DATE</span> <span class="hljs-string">&#x27;2026-05-02&#x27;</span>
+  <span class="hljs-keyword">AND</span> received_on <span class="hljs-operator">&lt;</span>  <span class="hljs-type">DATE</span> <span class="hljs-string">&#x27;2026-05-04&#x27;</span>;
+<span class="hljs-comment">-- 3 returns: T1, T2, T3</span></code></pre>
+  <div class="callout warn mt"><b>What goes wrong.</b> On a timestamp column, <code>BETWEEN '2026-05-02' AND '2026-05-03'</code> stops at the first instant of 3 May and drops the rest of that day.</div>
+  <aside class="notes"><p>received_on is a DATE, so here BETWEEN would happen to work. The delivery tables use TIMESTAMP for ordered_at and attempted_at, where it does not. The stretch of lab 1.4 asks why.</p></aside>
+</section>
+
+<section class="slide" id="order-needs-tiebreak" data-lo="LO3" data-n="36" data-session="4">
+  <div class="kicker">Sorting</div>
+  <h2>ORDER BY needs a tie-breaker before LIMIT can be trusted</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> return_id, received_on
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> received_on <span class="hljs-keyword">DESC</span>,
+         return_id
+LIMIT <span class="hljs-number">2</span>;
+<span class="hljs-comment">-- T5 2026-05-06</span>
+<span class="hljs-comment">-- T4 2026-05-04</span></code></pre>
+    <ul class="bullets">
+      <li><code>DESC</code> from the highest; ascending is the default</li>
+      <li>T1 and T2 share a date: without <code>return_id</code> their order is not defined</li>
+      <li><code>LIMIT n</code> keeps the first n rows after sorting</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>Without a tie-breaker, a top ten can differ between runs or engines when two rows tie at the tenth place. The checker of the twenty questions expects the stated order exactly.</p></aside>
+</section>
+
+<section class="slide" id="expressions" data-lo="LO3" data-n="37" data-session="4">
+  <div class="kicker">Expressions</div>
+  <h2>An expression computes a new value for each row</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> return_id,
+       <span class="hljs-built_in">COALESCE</span>(refund, <span class="hljs-number">0</span>) <span class="hljs-keyword">AS</span> refund_or_zero,
+       date_trunc(<span class="hljs-string">&#x27;month&#x27;</span>, received_on) <span class="hljs-keyword">AS</span> <span class="hljs-keyword">month</span>,
+       <span class="hljs-built_in">UPPER</span>(reason_code) <span class="hljs-keyword">AS</span> code
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>;</code></pre>
+    <ul class="bullets">
+      <li>Arithmetic: <code>qty * price</code></li>
+      <li><code>COALESCE(x, 0)</code>: x, or 0 when x is NULL; T4 shows 0.00</li>
+      <li><code>date_trunc('month', d)</code>: the first day of d's month</li>
+      <li><code>AS name</code> names the new column</li>
+    </ul>
+  </div>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>refund - 1</code> on T4 is NULL, not -1: anything combined with NULL is NULL.</div>
+  <aside class="notes"><p>COALESCE is the tool lab 1.4 needs for a line value with an empty discount. Use refund here, never the lab's discount column.</p></aside>
+</section>
+
+<section class="slide" id="predict-first" data-lo="LO3 LO2" data-n="38" data-session="4">
+  <div class="kicker">The habit of the course</div>
+  <h2>Write your prediction before you run the query</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>How many rows?</h4><p class="small mb0">One, a handful, about a sixth of the table</p></div>
+    <div class="card c-cyan"><h4>Roughly what value?</h4><p class="small mb0">An order of magnitude, a sign, a range</p></div>
+    <div class="card c-purple"><h4>Which first row?</h4><p class="small mb0">After the sort you asked for</p></div>
+  </div>
+  <div class="callout tip mt"><b>Why.</b> A result that surprises you is either a discovery or a bug. Without a prediction you cannot tell that you were surprised.</div>
+  <aside class="notes"><p>Predictions are written with the assistant off: the entry's AI policy. They are part of the answer file and the trainer reads them, but they are not marked right or wrong.</p></aside>
+</section>
+
+<section class="slide" id="check-dates" data-lo="LO3" data-n="39" data-session="4">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which filter counts every inspection made in May 2026?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3" data-id="check-dates-q1">
+    <p class="lead">The returns desk stores <code>inspected_at</code> as a TIMESTAMP. You need every inspection of May 2026, including those late on 31 May.</p>
+    <div class="opts">
+      <div class="opt" data-why="Ends at the first instant of 31 May on a timestamp: the rest of the last day is lost" data-k="A">inspected_at BETWEEN '2026-05-01' AND '2026-05-31'</div>
+      <div class="opt" data-why="Compares text with a pattern: works only while the column is text, and stops working once it is a timestamp" data-k="B">inspected_at LIKE '2026-05%'</div>
+      <div class="opt" data-ok data-k="C">inspected_at &gt;= '2026-05-01' AND inspected_at &lt; '2026-06-01'</div>
+      <div class="opt" data-why="Includes the first instant of June, so an inspection logged at midnight on 1 June is counted in May" data-k="D">inspected_at &gt;= '2026-05-01' AND inspected_at &lt;= '2026-06-01'</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> The half-open range keeps all of 31 May and nothing of 1 June, whatever the time of day.</div>
+  </div>
+  <aside class="notes"><p>Answer: the half-open range. The LIKE option is a spreadsheet habit; it fails silently or with a type error on a real timestamp column.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-1-4" data-auto="lab" data-lab="1.4" data-label="Lab 1.4" data-n="40" data-session="4">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 1.4 · 35 min</div><h2>Questions 1 to 4, predicted first</h2><p class="lead small">Write a prediction, then the query, for the first four of the twenty business questions: text filters, a date range, a sorted top ten and a line value; save them to your answer file</p><a class="nb" href="../labs/D1_4_questions_1_to_4.ipynb">D1_4_questions_1_to_4.ipynb</a></div><ul class="checklist"><li>Read the four questions and write a prediction for each <span class="min">5 min</span></li><li>Answer questions 1 and 2: a text filter and a date range <span class="min">12 min</span></li><li>Answer questions 3 and 4: a sorted top ten and a line value <span class="min">12 min</span></li><li>Compare each result with your prediction and save the part file <span class="min">6 min</span></li><li class="stretch">✱ Stretch: Rewrite question 2 with a half-open date range and explain why it is safer than BETWEEN</li></ul></div>
+  <aside class="notes"><p>The four answers go to <code>answers/part1.sql</code>, which the checker of lab 3.2 reads. Predictions first, with the assistant off.</p><p>Common failures: question 1 with LIKE and a capital C, which misses lower-case names; question 2 with BETWEEN ending on 31 March; question 4 without COALESCE, which leaves lines empty. Debrief with the comparison cell the notebook runs after question 4.</p></aside>
+</section>
+
+<section class="slide" id="wrap-up" data-n="41" data-session="4">
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 1</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>Count, then trust</h4><p class="small mb0">A key is proven by COUNT(*) against COUNT(DISTINCT).</p></div>
+    <div class="card c-cyan"><h4>Say the grain</h4><p class="small mb0">"One row per ..." before every sum and every join.</p></div>
+    <div class="card c-purple"><h4>Predict first</h4><p class="small mb0">Rows, value or first row, written before you run.</p></div>
+  </div>
+  <aside class="notes"><p>Ask each participant to say aloud the grain of one of the six tables before they leave.</p></aside>
+</section>
+
+<section class="slide dark" id="next" data-n="42" data-session="4">
+  <div class="kicker">Next</div>
+  <h2>Day 2: one table, then two</h2>
+  <ul class="bullets">
+    <li>Finish the annotated schema and questions 1 to 4 if you did not: about 30 minutes</li>
+    <li>Keep <code>answers/part1.sql</code>: the checker reads it on Day 3</li>
+    <li>Tomorrow: CASE, NULL, groups and the four kinds of join</li>
+  </ul>
+  <aside class="notes"><p>The 30 minutes are part of the guided self-study the course plans after each day.</p></aside>
+</section>
+</div>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"../index.html"},"deck":{"id":"day1","kind":"day","day":1,"label":"Day 1","title":"Tables, keys and grain","prev":null,"next":"day2.html","md":"day1.md","alt":{}},"sessions":[{"n":1,"label":"Session 1","title":"Tables, types, keys and constraints","slide":"s1","outcomes":["Name the type and the role of each column of a table","Test a candidate key with a counting query","Read the message a database gives when a constraint refuses a row"],"minutes":60,"lab":{"id":"1.1","title":"Six tables and their keys","minutes":35,"href":"../labs/D1_1_tables_and_keys.ipynb"}},{"n":2,"label":"Session 2","title":"Grain and cardinality","slide":"s2","outcomes":["State the grain of a table in one sentence","Confirm a grain with a counting query","Measure a one-to-many relationship and name its maximum"],"minutes":60,"lab":{"id":"1.2","title":"The annotated schema","minutes":35,"href":"../labs/D1_2_annotated_schema.ipynb"}},{"n":3,"label":"Session 3","title":"Normal forms, wide tables and embedded engines","slide":"s3","outcomes":["Explain the repetition that normal forms remove","Build a wide analytical table from a join and name its risks","Contrast an embedded engine with a client-server database"],"minutes":60,"lab":{"id":"1.3","title":"One wide table, and what it repeats","minutes":30,"href":"../labs/D1_3_wide_table.ipynb"}},{"n":4,"label":"Session 4","title":"Filters, sorting and expressions","slide":"s4","outcomes":["Filter rows on text patterns and date ranges","Sort with a tie-breaker and keep the top rows","Compute a value per row with an expression that handles a NULL"],"minutes":60,"lab":{"id":"1.4","title":"Questions 1 to 4, predicted first","minutes":35,"href":"../labs/D1_4_questions_1_to_4.ipynb"}}],"slides":[{"id":"title","n":1,"title":"Tables, keys and grain","kind":"title","session":0,"hash":"8328175b","md":"#### [day1#title] Tables, keys and grain\n\n*SDAIA Academy · SQL and Relational Data*\n\nDay 1: What a row means before any query is written\n\nData & AI Foundations Track · 4 teaching days + capstone day · 4 sessions · 4 labs · FND-DAT-101","notes":"Welcome the room and introduce yourself. Ask one calibrating question: \"Who has used a filter or a pivot table in a spreadsheet this month?\" Most hands should go up: that is the prerequisite, and it is enough.\n\nThe rhythm of every day: four sessions of an hour, each about 25 minutes of ideas and then a lab of 30 or 35 minutes. Predictions are written before queries run, always.","minutes":null,"lo":[]},{"id":"agenda","n":2,"title":"Tables, keys and grain","kind":"content","session":0,"hash":"36c0ef58","md":"#### [day1#agenda] Tables, keys and grain\n\n*Today*\n\n- **Session 1 · Tables, types, keys and constraints**: A table is a set of rows of one kind; keys name a row, constraints refuse a bad one\n- **Session 2 · Grain and cardinality**: What one row stands for, and how many rows of one table meet one row of another\n- **Session 3 · Normal forms, wide tables and embedded engines**: Why operational tables are split, why analytical tables are wide, and where the engine runs\n- **Session 4 · Filters, sorting and expressions**: WHERE on text and dates, ORDER BY with ties, and expressions that compute a value per row","notes":"","minutes":null,"lo":[]},{"id":"setup-check","n":3,"title":"One notebook proves your setup works","kind":"content","session":0,"hash":"56bd3e4e","md":"#### [day1#setup-check] One notebook proves your setup works\n\n*Before the first session*\n\nOpen `labs/00_setup_check.ipynb` in Colab or on your laptop and run every cell. It writes the company's six tables, builds the database file and runs one query.\n\n- It ends with **setup ok** and the six table names\n- The first run takes about half a minute; later runs reuse the file\n- No model, no key and no account is needed for any lab\n\n- **On a laptop.** From the `labs` folder: `uv run --with jupyterlab jupyter lab`, then open the notebook. In Colab the first cell clones the course and installs the two packages.","notes":"Ask everyone to run the setup notebook during the welcome. Walk the room: the usual failure in Colab is running a later cell before the first one; the fix is Runtime, Run all.\n\nOn a laptop the usual failure is opening the notebook from the wrong folder. The setup cell climbs to `labs/` by itself, but only from inside the course folder.","minutes":null,"lo":[]},{"id":"s1","n":4,"title":"Tables, types, keys and constraints","kind":"section","session":1,"hash":"1c4e8407","md":"#### [day1#s1] Tables, types, keys and constraints\n\n*Session 1*\n\n- Name the type and the role of each column of a table\n- Test a candidate key with a counting query\n- Read the message a database gives when a constraint refuses a row","notes":"","minutes":null,"lo":["LO1"]},{"id":"table-holds-one-kind","n":5,"title":"A table holds rows of one kind, each with the same columns","kind":"content","session":1,"hash":"0cd5d7cb","md":"#### [day1#table-holds-one-kind] A table holds rows of one kind, each with the same columns\n\n*What a table is*\n\n| return_id | order_ref | reason_code | refund | received_on |\n| --- | --- | --- | --- | --- |\n| T1 | O-A11 | R1 | 12.00 | 2026-05-02 |\n| T2 | O-A12 | R2 | 30.50 | 2026-05-02 |\n| T3 | O-A15 | R1 | 8.25 | 2026-05-03 |\n| T4 | O-A15 | R3 | NULL | 2026-05-04 |\n| T5 | O-A20 | R2 | 19.00 | 2026-05-06 |\n\nThe company's returns desk: the `returns` table. The slides use this department; the labs use the delivery tables.\n\n> **Unlike a sheet.** No merged cells, no totals row, no colour that means something. Every fact sits in a column with a name.","notes":"Contrast with a spreadsheet: a sheet lets anything go in any cell. A table promises that each row is one returned parcel and each column one fact about it.\n\nPoint at T4: the refund is NULL, unknown, because the refund has not been decided yet. Day 2 spends a session on that word.","minutes":null,"lo":["LO1"]},{"id":"types-decide-what-fits","n":6,"title":"Every column has a type, and the type decides what fits","kind":"content","session":1,"hash":"0f51f5ac","md":"#### [day1#types-decide-what-fits] Every column has a type, and the type decides what fits\n\n*Types*\n\n| Type | Holds | Example |\n| --- | --- | --- |\n| `VARCHAR` | text | `'R1'` |\n| `INTEGER` | whole numbers | `3` |\n| `DECIMAL(8,2)` | exact amounts, two decimals | `30.50` |\n| `DATE`, `TIMESTAMP` | a day; a day and a time of day | `DATE '2026-05-02'` |\n| `BOOLEAN` | true or false | `true` |\n\n> **What goes wrong.** An amount stored as text sorts as text: `'9.00'` comes after `'30.50'`. A date stored as text cannot be compared with a range.","notes":"Money is DECIMAL, never a floating-point number: 0.1 plus 0.2 is not exactly 0.3 in floating point, and finance notices.\n\nAsk: which column of the returns table would break first if it were stored as text? (received_on: ranges stop working.)","minutes":null,"lo":["LO1"]},{"id":"key-names-one-row","n":7,"title":"A key is a column, or a set of columns, that names exactly one row","kind":"content","session":1,"hash":"8e114cac","md":"#### [day1#key-names-one-row] A key is a column, or a set of columns, that names exactly one row\n\n*Keys*\n\n- **A single-column key.** `return_id` in `returns`: no two returns share it. Declared as `PRIMARY KEY`, the engine refuses a second T3.\n- **A composite key.** `(return_id, item_no)` in `return_items`: a return has several items, so the return alone does not name an item; the pair does.\n\n> **Not a key.** `order_ref` looks like an identifier, but one order can be returned twice: O-A15 appears in T3 and T4.","notes":"Ask the room to find the repeated order reference on the previous slide before you show the callout.\n\nThe point for the lab: a column called something_id is a candidate, not a proof. The proof is a count.","minutes":null,"lo":["LO1"]},{"id":"key-by-counting","n":8,"title":"Test a candidate key by counting rows and distinct values","kind":"content","session":1,"hash":"45c77536","md":"#### [day1#key-by-counting] Test a candidate key by counting rows and distinct values\n\n*Proof, not belief*\n\n```sql\n-- file: returns desk\nSELECT COUNT(*)                  AS n_rows,\n       COUNT(DISTINCT order_ref) AS n_refs\nFROM returns;\n-- n_rows 5, n_refs 4\n```\n\n- Equal numbers: no value repeats, **the candidate holds**\n- Fewer distinct values: some value repeats, **not a key**\n- For a pair, count the rows of `SELECT DISTINCT a, b`: 8 pairs for 8 rows of `return_items`\n\n> **Habit.** Before you trust a key, count. It takes one query.","notes":"Run it live on the returns desk if you have the slide examples open (`labs/_tools/slide_examples.py` prints these numbers).\n\nDo not show the counts of the delivery tables: lab 1.1 asks for them.","minutes":null,"lo":["LO1"]},{"id":"foreign-key-points","n":9,"title":"A foreign key points at a row that must exist in another table","kind":"content","session":1,"hash":"a8de3373","md":"#### [day1#foreign-key-points] A foreign key points at a row that must exist in another table\n\n*Between tables*\n\n**return_items** `return_id` T5 → **returns** row T5 must exist → **reasons** its `reason_code` R2 must exist\n\nDeclared with `REFERENCES returns (return_id)`, an item for a return that does not exist is refused. Without it, the item would sit in the table, joined to nothing, and every total would quietly miss it.","notes":"A foreign key is a promise about two tables at once. It is why the order of loading matters on Day 4: the one side first, then the many side.","minutes":null,"lo":["LO1"]},{"id":"constraints-refuse","n":10,"title":"Constraints refuse rows that make no sense, before anyone queries them","kind":"content","session":1,"hash":"7a019860","md":"#### [day1#constraints-refuse] Constraints refuse rows that make no sense, before anyone queries them\n\n*Constraints*\n\n- **NOT NULL.** The value must be there: every return has a received date.\n- **PRIMARY KEY, UNIQUE.** No two rows share the value.\n- **REFERENCES.** The value exists in the other table.\n- **CHECK.** A rule on the value: `qty > 0`, `refund >= 0`.\n- **Type.** Only that kind of value: no text in a date.\n- **The message.** A refusal names the rule it broke. Read it.","notes":"Demo on the returns desk: `INSERT INTO return_items VALUES ('T1', 2, 'X-999', 0)`. The engine answers \"CHECK constraint failed\" and names the expression. Then try a second `('T1', 1, ...)` and read the key violation.\n\nSources: DuckDB constraints documentation (in course sources).","minutes":null,"lo":["LO1"]},{"id":"six-tables","n":11,"title":"The grocery delivery company keeps its orders in six tables","kind":"content","session":1,"hash":"44f39ee5","md":"#### [day1#six-tables] The grocery delivery company keeps its orders in six tables\n\n*The case study*\n\n- **stores.** Eight dispatch stores across five regions\n- **products.** The catalogue: names, categories, list prices\n- **customers.** Registered customers, with personal data\n- **orders.** Placed by a customer at a store, with a status\n- **order_lines.** Products, quantities, prices, discounts\n- **deliveries.** What happened when a courier went out\n\nSynthetic: January to June 2026, about a million order lines. People appear only as codes and roles.","notes":"Introduce the roles, never names: the head of commercial reporting, who sent twenty questions; the finance controller, who owns the revenue rule; the data protection officer, who returns on Day 4; and the analyst, which is each participant.\n\nKeep the keys and grains for the labs: do not answer them here.","minutes":null,"lo":["LO1"]},{"id":"check-key","n":12,"title":"Which column is a key of return_items?","kind":"quiz","session":1,"hash":"0610a247","md":"#### [day1#check-key] Which column is a key of return_items?\n\n*Checkpoint*\n\n**Question:** The returns desk's `return_items` has 8 rows. `COUNT(DISTINCT return_id)` is 5 and `COUNT(DISTINCT product_ref)` is 5. The distinct pairs `(return_id, item_no)` number 8. What names one row?\n\n- A. return_id alone\n- B. The pair return_id and item_no\n- C. product_ref alone\n- D. No column: the table has no key","notes":"Answer: the pair. If many pick \"no key\", go back to the composite key card: a key can have two columns.","minutes":null,"lo":["LO1"]},{"id":"lab-1-1","n":13,"title":"Six tables and their keys","kind":"lab","session":1,"hash":"723fb5ed","md":"#### [day1#lab-1-1] Six tables and their keys\n\nLab 1.1 · 35 min\n\nList the six tables of the grocery delivery company, read their columns and types, test each candidate key by counting, and watch a key and a check refuse bad rows\n\n[D1_1_tables_and_keys.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_1_tables_and_keys.ipynb)\n\n- [ ] List the six tables with their row counts (5 min)\n- [ ] Describe the columns and types of each table (7 min)\n- [ ] Test each candidate key: COUNT(\\*) against COUNT(DISTINCT key) (10 min)\n- [ ] Break a key and a check on the mini tables and read the refusals (8 min)\n- [ ] Write down what each table refuses and why (5 min)\n- [ ] ✱ Stretch: Find one column whose type is weaker than its meaning and say what that lets in","notes":"Watch for participants who stop at the first table: each table has a candidate key to test. The mini tables in task 4 are in memory: nothing they break there touches the company's database, which opens read-only.\n\nDebrief after the lab: order_lines repeats its order_id because an order has several lines; deliveries repeats it because an order can need several attempts. Two reasons, two grains: the next session.","minutes":null,"lo":[]},{"id":"s2","n":14,"title":"Grain and cardinality","kind":"section","session":2,"hash":"39909727","md":"#### [day1#s2] Grain and cardinality\n\n*Session 2*\n\n- State the grain of a table in one sentence\n- Confirm a grain with a counting query\n- Measure a one-to-many relationship and name its maximum","notes":"","minutes":null,"lo":["LO1"]},{"id":"grain-one-row","n":15,"title":"The grain is what one row stands for","kind":"content","session":2,"hash":"2bbad75d","md":"#### [day1#grain-one-row] The grain is what one row stands for\n\n*Grain*\n\n- **returns.** One row per **returned parcel**\n- **return_items.** One row per **item inside one return**\n- **inspections.** One row per **inspection of one return**; a return can be inspected twice\n\n> **Say it in one sentence.** \"One row per ...\" If you cannot finish the sentence, you cannot sum the table safely.","notes":"Grain is the single most useful word of the course. Every wrong total on Day 3 is a grain mistake.\n\nAsk: what is the grain of a monthly sales report? (One row per month, or per month and store: the report must say which.)","minutes":null,"lo":["LO1"]},{"id":"grain-sentences","n":16,"title":"A good grain sentence names the thing and the one it belongs to","kind":"content","session":2,"hash":"9c672259","md":"#### [day1#grain-sentences] A good grain sentence names the thing and the one it belongs to\n\n*Writing it down*\n\n| Vague | Precise |\n| --- | --- |\n| \"Items\" | One row per item inside one return |\n| \"Inspection data\" | One row per inspection of one return, on one day |\n| \"Refunds by reason\" | One row per reason code, with the sum of refunds |\n\nThe precise sentence tells you the key: the thing, plus whatever tells two of them apart.","notes":"Read the vague column aloud and ask the room to improve each before revealing the precise one.","minutes":null,"lo":["LO1"]},{"id":"cardinality-kinds","n":17,"title":"Cardinality says how many rows of one table meet one row of another","kind":"content","session":2,"hash":"f0be6049","md":"#### [day1#cardinality-kinds] Cardinality says how many rows of one table meet one row of another\n\n*Cardinality*\n\n- **One to one.** Each return has exactly one decision letter.\n- **One to many.** Each return has one or more items.\n- **Many to many.** Products and returns: resolved through `return_items`.\n\n> **Write it as a range.** \"Items per return: 1..3\" says more than \"one to many\": it gives the fewest and the most.","notes":"The range notation is what lab 1.2 asks for. The fewest is often 0, and 0 is where queries go wrong.","minutes":null,"lo":["LO1"]},{"id":"measure-cardinality","n":18,"title":"Group the many side by the key of the one side, then read the smallest and largest group","kind":"content","session":2,"hash":"f59f0838","md":"#### [day1#measure-cardinality] Group the many side by the key of the one side, then read the smallest and largest group\n\n*Measure it*\n\n```sql\n-- file: returns desk\nSELECT MIN(n) AS fewest, MAX(n) AS most\nFROM (SELECT return_id, COUNT(*) AS n\n      FROM return_items\n      GROUP BY return_id);\n-- fewest 1, most 3\n```\n\n> **What goes wrong.** This query only sees returns that have items. A return with no item would not appear in the inner result, so \"fewest\" can never read 0 here.","notes":"Walk through the inner query first: it is a small table of its own, one row per return. Then the outer query reads two numbers from it.","minutes":null,"lo":["LO1"]},{"id":"fewest-is-the-trap","n":19,"title":"To see the zeros, count from the one side","kind":"content","session":2,"hash":"a4b76cfc","md":"#### [day1#fewest-is-the-trap] To see the zeros, count from the one side\n\n*The zero case*\n\n```sql\n-- file: returns desk\nSELECT r.reason_code,\n       COUNT(t.return_id) AS returns\nFROM reasons r\nLEFT JOIN returns t\n  ON t.reason_code = r.reason_code\nGROUP BY r.reason_code;\n```\n\n| reason_code | returns |\n| --- | --- |\n| R1 | 2 |\n| R2 | 2 |\n| R3 | 1 |\n| R4 | 0 |\n\nReasons to returns: **0..2**. Grouping `returns` alone would have said 1..2 and hidden R4.","notes":"The LEFT JOIN is a preview of Day 2; today it is enough to know it keeps every row of the left table. COUNT of a column counts only the rows where it is not NULL, which is why R4 shows 0.","minutes":null,"lo":["LO1"]},{"id":"join-takes-finest-grain","n":20,"title":"A join takes the grain of its finest table","kind":"content","session":2,"hash":"18a0c8f7","md":"#### [day1#join-takes-finest-grain] A join takes the grain of its finest table\n\n*Looking ahead*\n\n1. **returns** 5 rows, one per return\n2. **join inspections** a return inspected twice appears twice\n3. **sum of refunds** counts that refund twice\n\n> **Keep for Day 3.** Before every join, write the grain of each side. If the result's grain is finer than the question's, aggregate first.","notes":"Plant the seed only: the full treatment is session 3.1. Ask which pairs of the delivery tables could do the same thing; the stretch of lab 1.2 asks exactly that.","minutes":null,"lo":["LO1"]},{"id":"check-grain","n":21,"title":"What is the grain of the inspections table?","kind":"quiz","session":2,"hash":"2fc6aa9a","md":"#### [day1#check-grain] What is the grain of the inspections table?\n\n*Checkpoint*\n\n**Question:** The returns desk inspects some returns once, some twice, and some never. `inspections` holds `return_id`, `inspected_on` and `result`. Which sentence states its grain?\n\n- A. One row per return\n- B. One row per inspection result\n- C. One row per return, inspected or not\n- D. One row per inspection of one return","notes":"Answer: one row per inspection of one return. If \"one row per return\" is popular, ask how many rows a return inspected twice has.","minutes":null,"lo":["LO1"]},{"id":"lab-1-2","n":22,"title":"The annotated schema","kind":"lab","session":2,"hash":"255ab13a","md":"#### [day1#lab-1-2] The annotated schema\n\nLab 1.2 · 35 min\n\nWrite the key and the grain of each of the six tables, confirm them with counting queries, measure the cardinality of every relationship and check the annotated schema against the reference\n\n[D1_2_annotated_schema.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_2_annotated_schema.ipynb)\n\n- [ ] Write the grain of each table in one sentence (6 min)\n- [ ] Confirm each grain with a counting query (10 min)\n- [ ] Measure lines per order, attempts per order and orders per customer (10 min)\n- [ ] Fill in the annotated schema and run its check (9 min)\n- [ ] ✱ Stretch: List every join of the schema that can multiply rows, and the column that causes it","notes":"The annotated schema of this lab is assessed (one of the five lab files). Its check compares keys and the fewest..most ranges with the reference; the grain sentences are read by the trainer.\n\nCommon failure: \"fewest\" orders per customer written as 1. Point them to the LEFT JOIN of the zero-case slide. Debrief: cancelled orders have no delivery attempt, so attempts per order start at 0.","minutes":null,"lo":[]},{"id":"s3","n":23,"title":"Normal forms, wide tables and embedded engines","kind":"section","session":3,"hash":"22ea0c58","md":"#### [day1#s3] Normal forms, wide tables and embedded engines\n\n*Session 3*\n\n- Explain the repetition that normal forms remove\n- Build a wide analytical table from a join and name its risks\n- Contrast an embedded engine with a client-server database","notes":"","minutes":null,"lo":["LO1"]},{"id":"normal-forms-brief","n":24,"title":"Normalised tables store each fact once","kind":"content","session":3,"hash":"138741b6","md":"#### [day1#normal-forms-brief] Normalised tables store each fact once\n\n*Normal forms, in brief*\n\n| Form | The rule, in plain words | Returns desk example |\n| --- | --- | --- |\n| First | One value per cell; no lists inside a cell | Items in their own rows, not \"X-101, X-205\" in one cell |\n| Second | Every column depends on the whole key | The reason label is not in `return_items`: it depends on the return, not the item |\n| Third | No column depends on another non-key column | The label lives in `reasons`, reached through `reason_code` |","notes":"Keep this brief: the entry asks for normal forms \"in brief\". The idea to keep is the third column: each fact has one home.\n\nSources: SDAIA Academic Programs Standards Framework, DM-Relational topics include normalisation motivation (in course sources).","minutes":null,"lo":["LO1"]},{"id":"update-anomaly","n":25,"title":"A fact written many times can disagree with itself","kind":"content","session":3,"hash":"47195816","md":"#### [day1#update-anomaly] A fact written many times can disagree with itself\n\n*Why it matters*\n\n- **Reason label copied onto every item.** Rename R2 from \"wrong item\" to \"wrong product\". Change 3 of the 5 rows that carry it and the table now holds both labels for the same code.\n- **Label stored once in reasons.** Change one row. Every query that joins to `reasons` sees the new label at once.\n\n> **The update anomaly.** It needs no bug: only a partial fix, which is what busy people make.","notes":"Lab 1.3 makes this happen on purpose with a store's region in a wide table.","minutes":null,"lo":["LO1"]},{"id":"analytical-tables-wide","n":26,"title":"Analytical tables are wide on purpose","kind":"content","session":3,"hash":"d2b4bf43","md":"#### [day1#analytical-tables-wide] Analytical tables are wide on purpose\n\n*The other side*\n\n- **Read far more than written**: an analysis reads millions of rows and changes none\n- **Fewer joins** for every question: the category and region already sit on the line\n- **Built from the normalised source** on a schedule, never edited by hand\n- Columnar engines store each column apart, so **unused wide columns cost little** to read\n\n> **The rule.** A wide table is a copy. When it is wrong, fix the source and rebuild the copy.","notes":"This is why analysts and database designers argue: both are right for their workload. The entry asks why analytical tables are wider; this slide is that answer.","minutes":null,"lo":["LO1"]},{"id":"embedded-vs-server","n":27,"title":"An embedded engine runs inside your program; a server runs apart and you connect to it","kind":"content","session":3,"hash":"a2591c26","md":"#### [day1#embedded-vs-server] An embedded engine runs inside your program; a server runs apart and you connect to it\n\n*Where the engine runs*\n\n- **Embedded.**\n  - A library in your Python process\n  - The database is a file\n  - Nothing to install or administer\n  - One writer at a time, on one machine\n- **Client-server.**\n  - A separate server process, often another machine\n  - Accounts, permissions, network\n  - Many users reading and writing at once\n  - Someone runs and backs it up\n\nThe SQL you learn here runs on both, with small differences of dialect.","notes":"SQLite's own documentation describes it as serverless: no separate server process to install or manage. DuckDB's documentation says it runs embedded within a host process.\n\nSources: SQLite \"SQLite Is Serverless\"; DuckDB \"Why DuckDB\" (in course sources).","minutes":null,"lo":["LO1"]},{"id":"two-embedded-engines","n":28,"title":"Two embedded engines, built for different work","kind":"content","session":3,"hash":"127b0fa0","md":"#### [day1#two-embedded-engines] Two embedded engines, built for different work\n\n*The tool slot*\n\n|  | Analytical engine (DuckDB) | Transactional engine (SQLite) |\n| --- | --- | --- |\n| Built for | Scans and aggregates over many rows | Many small reads and writes |\n| Stores | Column by column, processed in batches | Row by row |\n| In this course | Every lab on the full data | Lab 1.3 on the mini tables; lab 4.3 for indexes |\n\nExamples of a capability, not endorsements. Either engine is free and runs on a laptop processor.","notes":"DuckDB's documentation describes a columnar, vectorised execution engine. SQLite ships inside Python's standard library, which is why lab 1.3 needs no install for it.\n\nSources: DuckDB \"Why DuckDB\"; SQLite documentation (in course sources).","minutes":null,"lo":["LO1"]},{"id":"check-wide","n":29,"title":"The wide returns table shows two labels for R2. What do you do?","kind":"quiz","session":3,"hash":"6ac751e4","md":"#### [day1#check-wide] The wide returns table shows two labels for R2. What do you do?\n\n*Checkpoint*\n\n**Question:** The returns desk's wide table copies the reason label onto every item. A colleague renamed R2 in some rows only, so both labels now appear. What is the right fix?\n\n- A. Correct the label once in reasons and rebuild the wide table\n- B. Update the remaining rows of the wide table\n- C. Add DISTINCT to every report on the wide table\n- D. Delete the reasons table and keep the wide one","notes":"Answer: fix the source and rebuild. The second option is tempting because it works today; ask what happens next month.","minutes":null,"lo":["LO1"]},{"id":"lab-1-3","n":30,"title":"One wide table, and what it repeats","kind":"lab","session":3,"hash":"a8bd351a","md":"#### [day1#lab-1-3] One wide table, and what it repeats\n\nLab 1.3 · 30 min\n\nJoin order lines to their order, store and product into one wide table, count what it repeats, make one copy disagree, and run the same count in a second embedded engine\n\n[D1_3_wide_table.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_3_wide_table.ipynb)\n\n- [ ] Build a wide table of order lines with store and product columns (8 min)\n- [ ] Count how often each store's region is repeated (6 min)\n- [ ] Change one region in the wide table and find the rows that now disagree (8 min)\n- [ ] Run the same count in the second embedded engine (8 min)\n- [ ] ✱ Stretch: Write two sentences on when the wide table is the right choice and who must rebuild it","notes":"The wide table is built in memory from the read-only database, so the partial update in task 3 cannot damage anything. If the join in task 1 fails, the notebook builds the table so later tasks run.\n\nDebrief: one store now carries two regions in the wide table, while `stores` still has one row for it. That is the update anomaly of the earlier slide, made by a partial fix.","minutes":null,"lo":[]},{"id":"s4","n":31,"title":"Filters, sorting and expressions","kind":"section","session":4,"hash":"ec904d07","md":"#### [day1#s4] Filters, sorting and expressions\n\n*Session 4*\n\n- Filter rows on text patterns and date ranges\n- Sort with a tie-breaker and keep the top rows\n- Compute a value per row with an expression that handles a NULL","notes":"","minutes":null,"lo":["LO3"]},{"id":"logical-order","n":32,"title":"You write SELECT first, but the engine reads FROM first","kind":"content","session":4,"hash":"05ab2396","md":"#### [day1#logical-order] You write SELECT first, but the engine reads FROM first\n\n*How a query is read*\n\n1. **1 · FROM** which table\n2. **2 · WHERE** which rows\n3. **3 · SELECT** which columns, computed how\n4. **4 · ORDER BY, LIMIT** in which order, how many\n\n> **Read in this order** when you predict a result: start with the table, then cross out rows, then pick columns.","notes":"Day 2 adds GROUP BY and HAVING between WHERE and SELECT. Tell the room this now so the order does not change on them later.","minutes":null,"lo":["LO3"]},{"id":"where-keeps-true","n":33,"title":"WHERE keeps the rows for which the condition is true","kind":"content","session":4,"hash":"aa20c720","md":"#### [day1#where-keeps-true] WHERE keeps the rows for which the condition is true\n\n*Filters*\n\n```sql\n-- file: returns desk\nSELECT return_id, refund\nFROM returns\nWHERE reason_code = 'R1'\n  AND refund >= 10;\n-- T1 12.00\n```\n\n- Comparisons: `=`, `\u003c>`, `\u003c`, `>=`\n- Combine with `AND`, `OR`, `NOT`; use brackets when you mix them\n- A list: `reason_code IN ('R1', 'R2')`\n- Text is in single quotes; column names are not","notes":"Ask the room to predict the result before you reveal the comment line. T3 is R1 too, but its refund is 8.25. T4's refund is NULL: Day 2 explains why it is not kept by either `>= 10` or `\u003c 10`.","minutes":null,"lo":["LO3"]},{"id":"text-patterns","n":34,"title":"= matches exactly; LIKE and ILIKE match a pattern","kind":"content","session":4,"hash":"eccaf07e","md":"#### [day1#text-patterns] = matches exactly; LIKE and ILIKE match a pattern\n\n*Text*\n\n| Condition | Keeps |\n| --- | --- |\n| `product_ref = 'X-101'` | exactly that code |\n| `product_ref LIKE 'X-1%'` | codes starting with X-1; `%` is any run of characters |\n| `label ILIKE '%item%'` | \"item\" anywhere, in any letter case |\n| `LOWER(label) = 'late'` | \"late\", \"Late\", \"LATE\" |\n\n> **What goes wrong.** In DuckDB `LIKE` is case-sensitive: `LIKE '%Item%'` misses \"wrong item\". SQLite ignores case for plain letters: the same query behaves differently in another engine.","notes":"ILIKE is supported by DuckDB and several other engines but not by every one; LOWER on both sides works everywhere.","minutes":null,"lo":["LO3"]},{"id":"half-open-dates","n":35,"title":"Filter a period with a half-open range: from the first day, up to but not including the next","kind":"content","session":4,"hash":"8f2d1752","md":"#### [day1#half-open-dates] Filter a period with a half-open range: from the first day, up to but not including the next\n\n*Dates and times*\n\n```sql\n-- file: returns desk\nSELECT COUNT(*)\nFROM returns\nWHERE received_on >= DATE '2026-05-02'\n  AND received_on \u003c  DATE '2026-05-04';\n-- 3 returns: T1, T2, T3\n```\n\n> **What goes wrong.** On a timestamp column, `BETWEEN '2026-05-02' AND '2026-05-03'` stops at the first instant of 3 May and drops the rest of that day.","notes":"received_on is a DATE, so here BETWEEN would happen to work. The delivery tables use TIMESTAMP for ordered_at and attempted_at, where it does not. The stretch of lab 1.4 asks why.","minutes":null,"lo":["LO3"]},{"id":"order-needs-tiebreak","n":36,"title":"ORDER BY needs a tie-breaker before LIMIT can be trusted","kind":"content","session":4,"hash":"a29a2867","md":"#### [day1#order-needs-tiebreak] ORDER BY needs a tie-breaker before LIMIT can be trusted\n\n*Sorting*\n\n```sql\n-- file: returns desk\nSELECT return_id, received_on\nFROM returns\nORDER BY received_on DESC,\n         return_id\nLIMIT 2;\n-- T5 2026-05-06\n-- T4 2026-05-04\n```\n\n- `DESC` from the highest; ascending is the default\n- T1 and T2 share a date: without `return_id` their order is not defined\n- `LIMIT n` keeps the first n rows after sorting","notes":"Without a tie-breaker, a top ten can differ between runs or engines when two rows tie at the tenth place. The checker of the twenty questions expects the stated order exactly.","minutes":null,"lo":["LO3"]},{"id":"expressions","n":37,"title":"An expression computes a new value for each row","kind":"content","session":4,"hash":"0e9ff650","md":"#### [day1#expressions] An expression computes a new value for each row\n\n*Expressions*\n\n```sql\n-- file: returns desk\nSELECT return_id,\n       COALESCE(refund, 0) AS refund_or_zero,\n       date_trunc('month', received_on) AS month,\n       UPPER(reason_code) AS code\nFROM returns;\n```\n\n- Arithmetic: `qty * price`\n- `COALESCE(x, 0)`: x, or 0 when x is NULL; T4 shows 0.00\n- `date_trunc('month', d)`: the first day of d's month\n- `AS name` names the new column\n\n> **What goes wrong.** `refund - 1` on T4 is NULL, not -1: anything combined with NULL is NULL.","notes":"COALESCE is the tool lab 1.4 needs for a line value with an empty discount. Use refund here, never the lab's discount column.","minutes":null,"lo":["LO3"]},{"id":"predict-first","n":38,"title":"Write your prediction before you run the query","kind":"content","session":4,"hash":"ebc6c246","md":"#### [day1#predict-first] Write your prediction before you run the query\n\n*The habit of the course*\n\n- **How many rows?** One, a handful, about a sixth of the table\n- **Roughly what value?** An order of magnitude, a sign, a range\n- **Which first row?** After the sort you asked for\n\n> **Why.** A result that surprises you is either a discovery or a bug. Without a prediction you cannot tell that you were surprised.","notes":"Predictions are written with the assistant off: the entry's AI policy. They are part of the answer file and the trainer reads them, but they are not marked right or wrong.","minutes":null,"lo":["LO3","LO2"]},{"id":"check-dates","n":39,"title":"Which filter counts every inspection made in May 2026?","kind":"quiz","session":4,"hash":"16d6604d","md":"#### [day1#check-dates] Which filter counts every inspection made in May 2026?\n\n*Checkpoint*\n\n**Question:** The returns desk stores `inspected_at` as a TIMESTAMP. You need every inspection of May 2026, including those late on 31 May.\n\n- A. inspected_at BETWEEN '2026-05-01' AND '2026-05-31'\n- B. inspected_at LIKE '2026-05%'\n- C. inspected_at >= '2026-05-01' AND inspected_at \u003c '2026-06-01'\n- D. inspected_at >= '2026-05-01' AND inspected_at \u003c= '2026-06-01'","notes":"Answer: the half-open range. The LIKE option is a spreadsheet habit; it fails silently or with a type error on a real timestamp column.","minutes":null,"lo":["LO3"]},{"id":"lab-1-4","n":40,"title":"Questions 1 to 4, predicted first","kind":"lab","session":4,"hash":"9f52dcdf","md":"#### [day1#lab-1-4] Questions 1 to 4, predicted first\n\nLab 1.4 · 35 min\n\nWrite a prediction, then the query, for the first four of the twenty business questions: text filters, a date range, a sorted top ten and a line value; save them to your answer file\n\n[D1_4_questions_1_to_4.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_4_questions_1_to_4.ipynb)\n\n- [ ] Read the four questions and write a prediction for each (5 min)\n- [ ] Answer questions 1 and 2: a text filter and a date range (12 min)\n- [ ] Answer questions 3 and 4: a sorted top ten and a line value (12 min)\n- [ ] Compare each result with your prediction and save the part file (6 min)\n- [ ] ✱ Stretch: Rewrite question 2 with a half-open date range and explain why it is safer than BETWEEN","notes":"The four answers go to `answers/part1.sql`, which the checker of lab 3.2 reads. Predictions first, with the assistant off.\n\nCommon failures: question 1 with LIKE and a capital C, which misses lower-case names; question 2 with BETWEEN ending on 31 March; question 4 without COALESCE, which leaves lines empty. Debrief with the comparison cell the notebook runs after question 4.","minutes":null,"lo":[]},{"id":"wrap-up","n":41,"title":"Three things to keep from Day 1","kind":"content","session":4,"hash":"de929c94","md":"#### [day1#wrap-up] Three things to keep from Day 1\n\n*Wrap-up*\n\n- **Count, then trust.** A key is proven by COUNT(\\*) against COUNT(DISTINCT).\n- **Say the grain.** \"One row per ...\" before every sum and every join.\n- **Predict first.** Rows, value or first row, written before you run.","notes":"Ask each participant to say aloud the grain of one of the six tables before they leave.","minutes":null,"lo":[]},{"id":"next","n":42,"title":"Day 2: one table, then two","kind":"content","session":4,"hash":"a6ac8156","md":"#### [day1#next] Day 2: one table, then two\n\n*Next*\n\n- Finish the annotated schema and questions 1 to 4 if you did not: about 30 minutes\n- Keep `answers/part1.sql`: the checker reads it on Day 3\n- Tomorrow: CASE, NULL, groups and the four kinds of join","notes":"The 30 minutes are part of the guided self-study the course plans after each day.","minutes":null,"lo":[]}],"activities":[{"id":"check-key-q1","slide":"check-key","type":"single","prompt":"The returns desk's return_items has 8 rows. COUNT(DISTINCT return_id) is 5 and COUNT(DISTINCT product_ref) is 5. The distinct pairs (return_id, item_no) number 8. What names one row?","options":[{"key":"A","text":"return_id alone"},{"key":"B","text":"The pair return_id and item_no"},{"key":"C","text":"product_ref alone"},{"key":"D","text":"No column: the table has no key"}],"correct":[1],"explanation":"Eight distinct pairs for eight rows: no pair repeats, so the pair names exactly one row.","misconceptions":["Takes the identifier-looking name as proof: 5 distinct values for 8 rows means return_id repeats","","Equates a product code with a row: the same product can come back in several returns","Assumes every table must have a single-column key: a pair of columns is a key too"],"lo":["LO1"]},{"id":"check-grain-q1","slide":"check-grain","type":"single","prompt":"The returns desk inspects some returns once, some twice, and some never. inspections holds return_id, inspected_on and result. Which sentence states its grain?","options":[{"key":"A","text":"One row per return"},{"key":"B","text":"One row per inspection result"},{"key":"C","text":"One row per return, inspected or not"},{"key":"D","text":"One row per inspection of one return"}],"correct":[3],"explanation":"Each row records one inspection event. A return can have zero, one or two such rows.","misconceptions":["Takes the return_id column for the grain: a return inspected twice has two rows","Reads the grain from the result column, which is a fact about a row, not what the row stands for","Includes returns that were never inspected: they have no row at all",""],"lo":["LO1"]},{"id":"check-wide-q1","slide":"check-wide","type":"single","prompt":"The returns desk's wide table copies the reason label onto every item. A colleague renamed R2 in some rows only, so both labels now appear. What is the right fix?","options":[{"key":"A","text":"Correct the label once in reasons and rebuild the wide table"},{"key":"B","text":"Update the remaining rows of the wide table"},{"key":"C","text":"Add DISTINCT to every report on the wide table"},{"key":"D","text":"Delete the reasons table and keep the wide one"}],"correct":[0],"explanation":"The label has one home. A copy is rebuilt from it; it is never the place to fix a fact.","misconceptions":["","Repairs the copy by hand: the next partial edit recreates the disagreement","Hides the symptom: queries still return two labels for one code","Throws away the source of truth: the wide table cannot be rebuilt once reasons is gone"],"lo":["LO1"]},{"id":"check-dates-q1","slide":"check-dates","type":"single","prompt":"The returns desk stores inspected_at as a TIMESTAMP. You need every inspection of May 2026, including those late on 31 May.","options":[{"key":"A","text":"inspected_at BETWEEN '2026-05-01' AND '2026-05-31'"},{"key":"B","text":"inspected_at LIKE '2026-05%'"},{"key":"C","text":"inspected_at >= '2026-05-01' AND inspected_at \u003c '2026-06-01'"},{"key":"D","text":"inspected_at >= '2026-05-01' AND inspected_at \u003c= '2026-06-01'"}],"correct":[2],"explanation":"The half-open range keeps all of 31 May and nothing of 1 June, whatever the time of day.","misconceptions":["Ends at the first instant of 31 May on a timestamp: the rest of the last day is lost","Compares text with a pattern: works only while the column is text, and stops working once it is a timestamp","","Includes the first instant of June, so an inspection logged at midnight on 1 June is counted in May"],"lo":["LO3"]}],"ai":{"context":{"course":"../context/course.md","courseJs":"../context/course.js","day":"day1.md","llms":"../llms.txt"},"tasks":[],"tools":[]},"bridge":{"allowedOrigins":[]},"features":{},"strings":{}}</script>
+<script src="../_engine/academy.js"></script>
+</body>
+</html>

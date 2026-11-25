@@ -1,0 +1,7 @@
+customer_id,joined_on,region,full_name,phone,email,birth_year,marketing_opt_in
+C001,2025-02-10,North,Synthetic Person 001,TEL-001-X,c001@example.invalid,1988,true
+C002,2025-05-03,South,Synthetic Person 002,TEL-002-X,c002@example.invalid,1995,false
+C003,2025-07-21,,Synthetic Person 003,TEL-003-X,c003@example.invalid,1979,true
+C004,2025-09-30,North,Synthetic Person 004,TEL-004-X,c004@example.invalid,2001,false
+C005,2026-01-04,East,Synthetic Person 005,TEL-005-X,c005@example.invalid,1990,true
+C006,2026-02-14,,Synthetic Person 006,TEL-006-X,c006@example.invalid,1984,false

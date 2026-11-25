@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="deck" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 4 · Building and checking · SQL and Relational Data</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<link rel="icon" href="../_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="day4.md">
+<link rel="describedby" href="../llms.txt">
+<link rel="stylesheet" href="../_engine/academy.css">
+</head>
+<body>
+<div class="deck" data-course="SQL and Relational Data" data-track="foundations" data-day="Day 4">
+<section class="slide title" id="title" data-auto="title" data-label="Welcome" data-n="1">
+  <div class="kicker">SDAIA Academy · SQL and Relational Data</div>
+  <h1>Building and checking</h1>
+  <p class="lead mt">Day 4: Constraints that refuse, views that limit, plans that explain, tests that prove</p>
+  <div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>4 sessions · 4 labs</span><span>FND-DAT-101</span></div>
+  <aside class="notes"><p>Day 4 moves from reading data to building and checking it. Morning: tables that refuse bad rows, and a view that shows the analysts only what they need. Afternoon: how the engine runs a query, and how to prove a query right.</p><p>The last session sets up the capstone method: a test per question against a fixture checked by hand.</p></aside>
+</section>
+
+<section class="slide" id="agenda" data-auto="agenda" data-label="Agenda" data-n="2">
+  <div class="kicker">Today</div>
+  <h2>Building and checking</h2>
+  <div class="agenda"><div class="item"><div><b>Session 1 · Loading into constrained tables, and transactions</b><small>Stage the raw file, sort out what the constraints would refuse, load the rest in one transaction, account for every row</small></div></div><div class="item"><div><b>Session 2 · Views that limit what is exposed</b><small>A view gives each reader the columns and rows the purpose needs, and no more</small></div></div><div class="item"><div><b>Session 3 · Query plans and indexes</b><small>EXPLAIN shows how the engine will run a query; an index changes a lookup, rarely a scan of everything</small></div></div><div class="item"><div><b>Session 4 · Testing queries against known answers</b><small>A query is right when it matches answers you worked out by hand on data small enough to check</small></div></div></div>
+</section>
+
+<section class="slide" id="review-day3" data-lo="LO3" data-n="3">
+  <div class="kicker">Review of Day 3</div>
+  <h2>Which ranking gives the tied products the same rank, and leaves no gap after them?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3" data-id="review-day3-q1">
+    <p class="lead">A bakery ranks products by units sold. Two products tie for second place. The next product should be third.</p>
+    <div class="opts">
+      <div class="opt" data-why="ROW_NUMBER gives every row its own number: one of the tied products becomes third" data-k="A">ROW_NUMBER()</div>
+      <div class="opt" data-ok data-k="B">DENSE_RANK()</div>
+      <div class="opt" data-why="RANK gives the tie the same number but skips the next: the product after them is fourth" data-k="C">RANK()</div>
+      <div class="opt" data-why="NTILE splits rows into equal buckets; it does not rank by ties" data-k="D">NTILE(3)</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> DENSE_RANK gives ties one rank and continues with the next number: 1, 2, 2, 3.</div>
+  </div>
+  <aside class="notes"><p>Answer: DENSE_RANK. If many chose RANK, show yesterday's rank-ties slide again: 1, 2, 2, 4.</p></aside>
+</section>
+
+<!-- Session 1 -->
+
+<section class="slide section" id="s1" data-label="Session 1 · Loading and transactions" data-auto="section" data-session="1" data-n="4">
+  <div class="kicker">Session 1</div>
+  <h1>Loading into constrained tables, and transactions</h1>
+  <ul class="bullets outcomes"><li>Write table definitions with keys, foreign keys and checks</li><li>Load a raw file through a staging table and record each rejected row with its reason</li><li>Group inserts, updates and deletes in a transaction and roll back on a failed check</li></ul>
+  <div class="sess-no">01</div>
+</section>
+
+<section class="slide" id="constraints-refuse" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="5" data-session="1">
+  <div class="kicker">Constraints</div>
+  <h2>A constraint is a rule the database checks on every row, every time</h2>
+  <table class="t">
+    <tr><th>Constraint</th><th>Refuses</th><th>Returns desk example</th></tr>
+    <tr><td><code>PRIMARY KEY</code></td><td>a repeated or empty key</td><td>a second T2</td></tr>
+    <tr><td><code>NOT NULL</code></td><td>an empty value</td><td>a return with no date</td></tr>
+    <tr><td><code>REFERENCES</code></td><td>a value with no row on the one side</td><td>reason R9, which does not exist</td></tr>
+    <tr><td><code>CHECK</code></td><td>a value outside a stated condition</td><td>a refund below zero</td></tr>
+  </table>
+  <div class="callout warn mt"><b>What goes wrong.</b> A rule written only in a document is checked by nobody. Written as a constraint, it holds for every program that writes to the table.</div>
+  <aside class="notes"><p>Recall Day 1: keys and foreign keys were read from the schema. Today they are written. A foreign key also fixes the order of loading: the one side first.</p></aside>
+</section>
+
+<section class="slide" id="stage-first" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="6" data-session="1">
+  <div class="kicker">Step by step</div>
+  <h2>Stage the raw file as text, give each bad row a reason, then insert the rest</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · Stage</b>every row as text, numbered in file order</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · Reject</b>a rule gives each bad row one reason</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>3 · Insert</b>the rest, cast to the table's types</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>4 · Log</b>read = loaded + rejected</div>
+  </div>
+  <div class="callout tip mt frag" data-frag="d"><b>Takeaway.</b> Straight into a constrained table, the load stops at the first bad row. Staged, you see them all at once.</div>
+  <aside class="notes"><p>Press once per step. The staging table has no constraints at all, and every column is text, so nothing is refused while reading.</p></aside>
+</section>
+
+<section class="slide" id="reject-rule" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="7" data-session="1">
+  <div class="kicker">A reject rule</div>
+  <h2>CASE gives each row the first reason that applies, so the counts add up</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> row_no, return_id,
+  <span class="hljs-keyword">CASE</span>
+    <span class="hljs-keyword">WHEN</span> return_id <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;&#x27;</span> <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;missing key&#x27;</span>
+    <span class="hljs-keyword">WHEN</span> <span class="hljs-built_in">ROW_NUMBER</span>() <span class="hljs-keyword">OVER</span> (
+      <span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> return_id
+      <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> row_no) <span class="hljs-operator">&gt;</span> <span class="hljs-number">1</span> <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;duplicate key&#x27;</span>
+    <span class="hljs-keyword">WHEN</span> reason_code <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">IN</span>
+      (<span class="hljs-keyword">SELECT</span> reason_code <span class="hljs-keyword">FROM</span> reasons)
+      <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;unknown reason&#x27;</span>
+    <span class="hljs-keyword">WHEN</span> TRY_CAST(refund <span class="hljs-keyword">AS</span> <span class="hljs-type">DECIMAL</span>(<span class="hljs-number">8</span>,<span class="hljs-number">2</span>)) <span class="hljs-operator">&lt;</span> <span class="hljs-number">0</span>
+      <span class="hljs-keyword">THEN</span> <span class="hljs-string">&#x27;negative refund&#x27;</span>
+  <span class="hljs-keyword">END</span> <span class="hljs-keyword">AS</span> reason
+<span class="hljs-keyword">FROM</span> stg_returns</code></pre>
+    <table class="t small">
+      <tr><th>row</th><th>return_id</th><th>reason</th></tr>
+      <tr><td>1</td><td>T6</td><td></td></tr>
+      <tr class="hl"><td>2</td><td>T6</td><td>duplicate key</td></tr>
+      <tr class="hl"><td>3</td><td>(empty)</td><td>missing key</td></tr>
+      <tr class="hl"><td>4</td><td>T7</td><td>unknown reason</td></tr>
+      <tr class="hl"><td>5</td><td>T8</td><td>negative refund</td></tr>
+      <tr><td>6</td><td>T9</td><td></td></tr>
+    </table>
+  </div>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>, stage-reject).</p>
+  <aside class="notes"><p>The first T6 is kept and the second rejected: ROW_NUMBER over the file order decides which copy wins. Say aloud that this is a choice, and the lab makes the same one.</p><p>An empty reason means the row is good. The lab's helper keeps the rows with a reason as the reject table.</p></aside>
+</section>
+
+<section class="slide" id="transaction" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="8" data-session="1">
+  <div class="kicker">Transactions</div>
+  <h2>A transaction keeps all its changes or none of them</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">BEGIN</span> TRANSACTION;
+<span class="hljs-keyword">INSERT INTO</span> <span class="hljs-keyword">returns</span> <span class="hljs-keyword">VALUES</span>
+  (<span class="hljs-string">&#x27;T10&#x27;</span>, <span class="hljs-string">&#x27;O-A30&#x27;</span>, <span class="hljs-string">&#x27;R1&#x27;</span>, <span class="hljs-number">4.00</span>, <span class="hljs-string">&#x27;2026-05-10&#x27;</span>),
+  (<span class="hljs-string">&#x27;T11&#x27;</span>, <span class="hljs-string">&#x27;O-A31&#x27;</span>, <span class="hljs-string">&#x27;R9&#x27;</span>, <span class="hljs-number">2.00</span>, <span class="hljs-string">&#x27;2026-05-10&#x27;</span>),
+  (<span class="hljs-string">&#x27;T12&#x27;</span>, <span class="hljs-string">&#x27;O-A32&#x27;</span>, <span class="hljs-string">&#x27;R2&#x27;</span>, <span class="hljs-number">6.00</span>, <span class="hljs-string">&#x27;2026-05-10&#x27;</span>);
+<span class="hljs-comment">-- refused: R9 is not a reason</span>
+<span class="hljs-keyword">ROLLBACK</span>;</code></pre>
+    <div>
+      <div class="stat center"><div class="big">5 → 5</div><div class="lbl">rows of returns, before and after</div></div>
+      <p class="small mt">T10 and T12 were valid, and they are not kept either. Then <code>COMMIT</code> makes every change of a transaction permanent at once.</p>
+    </div>
+  </div>
+  <div class="callout warn mt"><b>What goes wrong.</b> Without a transaction, a load that fails halfway leaves orders without their lines, and July's reports count orders with no revenue.</div>
+  <aside class="notes"><p>Ask: which is worse, a month not loaded or a month half-loaded? The half-loaded one, because nobody notices it.</p><p>The same applies to UPDATE and DELETE: the stretch of lab 4.1 corrects a row and rolls it back.</p></aside>
+</section>
+
+<section class="slide" id="load-log" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="9" data-session="1">
+  <div class="kicker">The load log</div>
+  <h2>Every row read is either loaded or rejected with a reason</h2>
+  <table class="t">
+    <tr><th>File</th><th class="num">Read</th><th class="num">Loaded</th><th class="num">Rejected</th></tr>
+    <tr><td>returns</td><td class="num">6</td><td class="num">2</td><td class="num">4</td></tr>
+  </table>
+  <p class="small mt-s">Rejected by reason: missing key 1 · duplicate key 1 · unknown reason 1 · negative refund 1</p>
+  <ul class="bullets mt">
+    <li>The log is the evidence that nothing was lost <b>silently</b></li>
+    <li>A rejection upstream changes counts downstream: the items of a rejected return are rejected too</li>
+  </ul>
+  <aside class="notes"><p>In the lab, three files are logged. Ask participants to predict, before the log runs, why the order lines will show more unknown orders than were planted in the file.</p></aside>
+</section>
+
+<section class="slide" id="check-load-log" data-label="Session 1 · Loading and transactions" data-lo="LO5" data-n="10" data-session="1">
+  <div class="kicker">Checkpoint</div>
+  <h2>What does this load log tell you?</h2>
+  <div class="quiz" data-type="single" data-lo="LO5" data-id="check-load-log-q1">
+    <p class="lead">A clinic's appointments file: read 500, loaded 480, rejected 15 (12 unknown patient, 3 invalid date).</p>
+    <div class="opts">
+      <div class="opt" data-why="Assumes the totals are fine because every rejection has a reason" data-k="A">The load is complete and every row is accounted for</div>
+      <div class="opt" data-why="The transaction concerns rows that were inserted; the log counts rows that were not" data-k="B">The transaction rolled back 15 rows</div>
+      <div class="opt" data-ok data-k="C">Five rows are unaccounted for</div>
+      <div class="opt" data-why="Unknown patients are a reason to reject, not a sign of a duplicate file" data-k="D">The file was loaded twice</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> 480 + 15 = 495, not 500. Five rows were neither loaded nor rejected: the log is not finished until read equals loaded plus rejected.</div>
+  </div>
+  <aside class="notes"><p>Answer: five unaccounted. The usual cause is a rule that gives no reason to a row it still filters out, for example a WHERE in the insert that the reject rule does not mirror.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-4-1" data-auto="lab" data-lab="4.1" data-label="Lab 4.1" data-n="11" data-session="1">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 4.1 · 35 min</div><h2>Load the extracts and log every rejected row</h2><p class="lead small">Define three constrained tables, stage the defective July extracts, give each bad row a reason, and log every file as loaded plus rejected</p><a class="nb" href="../labs/D4_1_load_with_log.ipynb">D4_1_load_with_log.ipynb</a></div><ul class="checklist"><li>Write the three table definitions with their keys and checks <span class="min">10 min</span></li><li>Load the three extracts into all-text staging tables <span class="min">4 min</span></li><li>Write the reject rules for orders and order lines, each with a reason <span class="min">10 min</span></li><li>Insert the valid rows inside a transaction and write the load log <span class="min">8 min</span></li><li>Check that read equals loaded plus rejected for every file <span class="min">3 min</span></li><li class="stretch">✱ Stretch: Correct one rejected order with an UPDATE inside a transaction, roll it back and confirm nothing changed</li></ul></div>
+  <aside class="notes"><p>Watch for definitions without NOT NULL on the region: the probe for an empty region passes only with it, or with the CHECK. Watch also for rules using NOT IN against a list that can hold an empty value: Day 2's lesson returns.</p><p>Participants who fall behind can run the worked customers rule and come back to orders and lines; lab 4.2 does not depend on this one.</p></aside>
+</section>
+
+<!-- Session 2 -->
+
+<section class="slide section" id="s2" data-auto="section" data-session="2" data-n="12">
+  <div class="kicker">Session 2</div>
+  <h1>Views that limit what is exposed</h1>
+  <ul class="bullets outcomes"><li>Mark the personal-data columns of a table</li><li>Label tables with classification levels under a stated rule</li><li>Build a view that exposes only what an analyst needs, and test it</li></ul>
+  <div class="sess-no">02</div>
+</section>
+
+<section class="slide" id="identifiers" data-lo="LO5" data-n="13" data-session="2">
+  <div class="kicker">Personal data</div>
+  <h2>A column is personal data if it can identify a person, alone or with others</h2>
+  <div class="cols cols-3">
+    <div class="card c-coral"><h4>Direct identifier</h4><p class="small mb0">Points to one person by itself: a name, a phone number, an e-mail address.</p></div>
+    <div class="card c-purple"><h4>Indirect identifier</h4><p class="small mb0">Narrows the group when combined: a date, an area, a key that links all of one person's records.</p></div>
+    <div class="card c-teal"><h4>Neither</h4><p class="small mb0">Describes a choice or the record, and identifies no one on its own.</p></div>
+  </div>
+  <p class="mt">The returns desk's callback list: <code>return_id</code>, <code>caller_name</code>, <code>caller_phone</code>, <code>area</code>, <code>received_on</code>, <code>callback_ok</code>. Which is which?</p>
+  <p class="caption">The Personal Data Protection Law treats data that identifies a person directly or indirectly as personal data.</p>
+  <aside class="notes"><p>Take answers from the room for the six columns. Name and phone are direct; area and the date are indirect; the return number is indirect, because it links to the order and through it to a person; callback_ok is neither.</p><p>The point to land: removing the name does not make a table anonymous.</p></aside>
+</section>
+
+<section class="slide" id="minimum-necessary" data-lo="LO5" data-n="14" data-session="2">
+  <div class="kicker">Minimisation</div>
+  <h2>Give each reader the columns the purpose needs, and no more</h2>
+  <ul class="bullets">
+    <li>The law asks that personal data be <b>limited to the minimum necessary</b> for the purpose (PDPL, Article 11, paragraph 3)</li>
+    <li>The Minimum Personal Data guideline adds: restrict <b>access rights</b> to what each role actually needs</li>
+    <li>A purpose is a question: "how many returns per area each week" needs no name and no phone</li>
+    <li>An exact date can often become a week or a month; an exact year, a decade</li>
+  </ul>
+  <div class="callout warn mt"><b>What goes wrong.</b> "Give them a copy without the names" makes a second table to secure, forget and leak. A view is not a copy.</div>
+  <aside class="notes"><p>Both texts are in the README's references. The guideline's point about access rights is the bridge to views: the view is how the rights are narrowed in the database.</p></aside>
+</section>
+
+<section class="slide" id="classification-levels" data-lo="LO5" data-n="15" data-session="2">
+  <div class="kicker">Classification</div>
+  <h2>A level says how much harm disclosure would do, and so how the data is handled</h2>
+  <table class="t">
+    <tr><th>Level</th><th>Impact</th><th>Unauthorised disclosure has</th></tr>
+    <tr><td>Top Secret</td><td>high</td><td>an exceptionally serious and irreparable effect</td></tr>
+    <tr><td>Secret</td><td>medium</td><td>a serious effect</td></tr>
+    <tr><td>Restricted</td><td>low</td><td>a limited negative effect, including on an individual; examples include personally identifiable information and detailed statements of individual transactions</td></tr>
+    <tr><td>Public</td><td>none</td><td>none of these effects</td></tr>
+  </table>
+  <p class="mt small">The four levels of the national Data Classification Policy, written for public entities. Data not yet classified is treated as Restricted until it is. In the labs, the grocery delivery company has adopted the levels as its own rule.</p>
+  <aside class="notes"><p>Be exact about scope: the policy binds public entities. A private company can adopt the levels, and the case company has; that is its rule, not the law's.</p><p>The returns desk's callback list is Restricted: personal data. Its list of reason codes is Public if the company has published it.</p></aside>
+</section>
+
+<section class="slide" id="view" data-lo="LO5" data-n="16" data-session="2">
+  <div class="kicker">Views</div>
+  <h2>A view is a stored query: readers see its columns, never the table behind it</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">VIEW</span> returns_for_analysts <span class="hljs-keyword">AS</span>
+<span class="hljs-keyword">SELECT</span> return_id,                              <span class="hljs-comment">-- kept: joins to items; still personal data</span>
+       area,
+       DATE_TRUNC(<span class="hljs-string">&#x27;week&#x27;</span>, received_on) <span class="hljs-keyword">AS</span> received_week
+<span class="hljs-keyword">FROM</span> callback_list;                            <span class="hljs-comment">-- no name, no phone, no exact date</span>
+
+<span class="hljs-comment">-- the test: none of these may appear</span>
+<span class="hljs-keyword">DESCRIBE</span> returns_for_analysts;</code></pre>
+  <div class="callout tip mt-s"><b>Grant the view, not the table.</b> The analysts' role reads the view; the table stays with the desk.</div>
+  <aside class="notes"><p>Two habits: a comment on every kept column saying why, and a test that the banned columns are absent. The lab runs that test.</p><p>The view does not anonymise: the return number still links each row to a person, so the view's output is still Restricted.</p></aside>
+</section>
+
+<section class="slide" id="genai-rule" data-lo="LO5" data-n="17" data-session="2">
+  <div class="kicker">Responsible use</div>
+  <h2>Restricted rows never go into a generative AI tool; the schema can</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>Can go in</h4><p class="small mb0">What the company has labelled Public: column names and types, the written business rules, an error message, a query with no values from the data.</p></div>
+    <div class="card c-coral"><h4>Stays out</h4><p class="small mb0">Rows of a Restricted table, a view's output, a sample "just to show the shape", a screenshot of a result.</p></div>
+  </div>
+  <div class="callout warn mt"><b>Rule.</b> Only Public data goes into a generative AI tool. Which descriptions count as Public is the company's own labelling, written down before anyone relies on it.</div>
+  <aside class="notes"><p>The rule follows SDAIA's Generative Artificial Intelligence Guidelines for Government (2025), section 3.5, Privacy and Security: employees of government entities enter no data classified Restricted or higher, and use these tools only with data classified Public. The guideline is written for government entities; the company, a private business, applies it as its own rule. The company in the labs has labelled its schema descriptions, its written rules and error messages Public; that labelling is its own rule. Everything in the course is synthetic, but practise the habit as if the rows were real.</p><p>Segregation of duties: the person who wants to use the assistant does not decide the label; the data owner does.</p></aside>
+</section>
+
+<section class="slide" id="check-view" data-lo="LO5" data-n="18" data-session="2">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which view gives the analysts what they need, and no more?</h2>
+  <div class="quiz" data-type="single" data-lo="LO5" data-id="check-view-q1">
+    <p class="lead">A gym's members table: member_id, full_name, phone, birth_date, branch, joined_on. The analysts count members per branch and per age band.</p>
+    <div class="opts">
+      <div class="opt" data-ok data-k="A">member_id, branch, age band</div>
+      <div class="opt" data-why="Keeps the exact birth date, which the age band already serves" data-k="B">member_id, branch, birth_date</div>
+      <div class="opt" data-why="Dropping only the direct identifiers keeps an exact date and the join date the question does not use" data-k="C">member_id, branch, birth_date, joined_on</div>
+      <div class="opt" data-why="A copy of the table without the name is a second table to secure, and still holds the phone" data-k="D">a copy of the table without full_name</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Two counts need the branch and an age band. The key stays only if a join needs it; nothing else serves the purpose.</div>
+  </div>
+  <aside class="notes"><p>Answer: the first. Ask whether member_id is needed at all for these two counts: strictly, no. Keep it only if the analysts join to visits.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-4-2" data-auto="lab" data-lab="4.2" data-label="Lab 4.2" data-n="19" data-session="2">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 4.2 · 35 min</div><h2>Label the tables and build the analyst view</h2><p class="lead small">Mark the personal-data columns, label each table under the company's rule, and build a view the analysts can query without names, phones or e-mail</p><a class="nb" href="../labs/D4_2_analyst_view.ipynb">D4_2_analyst_view.ipynb</a></div><ul class="checklist"><li>Open the supplied July database <span class="min">3 min</span></li><li>Mark each customer column: direct identifier, indirect identifier or neither <span class="min">8 min</span></li><li>Label each table with a classification level and a reason <span class="min">6 min</span></li><li>Write the analyst view with only the columns the purpose needs <span class="min">10 min</span></li><li>Run the analysts' three questions on the view and test that the identifiers are absent <span class="min">8 min</span></li><li class="stretch">✱ Stretch: Write a second view for the delivery team and list what it needs that the analysts do not</li></ul></div>
+  <aside class="notes"><p>The lab opens the July tables as a correct load leaves them, so participants who did not finish lab 4.1 are not blocked.</p><p>Common disagreement: whether the customer number is an identifier. Let the room argue for a minute, then point to the definition: it links every order to one person, so it is indirect.</p></aside>
+</section>
+
+<!-- Session 3 -->
+
+<section class="slide section" id="s3" data-auto="section" data-session="3" data-n="20">
+  <div class="kicker">Session 3</div>
+  <h1>Query plans and indexes</h1>
+  <ul class="bullets outcomes"><li>Read the operators of a query plan from the bottom up</li><li>Find where a filter is applied in a plan</li><li>Predict when an index changes a plan and when it does not</li></ul>
+  <div class="sess-no">03</div>
+</section>
+
+<section class="slide" id="explain" data-lo="LO3" data-n="21" data-session="3">
+  <div class="kicker">EXPLAIN</div>
+  <h2>A plan is a tree of operators: read it from the bottom up</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>Seq Scan</b>returns, filter on the date · reasons</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>Hash Join</b>on reason_code</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>Hash Group By</b>by label, sum of refund</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>Projection</b>the columns returned</div>
+  </div>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql">EXPLAIN
+<span class="hljs-keyword">SELECT</span> r.label, <span class="hljs-built_in">SUM</span>(t.refund)
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t <span class="hljs-keyword">JOIN</span> reasons r <span class="hljs-keyword">ON</span> r.reason_code <span class="hljs-operator">=</span> t.reason_code
+<span class="hljs-keyword">WHERE</span> t.received_on <span class="hljs-operator">&gt;=</span> <span class="hljs-type">DATE</span> <span class="hljs-string">&#x27;2026-05-03&#x27;</span>
+<span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> r.label;</code></pre>
+  <aside class="notes"><p>The plan DuckDB prints for this query, drawn left to right (<code>_tools/slide_examples.py</code>, plan-filter). Run it live if there is time: the boxes in the output are the same four steps, bottom to top.</p></aside>
+</section>
+
+<section class="slide" id="filter-in-plan" data-lo="LO3" data-n="22" data-session="3">
+  <div class="kicker">Where the filter is</div>
+  <h2>The engine applies a filter as early as it can, often inside the scan</h2>
+  <ul class="bullets">
+    <li>In the returns plan, the date condition appears in the <b>scan</b> of returns, under <code>Filters:</code></li>
+    <li>Rows that fail it never reach the join: less to match, less to group</li>
+    <li>The numbers after <code>~</code> are the engine's <b>estimates</b>, made before running, not counts</li>
+    <li>A filter on the result of a group (HAVING) cannot move down: it needs the groups first</li>
+  </ul>
+  <div class="callout warn mt"><b>What goes wrong.</b> Reading the estimates as row counts. To count, run the query; to see the shape, read the plan.</div>
+  <aside class="notes"><p>Do not show the lab's plan here: participants find the filter in their own plan of the orders query.</p></aside>
+</section>
+
+<section class="slide" id="scan-search" data-lo="LO3" data-n="23" data-session="3">
+  <div class="kicker">Indexes</div>
+  <h2>An index lets a lookup go straight to its rows instead of reading them all</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk, SQLite"><code class="language-sql">EXPLAIN QUERY PLAN
+<span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+<span class="hljs-keyword">WHERE</span> order_ref <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;O-A15&#x27;</span>;
+<span class="hljs-comment">-- SCAN returns</span>
+
+<span class="hljs-keyword">CREATE</span> INDEX ix_returns_order
+  <span class="hljs-keyword">ON</span> <span class="hljs-keyword">returns</span> (order_ref);
+<span class="hljs-comment">-- the same lookup:</span>
+<span class="hljs-comment">-- SEARCH returns USING INDEX</span>
+<span class="hljs-comment">--   ix_returns_order (order_ref=?)</span></code></pre>
+    <ul class="bullets">
+      <li><b>SCAN</b>: every row is read and tested</li>
+      <li><b>SEARCH</b>: the index leads to the matching rows</li>
+      <li>A total over the whole table stays a <b>SCAN</b> with or without the index</li>
+    </ul>
+  </div>
+  <p class="caption">SQLite, from Python's standard library (<code>_tools/slide_examples.py</code>, index-scan-search). No timings: the plan's shape is what is stable.</p>
+  <aside class="notes"><p>Why SQLite: its plan says SCAN or SEARCH in one line, which makes the change visible. DuckDB, built for analysis, mostly reads whole columns and uses its indexes for keys and constraints.</p></aside>
+</section>
+
+<section class="slide" id="when-index" data-lo="LO3" data-n="24" data-session="3">
+  <div class="kicker">When it helps</div>
+  <h2>An index helps a query that picks few rows by the indexed column</h2>
+  <table class="t">
+    <tr><th>Query on returns, index on order_ref</th><th>Plan</th><th>Why</th></tr>
+    <tr><td><code>WHERE order_ref = 'O-A15'</code></td><td>search</td><td>an exact value of the indexed column</td></tr>
+    <tr><td><code>SUM(refund)</code> over all returns</td><td>scan</td><td>every row is needed anyway</td></tr>
+    <tr><td><code>WHERE order_ref LIKE '%15'</code></td><td>scan</td><td>a pattern starting with % has no place to jump to</td></tr>
+    <tr><td><code>WHERE reason_code = 'R1'</code></td><td>scan</td><td>not the indexed column</td></tr>
+  </table>
+  <div class="callout tip mt"><b>Takeaway.</b> Analytical queries read most of a table, so they rarely gain from an index. Lookups do.</div>
+  <aside class="notes"><p>A two-column index is used from its first column: an index on (area, received_on) helps "area X since May", not "everything since May". The lab's stretch shows it.</p></aside>
+</section>
+
+<section class="slide" id="check-index" data-lo="LO3" data-n="25" data-session="3">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which query can an index on <code>patient_id</code> turn into a search?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3" data-id="check-index-q1">
+    <p class="lead">A clinic's appointments table, 2 million rows, an index on patient_id.</p>
+    <div class="opts">
+      <div class="opt" data-why="A count by month reads every row; the index has nothing to skip" data-k="A">appointments per month this year</div>
+      <div class="opt" data-why="The condition is on the doctor, not the indexed column" data-k="B">appointments of doctor D12</div>
+      <div class="opt" data-why="A pattern with a leading % cannot use the order of the index" data-k="C">patients whose number ends in 42</div>
+      <div class="opt" data-ok data-k="D">appointments of patient P-1093</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> An exact value of the indexed column: the engine goes to that patient's entries and reads only those rows.</div>
+  </div>
+  <aside class="notes"><p>Answer: patient P-1093. Ask which index would help the doctor query: one on doctor_id.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-4-3" data-auto="lab" data-lab="4.3" data-label="Lab 4.3" data-n="26" data-session="3">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 4.3 · 30 min</div><h2>Read two plans and watch an index change one</h2><p class="lead small">Read a join plan in DuckDB, then watch an index turn a scan into a search in SQLite; plan shapes only, no timings</p><a class="nb" href="../labs/D4_3_plans_and_indexes.ipynb">D4_3_plans_and_indexes.ipynb</a></div><ul class="checklist"><li>Read the plan of a join and group query <span class="min">8 min</span></li><li>Find where the filter is applied <span class="min">5 min</span></li><li>Read the plan of a lookup in the second engine before an index <span class="min">5 min</span></li><li>Create the index and read the new plan <span class="min">6 min</span></li><li>Write when an index helps an analytical query and when it does not <span class="min">6 min</span></li><li class="stretch">✱ Stretch: Create a two-column index and find which order of the columns the lookup can use</li></ul></div>
+  <aside class="notes"><p>Loading the orders into SQLite takes a few seconds; on a slow laptop up to half a minute. Remind participants that no timing is taken: the result to look at is the word SCAN or SEARCH.</p><p>Some will expect the LIKE query to search because the plan names the index. It reads the whole index: still a scan.</p></aside>
+</section>
+
+<!-- Session 4 -->
+
+<section class="slide section" id="s4" data-auto="section" data-session="4" data-n="27">
+  <div class="kicker">Session 4</div>
+  <h1>Testing queries against known answers</h1>
+  <ul class="bullets outcomes"><li>Build a small fixture and work out the expected answer by hand</li><li>Write a test that compares a query's result with the expected rows</li><li>Classify a failing generated query: fan-out, wrong grain or a missing business rule</li></ul>
+  <div class="sess-no">04</div>
+</section>
+
+<section class="slide" id="known-answers" data-lo="LO6" data-n="28" data-session="4">
+  <div class="kicker">Testing</div>
+  <h2>A query is right when it matches an answer worked out by hand</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · Fixture</b>tables small enough to print</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · Expected</b>the answer on paper, from the rule</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>3 · Run</b>the query on the fixture</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>4 · Compare</b>pass, or find out why</div>
+  </div>
+  <div class="callout tip mt frag" data-frag="d"><b>Takeaway.</b> The expected answer must not come from SQL: another query can share the mistake.</div>
+  <aside class="notes"><p>Ask why the full data will not do: nobody knows its right answer without a query. The fixture must hold the hard cases: a failed attempt, a returned order, a cancelled line, an empty discount.</p></aside>
+</section>
+
+<section class="slide" id="three-failures" data-lo="LO6" data-n="29" data-session="4">
+  <div class="kicker">Why queries fail</div>
+  <h2>Most wrong totals are one of three mistakes</h2>
+  <div class="cols cols-3">
+    <div class="card c-coral"><h4>Fan-out</h4><p class="small mb0">A join repeats rows. Returns joined to inspections: T2's refund counted twice.</p></div>
+    <div class="card c-purple"><h4>Wrong grain</h4><p class="small mb0">The right sum at the wrong level: an average per item when the question is per return.</p></div>
+    <div class="card c-cyan"><h4>Missing rule</h4><p class="small mb0">Well formed, but a business rule is left out: the desk's rule says a return with no refund counts as 0.</p></div>
+  </div>
+  <aside class="notes"><p>Each has a signature. Fan-out: the total is too high, often by a pattern that matches repeat rows. Grain: an average that is too small or too large by the number of items. Missing rule: a small difference that a rule explains.</p></aside>
+</section>
+
+<section class="slide" id="test-example" data-lo="LO6" data-n="30" data-session="4">
+  <div class="kicker">A test that fails</div>
+  <h2>The average refund per return: the generated query against the rule</h2>
+  <div class="cols cols-2">
+    <div class="stat center"><div class="big">17.44</div><div class="lbl"><code>AVG(refund)</code>: skips T4, whose refund is empty</div></div>
+    <div class="stat center"><div class="big">13.95</div><div class="lbl">by hand, with T4 as 0: 69.75 over 5 returns</div></div>
+  </div>
+  <p class="mt">Test: FAIL. Kind: <b>missing rule</b>. The fix is one <code>COALESCE</code>; finding it took the rule and a fixture.</p>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>, test-avg-refund).</p>
+  <aside class="notes"><p>Day 2's NULL lesson in a new place. Ask: which would a reader of the report have noticed? Neither number looks wrong.</p></aside>
+</section>
+
+<section class="slide" id="verification-note" data-lo="LO6" data-n="31" data-session="4">
+  <div class="kicker">The verification note</div>
+  <h2>Every generated query ships with its test and a judgement</h2>
+  <table class="t small">
+    <tr><th>Query</th><th class="num">Expected</th><th class="num">Got</th><th>Test · judgement</th></tr>
+    <tr><td>avg_refund</td><td class="num">13.95</td><td class="num">17.44</td><td>FAIL · missing rule</td></tr>
+    <tr><td>returns_r2</td><td class="num">2</td><td class="num">2</td><td>pass · ok</td></tr>
+  </table>
+  <ul class="bullets mt">
+    <li>Generated SQL is a <b>draft</b> until it passes a test against answers someone checked by hand</li>
+    <li>The capstone asks for the same: a test per question and a log of any generated SQL and how it was checked</li>
+  </ul>
+  <aside class="notes"><p>The second row is the count of returns with reason R2 on the returns desk: T2 and T5. A pass is recorded too: the note shows what was tested, not only what failed.</p></aside>
+</section>
+
+<section class="slide" id="check-test" data-lo="LO6" data-n="32" data-session="4">
+  <div class="kicker">Checkpoint</div>
+  <h2>A generated query passes its test. What does that show?</h2>
+  <div class="quiz" data-type="single" data-lo="LO6" data-id="check-test-q1">
+    <p class="lead">A pharmacy fixture has six orders, none with two delivery attempts. The generated revenue query matches the hand-checked answer.</p>
+    <div class="opts">
+      <div class="opt" data-why="A fixture proves only the cases it contains" data-k="A">The query is correct on the full data</div>
+      <div class="opt" data-ok data-k="B">It follows the rule on the cases the fixture holds; repeat attempts are untested</div>
+      <div class="opt" data-why="A passing test is evidence; discarding it wastes the check" data-k="C">Nothing: generated queries cannot be trusted</div>
+      <div class="opt" data-why="The size of a fixture does not decide; its cases do" data-k="D">The fixture is too small to mean anything</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> A test proves the cases in the fixture. Fan-out over repeat attempts needs a fixture with repeat attempts.</div>
+  </div>
+  <aside class="notes"><p>Answer: the second. The fix is to add an order with a failed attempt to the fixture and run the test again.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-4-4" data-auto="lab" data-lab="4.4" data-label="Lab 4.4" data-n="33" data-session="4">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 4.4 · 35 min</div><h2>Ten generated queries against hand-checked answers</h2><p class="lead small">Hand-check the answers of ten questions on the mini tables, run ten supplied generated-style queries through tests against them, classify each failure against the revenue rule and write the verification note</p><a class="nb" href="../labs/D4_4_ten_generated_queries.ipynb">D4_4_ten_generated_queries.ipynb</a></div><ul class="checklist"><li>Read the revenue rule and the ten questions <span class="min">5 min</span></li><li>Work out the expected answers on the mini tables by hand <span class="min">10 min</span></li><li>Run the ten queries through the tests <span class="min">8 min</span></li><li>Classify each failure: fan-out, grain or a missing rule <span class="min">7 min</span></li><li>Write the verification note with each test result <span class="min">5 min</span></li><li class="stretch">✱ Stretch: Ask an approved assistant for the same ten questions, given only the schema, and run its queries through the same tests</li></ul></div>
+  <aside class="notes"><p>The ten queries were written for the course to reproduce common mistakes; no model produced them. Say so: the method is what transfers.</p><p>Keep the assistant closed for the expected answers. The ten minutes go mostly to the revenue questions: suggest starting with the delivered orders and their delivered attempt dates.</p><p>Common confusion: v09 and v01 return the same expected number, because the mini tables hold only March.</p></aside>
+</section>
+
+<section class="slide" id="wrap-up" data-n="34" data-session="4">
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 4</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>Refuse and account</h4><p class="small mb0">Constraints refuse bad rows; the log accounts for every row read.</p></div>
+    <div class="card c-purple"><h4>Expose the minimum</h4><p class="small mb0">A view per purpose, tested; Restricted rows stay out of assistants.</p></div>
+    <div class="card c-coral"><h4>Prove it by hand</h4><p class="small mb0">A query is right when it matches an answer worked out on a fixture.</p></div>
+  </div>
+  <aside class="notes"><p>Ask each participant to name one query from the four days they would now test differently.</p></aside>
+</section>
+
+<section class="slide dark" id="next" data-n="35" data-session="4">
+  <div class="kicker">Next</div>
+  <h2>Capstone: the business orders brief</h2>
+  <ul class="bullets">
+    <li>Tonight and before the capstone day: the brief in <code>labs/capstone/</code>, ten questions, a test per question</li>
+    <li>On the day: the timed check with the assistant off, then five minutes adapting one of your queries live</li>
+  </ul>
+  <aside class="notes"><p>Show where the capstone starter repository is and its README. Remind participants that the history of their repository is part of the submission.</p></aside>
+</section>
+</div>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"../index.html"},"deck":{"id":"day4","kind":"day","day":4,"label":"Day 4","title":"Building and checking","prev":"day3.html","next":"capstone.html","md":"day4.md","alt":{}},"sessions":[{"n":1,"label":"Session 1","title":"Loading into constrained tables, and transactions","slide":"s1","outcomes":["Write table definitions with keys, foreign keys and checks","Load a raw file through a staging table and record each rejected row with its reason","Group inserts, updates and deletes in a transaction and roll back on a failed check"],"minutes":60,"lab":{"id":"4.1","title":"Load the extracts and log every rejected row","minutes":35,"href":"../labs/D4_1_load_with_log.ipynb"}},{"n":2,"label":"Session 2","title":"Views that limit what is exposed","slide":"s2","outcomes":["Mark the personal-data columns of a table","Label tables with classification levels under a stated rule","Build a view that exposes only what an analyst needs, and test it"],"minutes":60,"lab":{"id":"4.2","title":"Label the tables and build the analyst view","minutes":35,"href":"../labs/D4_2_analyst_view.ipynb"}},{"n":3,"label":"Session 3","title":"Query plans and indexes","slide":"s3","outcomes":["Read the operators of a query plan from the bottom up","Find where a filter is applied in a plan","Predict when an index changes a plan and when it does not"],"minutes":60,"lab":{"id":"4.3","title":"Read two plans and watch an index change one","minutes":30,"href":"../labs/D4_3_plans_and_indexes.ipynb"}},{"n":4,"label":"Session 4","title":"Testing queries against known answers","slide":"s4","outcomes":["Build a small fixture and work out the expected answer by hand","Write a test that compares a query's result with the expected rows","Classify a failing generated query: fan-out, wrong grain or a missing business rule"],"minutes":60,"lab":{"id":"4.4","title":"Ten generated queries against hand-checked answers","minutes":35,"href":"../labs/D4_4_ten_generated_queries.ipynb"}}],"slides":[{"id":"title","n":1,"title":"Building and checking","kind":"title","session":0,"hash":"e7dd9054","md":"#### [day4#title] Building and checking\n\n*SDAIA Academy · SQL and Relational Data*\n\nDay 4: Constraints that refuse, views that limit, plans that explain, tests that prove\n\nData & AI Foundations Track · 4 teaching days + capstone day · 4 sessions · 4 labs · FND-DAT-101","notes":"Day 4 moves from reading data to building and checking it. Morning: tables that refuse bad rows, and a view that shows the analysts only what they need. Afternoon: how the engine runs a query, and how to prove a query right.\n\nThe last session sets up the capstone method: a test per question against a fixture checked by hand.","minutes":null,"lo":[]},{"id":"agenda","n":2,"title":"Building and checking","kind":"content","session":0,"hash":"655be76c","md":"#### [day4#agenda] Building and checking\n\n*Today*\n\n- **Session 1 · Loading into constrained tables, and transactions**: Stage the raw file, sort out what the constraints would refuse, load the rest in one transaction, account for every row\n- **Session 2 · Views that limit what is exposed**: A view gives each reader the columns and rows the purpose needs, and no more\n- **Session 3 · Query plans and indexes**: EXPLAIN shows how the engine will run a query; an index changes a lookup, rarely a scan of everything\n- **Session 4 · Testing queries against known answers**: A query is right when it matches answers you worked out by hand on data small enough to check","notes":"","minutes":null,"lo":[]},{"id":"review-day3","n":3,"title":"Which ranking gives the tied products the same rank, and leaves no gap after them?","kind":"quiz","session":0,"hash":"f802ef6b","md":"#### [day4#review-day3] Which ranking gives the tied products the same rank, and leaves no gap after them?\n\n*Review of Day 3*\n\n**Question:** A bakery ranks products by units sold. Two products tie for second place. The next product should be third.\n\n- A. ROW_NUMBER()\n- B. DENSE_RANK()\n- C. RANK()\n- D. NTILE(3)","notes":"Answer: DENSE_RANK. If many chose RANK, show yesterday's rank-ties slide again: 1, 2, 2, 4.","minutes":null,"lo":["LO3"]},{"id":"s1","n":4,"title":"Loading into constrained tables, and transactions","kind":"section","session":1,"hash":"862c4b3c","md":"#### [day4#s1] Loading into constrained tables, and transactions\n\n*Session 1*\n\n- Write table definitions with keys, foreign keys and checks\n- Load a raw file through a staging table and record each rejected row with its reason\n- Group inserts, updates and deletes in a transaction and roll back on a failed check","notes":"","minutes":null,"lo":["LO5"]},{"id":"constraints-refuse","n":5,"title":"A constraint is a rule the database checks on every row, every time","kind":"content","session":1,"hash":"9063381f","md":"#### [day4#constraints-refuse] A constraint is a rule the database checks on every row, every time\n\n*Constraints*\n\n| Constraint | Refuses | Returns desk example |\n| --- | --- | --- |\n| `PRIMARY KEY` | a repeated or empty key | a second T2 |\n| `NOT NULL` | an empty value | a return with no date |\n| `REFERENCES` | a value with no row on the one side | reason R9, which does not exist |\n| `CHECK` | a value outside a stated condition | a refund below zero |\n\n> **What goes wrong.** A rule written only in a document is checked by nobody. Written as a constraint, it holds for every program that writes to the table.","notes":"Recall Day 1: keys and foreign keys were read from the schema. Today they are written. A foreign key also fixes the order of loading: the one side first.","minutes":null,"lo":["LO5"]},{"id":"stage-first","n":6,"title":"Stage the raw file as text, give each bad row a reason, then insert the rest","kind":"content","session":1,"hash":"59942fc7","md":"#### [day4#stage-first] Stage the raw file as text, give each bad row a reason, then insert the rest\n\n*Step by step*\n\n1. **1 · Stage** every row as text, numbered in file order\n2. **2 · Reject** a rule gives each bad row one reason\n3. **3 · Insert** the rest, cast to the table's types\n4. **4 · Log** read = loaded + rejected\n\n> **Takeaway.** Straight into a constrained table, the load stops at the first bad row. Staged, you see them all at once.","notes":"Press once per step. The staging table has no constraints at all, and every column is text, so nothing is refused while reading.","minutes":null,"lo":["LO5"]},{"id":"reject-rule","n":7,"title":"CASE gives each row the first reason that applies, so the counts add up","kind":"content","session":1,"hash":"03d7d4e8","md":"#### [day4#reject-rule] CASE gives each row the first reason that applies, so the counts add up\n\n*A reject rule*\n\n```sql\n-- file: returns desk\nSELECT row_no, return_id,\n  CASE\n    WHEN return_id = '' THEN 'missing key'\n    WHEN ROW_NUMBER() OVER (\n      PARTITION BY return_id\n      ORDER BY row_no) > 1 THEN 'duplicate key'\n    WHEN reason_code NOT IN\n      (SELECT reason_code FROM reasons)\n      THEN 'unknown reason'\n    WHEN TRY_CAST(refund AS DECIMAL(8,2)) \u003c 0\n      THEN 'negative refund'\n  END AS reason\nFROM stg_returns\n```\n\n| row | return_id | reason |\n| --- | --- | --- |\n| 1 | T6 |  |\n| 2 | T6 | duplicate key |\n| 3 | (empty) | missing key |\n| 4 | T7 | unknown reason |\n| 5 | T8 | negative refund |\n| 6 | T9 |  |\n\nThe returns desk (`_tools/slide_examples.py`, stage-reject).","notes":"The first T6 is kept and the second rejected: ROW_NUMBER over the file order decides which copy wins. Say aloud that this is a choice, and the lab makes the same one.\n\nAn empty reason means the row is good. The lab's helper keeps the rows with a reason as the reject table.","minutes":null,"lo":["LO5"]},{"id":"transaction","n":8,"title":"A transaction keeps all its changes or none of them","kind":"content","session":1,"hash":"cbab4eb6","md":"#### [day4#transaction] A transaction keeps all its changes or none of them\n\n*Transactions*\n\n```sql\n-- file: returns desk\nBEGIN TRANSACTION;\nINSERT INTO returns VALUES\n  ('T10', 'O-A30', 'R1', 4.00, '2026-05-10'),\n  ('T11', 'O-A31', 'R9', 2.00, '2026-05-10'),\n  ('T12', 'O-A32', 'R2', 6.00, '2026-05-10');\n-- refused: R9 is not a reason\nROLLBACK;\n```\n\n**5 → 5** rows of returns, before and after\n\nT10 and T12 were valid, and they are not kept either. Then `COMMIT` makes every change of a transaction permanent at once.\n\n> **What goes wrong.** Without a transaction, a load that fails halfway leaves orders without their lines, and July's reports count orders with no revenue.","notes":"Ask: which is worse, a month not loaded or a month half-loaded? The half-loaded one, because nobody notices it.\n\nThe same applies to UPDATE and DELETE: the stretch of lab 4.1 corrects a row and rolls it back.","minutes":null,"lo":["LO5"]},{"id":"load-log","n":9,"title":"Every row read is either loaded or rejected with a reason","kind":"content","session":1,"hash":"9e4d84dc","md":"#### [day4#load-log] Every row read is either loaded or rejected with a reason\n\n*The load log*\n\n| File | Read | Loaded | Rejected |\n| --- | --- | --- | --- |\n| returns | 6 | 2 | 4 |\n\nRejected by reason: missing key 1 · duplicate key 1 · unknown reason 1 · negative refund 1\n\n- The log is the evidence that nothing was lost **silently**\n- A rejection upstream changes counts downstream: the items of a rejected return are rejected too","notes":"In the lab, three files are logged. Ask participants to predict, before the log runs, why the order lines will show more unknown orders than were planted in the file.","minutes":null,"lo":["LO5"]},{"id":"check-load-log","n":10,"title":"What does this load log tell you?","kind":"quiz","session":1,"hash":"06907ff4","md":"#### [day4#check-load-log] What does this load log tell you?\n\n*Checkpoint*\n\n**Question:** A clinic's appointments file: read 500, loaded 480, rejected 15 (12 unknown patient, 3 invalid date).\n\n- A. The load is complete and every row is accounted for\n- B. The transaction rolled back 15 rows\n- C. Five rows are unaccounted for\n- D. The file was loaded twice","notes":"Answer: five unaccounted. The usual cause is a rule that gives no reason to a row it still filters out, for example a WHERE in the insert that the reject rule does not mirror.","minutes":null,"lo":["LO5"]},{"id":"lab-4-1","n":11,"title":"Load the extracts and log every rejected row","kind":"lab","session":1,"hash":"aca0e634","md":"#### [day4#lab-4-1] Load the extracts and log every rejected row\n\nLab 4.1 · 35 min\n\nDefine three constrained tables, stage the defective July extracts, give each bad row a reason, and log every file as loaded plus rejected\n\n[D4_1_load_with_log.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_1_load_with_log.ipynb)\n\n- [ ] Write the three table definitions with their keys and checks (10 min)\n- [ ] Load the three extracts into all-text staging tables (4 min)\n- [ ] Write the reject rules for orders and order lines, each with a reason (10 min)\n- [ ] Insert the valid rows inside a transaction and write the load log (8 min)\n- [ ] Check that read equals loaded plus rejected for every file (3 min)\n- [ ] ✱ Stretch: Correct one rejected order with an UPDATE inside a transaction, roll it back and confirm nothing changed","notes":"Watch for definitions without NOT NULL on the region: the probe for an empty region passes only with it, or with the CHECK. Watch also for rules using NOT IN against a list that can hold an empty value: Day 2's lesson returns.\n\nParticipants who fall behind can run the worked customers rule and come back to orders and lines; lab 4.2 does not depend on this one.","minutes":null,"lo":[]},{"id":"s2","n":12,"title":"Views that limit what is exposed","kind":"section","session":2,"hash":"71c29b9d","md":"#### [day4#s2] Views that limit what is exposed\n\n*Session 2*\n\n- Mark the personal-data columns of a table\n- Label tables with classification levels under a stated rule\n- Build a view that exposes only what an analyst needs, and test it","notes":"","minutes":null,"lo":["LO5"]},{"id":"identifiers","n":13,"title":"A column is personal data if it can identify a person, alone or with others","kind":"content","session":2,"hash":"1943c9d5","md":"#### [day4#identifiers] A column is personal data if it can identify a person, alone or with others\n\n*Personal data*\n\n- **Direct identifier.** Points to one person by itself: a name, a phone number, an e-mail address.\n- **Indirect identifier.** Narrows the group when combined: a date, an area, a key that links all of one person's records.\n- **Neither.** Describes a choice or the record, and identifies no one on its own.\n\nThe returns desk's callback list: `return_id`, `caller_name`, `caller_phone`, `area`, `received_on`, `callback_ok`. Which is which?\n\nThe Personal Data Protection Law treats data that identifies a person directly or indirectly as personal data.","notes":"Take answers from the room for the six columns. Name and phone are direct; area and the date are indirect; the return number is indirect, because it links to the order and through it to a person; callback_ok is neither.\n\nThe point to land: removing the name does not make a table anonymous.","minutes":null,"lo":["LO5"]},{"id":"minimum-necessary","n":14,"title":"Give each reader the columns the purpose needs, and no more","kind":"content","session":2,"hash":"99049d38","md":"#### [day4#minimum-necessary] Give each reader the columns the purpose needs, and no more\n\n*Minimisation*\n\n- The law asks that personal data be **limited to the minimum necessary** for the purpose (PDPL, Article 11, paragraph 3)\n- The Minimum Personal Data guideline adds: restrict **access rights** to what each role actually needs\n- A purpose is a question: \"how many returns per area each week\" needs no name and no phone\n- An exact date can often become a week or a month; an exact year, a decade\n\n> **What goes wrong.** \"Give them a copy without the names\" makes a second table to secure, forget and leak. A view is not a copy.","notes":"Both texts are in the README's references. The guideline's point about access rights is the bridge to views: the view is how the rights are narrowed in the database.","minutes":null,"lo":["LO5"]},{"id":"classification-levels","n":15,"title":"A level says how much harm disclosure would do, and so how the data is handled","kind":"content","session":2,"hash":"a2af7f98","md":"#### [day4#classification-levels] A level says how much harm disclosure would do, and so how the data is handled\n\n*Classification*\n\n| Level | Impact | Unauthorised disclosure has |\n| --- | --- | --- |\n| Top Secret | high | an exceptionally serious and irreparable effect |\n| Secret | medium | a serious effect |\n| Restricted | low | a limited negative effect, including on an individual; examples include personally identifiable information and detailed statements of individual transactions |\n| Public | none | none of these effects |\n\nThe four levels of the national Data Classification Policy, written for public entities. Data not yet classified is treated as Restricted until it is. In the labs, the grocery delivery company has adopted the levels as its own rule.","notes":"Be exact about scope: the policy binds public entities. A private company can adopt the levels, and the case company has; that is its rule, not the law's.\n\nThe returns desk's callback list is Restricted: personal data. Its list of reason codes is Public if the company has published it.","minutes":null,"lo":["LO5"]},{"id":"view","n":16,"title":"A view is a stored query: readers see its columns, never the table behind it","kind":"content","session":2,"hash":"2588bf92","md":"#### [day4#view] A view is a stored query: readers see its columns, never the table behind it\n\n*Views*\n\n```sql\n-- file: returns desk\nCREATE VIEW returns_for_analysts AS\nSELECT return_id,                              -- kept: joins to items; still personal data\n       area,\n       DATE_TRUNC('week', received_on) AS received_week\nFROM callback_list;                            -- no name, no phone, no exact date\n\n-- the test: none of these may appear\nDESCRIBE returns_for_analysts;\n```\n\n> **Grant the view, not the table.** The analysts' role reads the view; the table stays with the desk.","notes":"Two habits: a comment on every kept column saying why, and a test that the banned columns are absent. The lab runs that test.\n\nThe view does not anonymise: the return number still links each row to a person, so the view's output is still Restricted.","minutes":null,"lo":["LO5"]},{"id":"genai-rule","n":17,"title":"Restricted rows never go into a generative AI tool; the schema can","kind":"content","session":2,"hash":"a0df902f","md":"#### [day4#genai-rule] Restricted rows never go into a generative AI tool; the schema can\n\n*Responsible use*\n\n- **Can go in.** What the company has labelled Public: column names and types, the written business rules, an error message, a query with no values from the data.\n- **Stays out.** Rows of a Restricted table, a view's output, a sample \"just to show the shape\", a screenshot of a result.\n\n> **Rule.** Only Public data goes into a generative AI tool. Which descriptions count as Public is the company's own labelling, written down before anyone relies on it.","notes":"The rule follows SDAIA's Generative Artificial Intelligence Guidelines for Government (2025), section 3.5, Privacy and Security: employees of government entities enter no data classified Restricted or higher, and use these tools only with data classified Public. The guideline is written for government entities; the company, a private business, applies it as its own rule. The company in the labs has labelled its schema descriptions, its written rules and error messages Public; that labelling is its own rule. Everything in the course is synthetic, but practise the habit as if the rows were real.\n\nSegregation of duties: the person who wants to use the assistant does not decide the label; the data owner does.","minutes":null,"lo":["LO5"]},{"id":"check-view","n":18,"title":"Which view gives the analysts what they need, and no more?","kind":"quiz","session":2,"hash":"f37e70b0","md":"#### [day4#check-view] Which view gives the analysts what they need, and no more?\n\n*Checkpoint*\n\n**Question:** A gym's members table: member_id, full_name, phone, birth_date, branch, joined_on. The analysts count members per branch and per age band.\n\n- A. member_id, branch, age band\n- B. member_id, branch, birth_date\n- C. member_id, branch, birth_date, joined_on\n- D. a copy of the table without full_name","notes":"Answer: the first. Ask whether member_id is needed at all for these two counts: strictly, no. Keep it only if the analysts join to visits.","minutes":null,"lo":["LO5"]},{"id":"lab-4-2","n":19,"title":"Label the tables and build the analyst view","kind":"lab","session":2,"hash":"55889519","md":"#### [day4#lab-4-2] Label the tables and build the analyst view\n\nLab 4.2 · 35 min\n\nMark the personal-data columns, label each table under the company's rule, and build a view the analysts can query without names, phones or e-mail\n\n[D4_2_analyst_view.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_2_analyst_view.ipynb)\n\n- [ ] Open the supplied July database (3 min)\n- [ ] Mark each customer column: direct identifier, indirect identifier or neither (8 min)\n- [ ] Label each table with a classification level and a reason (6 min)\n- [ ] Write the analyst view with only the columns the purpose needs (10 min)\n- [ ] Run the analysts' three questions on the view and test that the identifiers are absent (8 min)\n- [ ] ✱ Stretch: Write a second view for the delivery team and list what it needs that the analysts do not","notes":"The lab opens the July tables as a correct load leaves them, so participants who did not finish lab 4.1 are not blocked.\n\nCommon disagreement: whether the customer number is an identifier. Let the room argue for a minute, then point to the definition: it links every order to one person, so it is indirect.","minutes":null,"lo":[]},{"id":"s3","n":20,"title":"Query plans and indexes","kind":"section","session":3,"hash":"f486e0a2","md":"#### [day4#s3] Query plans and indexes\n\n*Session 3*\n\n- Read the operators of a query plan from the bottom up\n- Find where a filter is applied in a plan\n- Predict when an index changes a plan and when it does not","notes":"","minutes":null,"lo":["LO3"]},{"id":"explain","n":21,"title":"A plan is a tree of operators: read it from the bottom up","kind":"content","session":3,"hash":"df33c515","md":"#### [day4#explain] A plan is a tree of operators: read it from the bottom up\n\n*EXPLAIN*\n\n1. **Seq Scan** returns, filter on the date · reasons\n2. **Hash Join** on reason_code\n3. **Hash Group By** by label, sum of refund\n4. **Projection** the columns returned\n\n```sql\n-- file: returns desk\nEXPLAIN\nSELECT r.label, SUM(t.refund)\nFROM returns t JOIN reasons r ON r.reason_code = t.reason_code\nWHERE t.received_on >= DATE '2026-05-03'\nGROUP BY r.label;\n```","notes":"The plan DuckDB prints for this query, drawn left to right (`_tools/slide_examples.py`, plan-filter). Run it live if there is time: the boxes in the output are the same four steps, bottom to top.","minutes":null,"lo":["LO3"]},{"id":"filter-in-plan","n":22,"title":"The engine applies a filter as early as it can, often inside the scan","kind":"content","session":3,"hash":"b110f32d","md":"#### [day4#filter-in-plan] The engine applies a filter as early as it can, often inside the scan\n\n*Where the filter is*\n\n- In the returns plan, the date condition appears in the **scan** of returns, under `Filters:`\n- Rows that fail it never reach the join: less to match, less to group\n- The numbers after `~` are the engine's **estimates**, made before running, not counts\n- A filter on the result of a group (HAVING) cannot move down: it needs the groups first\n\n> **What goes wrong.** Reading the estimates as row counts. To count, run the query; to see the shape, read the plan.","notes":"Do not show the lab's plan here: participants find the filter in their own plan of the orders query.","minutes":null,"lo":["LO3"]},{"id":"scan-search","n":23,"title":"An index lets a lookup go straight to its rows instead of reading them all","kind":"content","session":3,"hash":"d698ed3d","md":"#### [day4#scan-search] An index lets a lookup go straight to its rows instead of reading them all\n\n*Indexes*\n\n```sql\n-- file: returns desk, SQLite\nEXPLAIN QUERY PLAN\nSELECT * FROM returns\nWHERE order_ref = 'O-A15';\n-- SCAN returns\n\nCREATE INDEX ix_returns_order\n  ON returns (order_ref);\n-- the same lookup:\n-- SEARCH returns USING INDEX\n--   ix_returns_order (order_ref=?)\n```\n\n- **SCAN**: every row is read and tested\n- **SEARCH**: the index leads to the matching rows\n- A total over the whole table stays a **SCAN** with or without the index\n\nSQLite, from Python's standard library (`_tools/slide_examples.py`, index-scan-search). No timings: the plan's shape is what is stable.","notes":"Why SQLite: its plan says SCAN or SEARCH in one line, which makes the change visible. DuckDB, built for analysis, mostly reads whole columns and uses its indexes for keys and constraints.","minutes":null,"lo":["LO3"]},{"id":"when-index","n":24,"title":"An index helps a query that picks few rows by the indexed column","kind":"content","session":3,"hash":"33ba82aa","md":"#### [day4#when-index] An index helps a query that picks few rows by the indexed column\n\n*When it helps*\n\n| Query on returns, index on order_ref | Plan | Why |\n| --- | --- | --- |\n| `WHERE order_ref = 'O-A15'` | search | an exact value of the indexed column |\n| `SUM(refund)` over all returns | scan | every row is needed anyway |\n| `WHERE order_ref LIKE '%15'` | scan | a pattern starting with % has no place to jump to |\n| `WHERE reason_code = 'R1'` | scan | not the indexed column |\n\n> **Takeaway.** Analytical queries read most of a table, so they rarely gain from an index. Lookups do.","notes":"A two-column index is used from its first column: an index on (area, received_on) helps \"area X since May\", not \"everything since May\". The lab's stretch shows it.","minutes":null,"lo":["LO3"]},{"id":"check-index","n":25,"title":"Which query can an index on patient_id turn into a search?","kind":"quiz","session":3,"hash":"f2dd91aa","md":"#### [day4#check-index] Which query can an index on patient_id turn into a search?\n\n*Checkpoint*\n\n**Question:** A clinic's appointments table, 2 million rows, an index on patient_id.\n\n- A. appointments per month this year\n- B. appointments of doctor D12\n- C. patients whose number ends in 42\n- D. appointments of patient P-1093","notes":"Answer: patient P-1093. Ask which index would help the doctor query: one on doctor_id.","minutes":null,"lo":["LO3"]},{"id":"lab-4-3","n":26,"title":"Read two plans and watch an index change one","kind":"lab","session":3,"hash":"73e75855","md":"#### [day4#lab-4-3] Read two plans and watch an index change one\n\nLab 4.3 · 30 min\n\nRead a join plan in DuckDB, then watch an index turn a scan into a search in SQLite; plan shapes only, no timings\n\n[D4_3_plans_and_indexes.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_3_plans_and_indexes.ipynb)\n\n- [ ] Read the plan of a join and group query (8 min)\n- [ ] Find where the filter is applied (5 min)\n- [ ] Read the plan of a lookup in the second engine before an index (5 min)\n- [ ] Create the index and read the new plan (6 min)\n- [ ] Write when an index helps an analytical query and when it does not (6 min)\n- [ ] ✱ Stretch: Create a two-column index and find which order of the columns the lookup can use","notes":"Loading the orders into SQLite takes a few seconds; on a slow laptop up to half a minute. Remind participants that no timing is taken: the result to look at is the word SCAN or SEARCH.\n\nSome will expect the LIKE query to search because the plan names the index. It reads the whole index: still a scan.","minutes":null,"lo":[]},{"id":"s4","n":27,"title":"Testing queries against known answers","kind":"section","session":4,"hash":"eae60511","md":"#### [day4#s4] Testing queries against known answers\n\n*Session 4*\n\n- Build a small fixture and work out the expected answer by hand\n- Write a test that compares a query's result with the expected rows\n- Classify a failing generated query: fan-out, wrong grain or a missing business rule","notes":"","minutes":null,"lo":["LO6"]},{"id":"known-answers","n":28,"title":"A query is right when it matches an answer worked out by hand","kind":"content","session":4,"hash":"a793b9a3","md":"#### [day4#known-answers] A query is right when it matches an answer worked out by hand\n\n*Testing*\n\n1. **1 · Fixture** tables small enough to print\n2. **2 · Expected** the answer on paper, from the rule\n3. **3 · Run** the query on the fixture\n4. **4 · Compare** pass, or find out why\n\n> **Takeaway.** The expected answer must not come from SQL: another query can share the mistake.","notes":"Ask why the full data will not do: nobody knows its right answer without a query. The fixture must hold the hard cases: a failed attempt, a returned order, a cancelled line, an empty discount.","minutes":null,"lo":["LO6"]},{"id":"three-failures","n":29,"title":"Most wrong totals are one of three mistakes","kind":"content","session":4,"hash":"731ceb6f","md":"#### [day4#three-failures] Most wrong totals are one of three mistakes\n\n*Why queries fail*\n\n- **Fan-out.** A join repeats rows. Returns joined to inspections: T2's refund counted twice.\n- **Wrong grain.** The right sum at the wrong level: an average per item when the question is per return.\n- **Missing rule.** Well formed, but a business rule is left out: the desk's rule says a return with no refund counts as 0.","notes":"Each has a signature. Fan-out: the total is too high, often by a pattern that matches repeat rows. Grain: an average that is too small or too large by the number of items. Missing rule: a small difference that a rule explains.","minutes":null,"lo":["LO6"]},{"id":"test-example","n":30,"title":"The average refund per return: the generated query against the rule","kind":"content","session":4,"hash":"e2f052e2","md":"#### [day4#test-example] The average refund per return: the generated query against the rule\n\n*A test that fails*\n\n- **17.44** `AVG(refund)`: skips T4, whose refund is empty\n- **13.95** by hand, with T4 as 0: 69.75 over 5 returns\n\nTest: FAIL. Kind: **missing rule**. The fix is one `COALESCE`; finding it took the rule and a fixture.\n\nThe returns desk (`_tools/slide_examples.py`, test-avg-refund).","notes":"Day 2's NULL lesson in a new place. Ask: which would a reader of the report have noticed? Neither number looks wrong.","minutes":null,"lo":["LO6"]},{"id":"verification-note","n":31,"title":"Every generated query ships with its test and a judgement","kind":"content","session":4,"hash":"f0c4b63a","md":"#### [day4#verification-note] Every generated query ships with its test and a judgement\n\n*The verification note*\n\n| Query | Expected | Got | Test · judgement |\n| --- | --- | --- | --- |\n| avg_refund | 13.95 | 17.44 | FAIL · missing rule |\n| returns_r2 | 2 | 2 | pass · ok |\n\n- Generated SQL is a **draft** until it passes a test against answers someone checked by hand\n- The capstone asks for the same: a test per question and a log of any generated SQL and how it was checked","notes":"The second row is the count of returns with reason R2 on the returns desk: T2 and T5. A pass is recorded too: the note shows what was tested, not only what failed.","minutes":null,"lo":["LO6"]},{"id":"check-test","n":32,"title":"A generated query passes its test. What does that show?","kind":"quiz","session":4,"hash":"5e9644b4","md":"#### [day4#check-test] A generated query passes its test. What does that show?\n\n*Checkpoint*\n\n**Question:** A pharmacy fixture has six orders, none with two delivery attempts. The generated revenue query matches the hand-checked answer.\n\n- A. The query is correct on the full data\n- B. It follows the rule on the cases the fixture holds; repeat attempts are untested\n- C. Nothing: generated queries cannot be trusted\n- D. The fixture is too small to mean anything","notes":"Answer: the second. The fix is to add an order with a failed attempt to the fixture and run the test again.","minutes":null,"lo":["LO6"]},{"id":"lab-4-4","n":33,"title":"Ten generated queries against hand-checked answers","kind":"lab","session":4,"hash":"7b180be4","md":"#### [day4#lab-4-4] Ten generated queries against hand-checked answers\n\nLab 4.4 · 35 min\n\nHand-check the answers of ten questions on the mini tables, run ten supplied generated-style queries through tests against them, classify each failure against the revenue rule and write the verification note\n\n[D4_4_ten_generated_queries.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_4_ten_generated_queries.ipynb)\n\n- [ ] Read the revenue rule and the ten questions (5 min)\n- [ ] Work out the expected answers on the mini tables by hand (10 min)\n- [ ] Run the ten queries through the tests (8 min)\n- [ ] Classify each failure: fan-out, grain or a missing rule (7 min)\n- [ ] Write the verification note with each test result (5 min)\n- [ ] ✱ Stretch: Ask an approved assistant for the same ten questions, given only the schema, and run its queries through the same tests","notes":"The ten queries were written for the course to reproduce common mistakes; no model produced them. Say so: the method is what transfers.\n\nKeep the assistant closed for the expected answers. The ten minutes go mostly to the revenue questions: suggest starting with the delivered orders and their delivered attempt dates.\n\nCommon confusion: v09 and v01 return the same expected number, because the mini tables hold only March.","minutes":null,"lo":[]},{"id":"wrap-up","n":34,"title":"Three things to keep from Day 4","kind":"content","session":4,"hash":"60b393fd","md":"#### [day4#wrap-up] Three things to keep from Day 4\n\n*Wrap-up*\n\n- **Refuse and account.** Constraints refuse bad rows; the log accounts for every row read.\n- **Expose the minimum.** A view per purpose, tested; Restricted rows stay out of assistants.\n- **Prove it by hand.** A query is right when it matches an answer worked out on a fixture.","notes":"Ask each participant to name one query from the four days they would now test differently.","minutes":null,"lo":[]},{"id":"next","n":35,"title":"Capstone: the business orders brief","kind":"content","session":4,"hash":"638476cd","md":"#### [day4#next] Capstone: the business orders brief\n\n*Next*\n\n- Tonight and before the capstone day: the brief in `labs/capstone/`, ten questions, a test per question\n- On the day: the timed check with the assistant off, then five minutes adapting one of your queries live","notes":"Show where the capstone starter repository is and its README. Remind participants that the history of their repository is part of the submission.","minutes":null,"lo":[]}],"activities":[{"id":"review-day3-q1","slide":"review-day3","type":"single","prompt":"A bakery ranks products by units sold. Two products tie for second place. The next product should be third.","options":[{"key":"A","text":"ROW_NUMBER()"},{"key":"B","text":"DENSE_RANK()"},{"key":"C","text":"RANK()"},{"key":"D","text":"NTILE(3)"}],"correct":[1],"explanation":"DENSE_RANK gives ties one rank and continues with the next number: 1, 2, 2, 3.","misconceptions":["ROW_NUMBER gives every row its own number: one of the tied products becomes third","","RANK gives the tie the same number but skips the next: the product after them is fourth","NTILE splits rows into equal buckets; it does not rank by ties"],"lo":["LO3"]},{"id":"check-load-log-q1","slide":"check-load-log","type":"single","prompt":"A clinic's appointments file: read 500, loaded 480, rejected 15 (12 unknown patient, 3 invalid date).","options":[{"key":"A","text":"The load is complete and every row is accounted for"},{"key":"B","text":"The transaction rolled back 15 rows"},{"key":"C","text":"Five rows are unaccounted for"},{"key":"D","text":"The file was loaded twice"}],"correct":[2],"explanation":"480 + 15 = 495, not 500. Five rows were neither loaded nor rejected: the log is not finished until read equals loaded plus rejected.","misconceptions":["Assumes the totals are fine because every rejection has a reason","The transaction concerns rows that were inserted; the log counts rows that were not","","Unknown patients are a reason to reject, not a sign of a duplicate file"],"lo":["LO5"]},{"id":"check-view-q1","slide":"check-view","type":"single","prompt":"A gym's members table: member_id, full_name, phone, birth_date, branch, joined_on. The analysts count members per branch and per age band.","options":[{"key":"A","text":"member_id, branch, age band"},{"key":"B","text":"member_id, branch, birth_date"},{"key":"C","text":"member_id, branch, birth_date, joined_on"},{"key":"D","text":"a copy of the table without full_name"}],"correct":[0],"explanation":"Two counts need the branch and an age band. The key stays only if a join needs it; nothing else serves the purpose.","misconceptions":["","Keeps the exact birth date, which the age band already serves","Dropping only the direct identifiers keeps an exact date and the join date the question does not use","A copy of the table without the name is a second table to secure, and still holds the phone"],"lo":["LO5"]},{"id":"check-index-q1","slide":"check-index","type":"single","prompt":"A clinic's appointments table, 2 million rows, an index on patient_id.","options":[{"key":"A","text":"appointments per month this year"},{"key":"B","text":"appointments of doctor D12"},{"key":"C","text":"patients whose number ends in 42"},{"key":"D","text":"appointments of patient P-1093"}],"correct":[3],"explanation":"An exact value of the indexed column: the engine goes to that patient's entries and reads only those rows.","misconceptions":["A count by month reads every row; the index has nothing to skip","The condition is on the doctor, not the indexed column","A pattern with a leading % cannot use the order of the index",""],"lo":["LO3"]},{"id":"check-test-q1","slide":"check-test","type":"single","prompt":"A pharmacy fixture has six orders, none with two delivery attempts. The generated revenue query matches the hand-checked answer.","options":[{"key":"A","text":"The query is correct on the full data"},{"key":"B","text":"It follows the rule on the cases the fixture holds; repeat attempts are untested"},{"key":"C","text":"Nothing: generated queries cannot be trusted"},{"key":"D","text":"The fixture is too small to mean anything"}],"correct":[1],"explanation":"A test proves the cases in the fixture. Fan-out over repeat attempts needs a fixture with repeat attempts.","misconceptions":["A fixture proves only the cases it contains","","A passing test is evidence; discarding it wastes the check","The size of a fixture does not decide; its cases do"],"lo":["LO6"]}],"ai":{"context":{"course":"../context/course.md","courseJs":"../context/course.js","day":"day4.md","llms":"../llms.txt"},"tasks":[],"tools":[]},"bridge":{"allowedOrigins":[]},"features":{},"strings":{}}</script>
+<script src="../_engine/academy.js"></script>
+</body>
+</html>

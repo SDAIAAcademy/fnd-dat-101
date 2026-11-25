@@ -1,0 +1,84 @@
+{
+ "read": {
+  "customers": 302,
+  "orders": 902,
+  "order_lines": 2703
+ },
+ "rows": [
+  [
+   "customers",
+   "loaded",
+   294
+  ],
+  [
+   "customers",
+   "missing key",
+   3
+  ],
+  [
+   "customers",
+   "duplicate key",
+   2
+  ],
+  [
+   "customers",
+   "unknown region",
+   2
+  ],
+  [
+   "customers",
+   "invalid date",
+   1
+  ],
+  [
+   "orders",
+   "loaded",
+   887
+  ],
+  [
+   "orders",
+   "duplicate key",
+   2
+  ],
+  [
+   "orders",
+   "unknown customer",
+   8
+  ],
+  [
+   "orders",
+   "invalid status",
+   3
+  ],
+  [
+   "orders",
+   "invalid timestamp",
+   2
+  ],
+  [
+   "order_lines",
+   "loaded",
+   2662
+  ],
+  [
+   "order_lines",
+   "duplicate key",
+   3
+  ],
+  [
+   "order_lines",
+   "unknown order",
+   32
+  ],
+  [
+   "order_lines",
+   "invalid quantity",
+   4
+  ],
+  [
+   "order_lines",
+   "invalid price",
+   2
+  ]
+ ]
+}

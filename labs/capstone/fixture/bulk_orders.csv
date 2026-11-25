@@ -1,0 +1,7 @@
+order_id,account_id,site_id,ordered_on,status
+B01,A001,ST01,2026-07-20,closed
+B02,A001,ST02,2026-08-01,closed
+B03,A002,ST03,2026-07-31,closed
+B04,A002,ST03,2026-12-28,open
+B05,A004,ST04,2026-09-10,cancelled
+B06,A002,ST03,2026-09-15,closed

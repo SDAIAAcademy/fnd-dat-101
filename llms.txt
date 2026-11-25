@@ -1,0 +1,47 @@
+# SQL and Relational Data
+
+> Query relational data in SQL, predict the result before you run it, and prove the answer right against a known one. SDAIA Academy course FND-DAT-101, version 2027.1.0, in English.
+
+Each slide is a heading such as "#### [day1#slide-id] Title": cite slides by that id, and each citation is a link (slides/day1.html#slide-id). These files are what a trainee sees: no speaker notes and no answer keys.
+
+## Course
+
+- [Course page](https://sdaiaacademy.github.io/fnd-dat-101/index.md): overview, outcomes, schedule and labs; the page itself is https://sdaiaacademy.github.io/fnd-dat-101/index.html
+- [The whole course](https://sdaiaacademy.github.io/fnd-dat-101/llms-full.txt): every unit, session and slide in one file, about 19,622 tokens
+- [Practice questions](https://sdaiaacademy.github.io/fnd-dat-101/practice.html): questions to check yourself, with feedback after each answer
+
+## Slides
+
+- [Day 1: Tables, keys and grain](https://sdaiaacademy.github.io/fnd-dat-101/slides/day1.md): What a row means before any query is written; sessions: Tables, types, keys and constraints, Grain and cardinality, Normal forms, wide tables and embedded engines, Filters, sorting and expressions; page: https://sdaiaacademy.github.io/fnd-dat-101/slides/day1.html; about 5,090 tokens
+- [Day 2: One table, then two](https://sdaiaacademy.github.io/fnd-dat-101/slides/day2.md): Conditions, NULL, groups and the four kinds of join; sessions: CASE expressions and set operations, NULL and three-valued logic, Grouping and having, Inner, outer, semi and anti joins; page: https://sdaiaacademy.github.io/fnd-dat-101/slides/day2.html; about 4,104 tokens
+- [Day 3: Combining safely, then windows](https://sdaiaacademy.github.io/fnd-dat-101/slides/day3.md): Count once, build in steps, then rank and compare without losing rows; sessions: Join fan-out and double counting, Subqueries and common table expressions, Partitions, ranking, lag and lead, Running and moving aggregates; page: https://sdaiaacademy.github.io/fnd-dat-101/slides/day3.html; about 4,393 tokens
+- [Day 4: Building and checking](https://sdaiaacademy.github.io/fnd-dat-101/slides/day4.md): Constraints that refuse, views that limit, plans that explain, tests that prove; sessions: Loading into constrained tables, and transactions, Views that limit what is exposed, Query plans and indexes, Testing queries against known answers; page: https://sdaiaacademy.github.io/fnd-dat-101/slides/day4.html; about 4,619 tokens
+- [Capstone: Capstone: the business orders brief](https://sdaiaacademy.github.io/fnd-dat-101/slides/capstone.md): For each participant: five minutes of live adaptation of one query, then two of questions on the assumptions note; page: https://sdaiaacademy.github.io/fnd-dat-101/slides/capstone.html; about 1,042 tokens
+
+## Labs
+
+- [Lab 1.1: Six tables and their keys](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_1_tables_and_keys.ipynb): Day 1, Session 1, 35 min
+- [Lab 1.2: The annotated schema](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_2_annotated_schema.ipynb): Day 1, Session 2, 35 min
+- [Lab 1.3: One wide table, and what it repeats](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_3_wide_table.ipynb): Day 1, Session 3, 30 min
+- [Lab 1.4: Questions 1 to 4, predicted first](https://sdaiaacademy.github.io/fnd-dat-101/labs/D1_4_questions_1_to_4.ipynb): Day 1, Session 4, 35 min
+- [Lab 2.1: Questions 5 to 7: bands and sets](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_1_questions_5_to_7.ipynb): Day 2, Session 1, 30 min
+- [Lab 2.2: Predict, then run: twelve NULL comparisons](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_2_null_predictions.ipynb): Day 2, Session 2, 35 min
+- [Lab 2.3: Questions 8 to 11: groups](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_3_questions_8_to_11.ipynb): Day 2, Session 3, 35 min
+- [Lab 2.4: Questions 12 to 15: joins](https://sdaiaacademy.github.io/fnd-dat-101/labs/D2_4_questions_12_to_15.ipynb): Day 2, Session 4, 35 min
+- [Lab 3.1: Questions 16 and 17: count once](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_1_questions_16_and_17.ipynb): Day 3, Session 1, 35 min
+- [Lab 3.2: Questions 18 to 20, and the checker](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_2_questions_18_to_20.ipynb): Day 3, Session 2, 35 min
+- [Lab 3.3: Window drills 1: top items per region](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_3_window_drills_1.ipynb): Day 3, Session 3, 30 min
+- [Lab 3.4: Window drills 2: weeks and seven days](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_4_window_drills_2.ipynb): Day 3, Session 4, 35 min
+- [Lab 4.1: Load the extracts and log every rejected row](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_1_load_with_log.ipynb): Day 4, Session 1, 35 min
+- [Lab 4.2: Label the tables and build the analyst view](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_2_analyst_view.ipynb): Day 4, Session 2, 35 min
+- [Lab 4.3: Read two plans and watch an index change one](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_3_plans_and_indexes.ipynb): Day 4, Session 3, 30 min
+- [Lab 4.4: Ten generated queries against hand-checked answers](https://sdaiaacademy.github.io/fnd-dat-101/labs/D4_4_ten_generated_queries.ipynb): Day 4, Session 4, 35 min
+
+## Context files
+
+- [context/course.md](https://sdaiaacademy.github.io/fnd-dat-101/context/course.md): the whole course, for an assistant that takes a file, about 19,622 tokens
+- [context/day1.md](https://sdaiaacademy.github.io/fnd-dat-101/context/day1.md): Day 1, about 5,090 tokens
+- [context/day2.md](https://sdaiaacademy.github.io/fnd-dat-101/context/day2.md): Day 2, about 4,104 tokens
+- [context/day3.md](https://sdaiaacademy.github.io/fnd-dat-101/context/day3.md): Day 3, about 4,393 tokens
+- [context/day4.md](https://sdaiaacademy.github.io/fnd-dat-101/context/day4.md): Day 4, about 4,619 tokens
+- [context/capstone.md](https://sdaiaacademy.github.io/fnd-dat-101/context/capstone.md): Capstone, about 1,042 tokens

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="page" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL and Relational Data · SDAIA Academy</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<meta name="description" content="Query relational data in SQL, predict the result before you run it, and prove the answer right against a known one">
+<link rel="icon" href="_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="index.md">
+<link rel="describedby" href="llms.txt">
+<link rel="stylesheet" href="_engine/academy.css">
+</head>
+<body>
+<header>
+<div class="wrap">
+<div class="top"><div class="logo" id="logo"></div><nav><a href="slides/day1.html">Slides</a><a href="practice.html">Practice</a><a href="index.md" type="text/markdown">Markdown</a></nav></div>
+<div class="kicker">Data &amp; AI Foundations Track · SDAIA Academy · FND-DAT-101</div>
+<h1>SQL and Relational Data<span class="sub ar" lang="ar" dir="rtl">لغة SQL والبيانات العلائقية</span></h1>
+<p>Query relational data in SQL, predict the result before you run it, and prove the answer right against a known one</p>
+<div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>30 hours</span><span>Level 100</span></div>
+</div>
+</header>
+<main class="wrap">
+<h2>About the course</h2>
+<p>Participants query relational data in SQL and check that the answers are right. In an embedded analytical engine on a laptop they move from keys and constraints through joins, grouping and common table expressions to window functions. They predict results before running queries, catch the silent errors that joins and NULLs cause, and test assistant-written SQL against known answers. The capstone answers a stakeholder brief on an unseen dataset.</p>
+<p><b>Who it is for:</b> Beginners. Anyone starting technical data or AI work, including future analysts, data scientists, data engineers and AI engineers who can code but have not yet worked with messy real data.</p>
+<p><b>Format:</b> Intensive: 4 teaching days and a capstone day, with guided pre-work and a tracked follow-up task</p>
+<h2>The case study</h2>
+<div class="note info"><b>The grocery delivery company.</b> An online grocery and household goods delivery business in one city of five regions, dispatching from eight stores; every lab works on its synthetic six-table schema of about a million order lines from January to June 2026, with planted traps: delivery attempts that multiply rows, discounts left NULL, cancelled lines, closed days and a revenue rule finance keeps outside the schema. The capstone uses an unseen dataset from the company's business orders service; all data is synthetic and people appear only as roles and codes.</div>
+<h2>The course</h2>
+<div class="day">
+<div class="day-head c-teal"><div><div class="t">Day 1 · 4 sessions · 4 labs</div><h3>Tables, keys and grain</h3></div><a class="btn" href="slides/day1.html">Open the slides</a></div>
+<div class="scroll"><table>
+<tr><th>Session</th><th>Topic</th><th>Lab</th></tr>
+<tr><td>1</td><td><b>Tables, types, keys and constraints</b><br>A table is a set of rows of one kind; keys name a row, constraints refuse a bad one<ul><li>Name the type and the role of each column of a table</li><li>Test a candidate key with a counting query</li><li>Read the message a database gives when a constraint refuses a row</li></ul></td><td><a href="labs/D1_1_tables_and_keys.ipynb">Lab 1.1 · Six tables and their keys</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D1_1_tables_and_keys.ipynb">Open in Colab</a></td></tr>
+<tr><td>2</td><td><b>Grain and cardinality</b><br>What one row stands for, and how many rows of one table meet one row of another<ul><li>State the grain of a table in one sentence</li><li>Confirm a grain with a counting query</li><li>Measure a one-to-many relationship and name its maximum</li></ul></td><td><a href="labs/D1_2_annotated_schema.ipynb">Lab 1.2 · The annotated schema</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D1_2_annotated_schema.ipynb">Open in Colab</a></td></tr>
+<tr><td>3</td><td><b>Normal forms, wide tables and embedded engines</b><br>Why operational tables are split, why analytical tables are wide, and where the engine runs<ul><li>Explain the repetition that normal forms remove</li><li>Build a wide analytical table from a join and name its risks</li><li>Contrast an embedded engine with a client-server database</li></ul></td><td><a href="labs/D1_3_wide_table.ipynb">Lab 1.3 · One wide table, and what it repeats</a> <span class="muted">(30 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D1_3_wide_table.ipynb">Open in Colab</a></td></tr>
+<tr><td>4</td><td><b>Filters, sorting and expressions</b><br>WHERE on text and dates, ORDER BY with ties, and expressions that compute a value per row<ul><li>Filter rows on text patterns and date ranges</li><li>Sort with a tie-breaker and keep the top rows</li><li>Compute a value per row with an expression that handles a NULL</li></ul></td><td><a href="labs/D1_4_questions_1_to_4.ipynb">Lab 1.4 · Questions 1 to 4, predicted first</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D1_4_questions_1_to_4.ipynb">Open in Colab</a></td></tr>
+</table></div>
+</div>
+<div class="day">
+<div class="day-head c-cyan"><div><div class="t">Day 2 · 4 sessions · 4 labs</div><h3>One table, then two</h3></div><a class="btn" href="slides/day2.html">Open the slides</a></div>
+<div class="scroll"><table>
+<tr><th>Session</th><th>Topic</th><th>Lab</th></tr>
+<tr><td>1</td><td><b>CASE expressions and set operations</b><br>CASE turns rules into columns; UNION, INTERSECT and EXCEPT combine whole result sets<ul><li>Write a CASE expression that sorts rows into bands</li><li>Count by condition with CASE inside an aggregate</li><li>Combine two result sets with UNION, INTERSECT or EXCEPT</li></ul></td><td><a href="labs/D2_1_questions_5_to_7.ipynb">Lab 2.1 · Questions 5 to 7: bands and sets</a> <span class="muted">(30 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D2_1_questions_5_to_7.ipynb">Open in Colab</a></td></tr>
+<tr><td>2</td><td><b>NULL and three-valued logic</b><br>NULL is unknown, not zero or empty: comparisons with it are neither true nor false<ul><li>Predict the rows a comparison with NULL keeps</li><li>Use IS NULL, COALESCE and IS DISTINCT FROM on purpose</li><li>Explain why NOT IN with a NULL returns no rows</li></ul></td><td><a href="labs/D2_2_null_predictions.ipynb">Lab 2.2 · Predict, then run: twelve NULL comparisons</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D2_2_null_predictions.ipynb">Open in Colab</a></td></tr>
+<tr><td>3</td><td><b>Grouping and having</b><br>GROUP BY changes the grain of the result; HAVING filters groups after they are formed<ul><li>Predict the number of rows a GROUP BY returns</li><li>Choose between WHERE and HAVING for a condition</li><li>Count distinct values inside a group</li></ul></td><td><a href="labs/D2_3_questions_8_to_11.ipynb">Lab 2.3 · Questions 8 to 11: groups</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D2_3_questions_8_to_11.ipynb">Open in Colab</a></td></tr>
+<tr><td>4</td><td><b>Inner, outer, semi and anti joins</b><br>Which rows survive a join, and how to ask for rows that have, or lack, a partner<ul><li>Predict the rows an inner and a left join return on small tables</li><li>Find rows without a partner with an anti join</li><li>Keep rows that have a partner without multiplying them, with a semi join</li></ul></td><td><a href="labs/D2_4_questions_12_to_15.ipynb">Lab 2.4 · Questions 12 to 15: joins</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D2_4_questions_12_to_15.ipynb">Open in Colab</a></td></tr>
+</table></div>
+</div>
+<div class="day">
+<div class="day-head c-coral"><div><div class="t">Day 3 · 4 sessions · 4 labs</div><h3>Combining safely, then windows</h3></div><a class="btn" href="slides/day3.html">Open the slides</a></div>
+<div class="scroll"><table>
+<tr><th>Session</th><th>Topic</th><th>Lab</th></tr>
+<tr><td>1</td><td><b>Join fan-out and double counting</b><br>A join to a many side repeats the rows of the one side, and every sum over them grows<ul><li>Detect fan-out by counting rows before and after a join</li><li>Aggregate to the right grain before joining</li><li>Explain a wrong total from the grain of each table it joined</li></ul></td><td><a href="labs/D3_1_questions_16_and_17.ipynb">Lab 3.1 · Questions 16 and 17: count once</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D3_1_questions_16_and_17.ipynb">Open in Colab</a></td></tr>
+<tr><td>2</td><td><b>Subqueries and common table expressions</b><br>Build an answer in named steps, each of which you can run and check on its own<ul><li>Use a subquery in WHERE and in FROM</li><li>Write a query as a chain of common table expressions</li><li>Check each step of a chain before trusting the last</li></ul></td><td><a href="labs/D3_2_questions_18_to_20.ipynb">Lab 3.2 · Questions 18 to 20, and the checker</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D3_2_questions_18_to_20.ipynb">Open in Colab</a></td></tr>
+<tr><td>3</td><td><b>Partitions, ranking, lag and lead</b><br>A window computes over related rows and keeps every row: PARTITION BY, ORDER BY, RANK, LAG<ul><li>Write a window with a partition and an ordering</li><li>Choose between ROW_NUMBER, RANK and DENSE_RANK at ties</li><li>Compare a row with the one before it using LAG</li></ul></td><td><a href="labs/D3_3_window_drills_1.ipynb">Lab 3.3 · Window drills 1: top items per region</a> <span class="muted">(30 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D3_3_window_drills_1.ipynb">Open in Colab</a></td></tr>
+<tr><td>4</td><td><b>Running and moving aggregates</b><br>Running totals, week-on-week change and seven-day averages, and the frame that decides them<ul><li>Compute a running total that restarts in each partition</li><li>Compute a week-on-week change with LAG over weekly totals</li><li>Choose a ROWS or a RANGE frame when days are missing</li></ul></td><td><a href="labs/D3_4_window_drills_2.ipynb">Lab 3.4 · Window drills 2: weeks and seven days</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D3_4_window_drills_2.ipynb">Open in Colab</a></td></tr>
+</table></div>
+</div>
+<div class="day">
+<div class="day-head c-purple"><div><div class="t">Day 4 · 4 sessions · 4 labs</div><h3>Building and checking</h3></div><a class="btn" href="slides/day4.html">Open the slides</a></div>
+<div class="scroll"><table>
+<tr><th>Session</th><th>Topic</th><th>Lab</th></tr>
+<tr><td>1</td><td><b>Loading into constrained tables, and transactions</b><br>Stage the raw file, sort out what the constraints would refuse, load the rest in one transaction, account for every row<ul><li>Write table definitions with keys, foreign keys and checks</li><li>Load a raw file through a staging table and record each rejected row with its reason</li><li>Group inserts, updates and deletes in a transaction and roll back on a failed check</li></ul></td><td><a href="labs/D4_1_load_with_log.ipynb">Lab 4.1 · Load the extracts and log every rejected row</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D4_1_load_with_log.ipynb">Open in Colab</a></td></tr>
+<tr><td>2</td><td><b>Views that limit what is exposed</b><br>A view gives each reader the columns and rows the purpose needs, and no more<ul><li>Mark the personal-data columns of a table</li><li>Label tables with classification levels under a stated rule</li><li>Build a view that exposes only what an analyst needs, and test it</li></ul></td><td><a href="labs/D4_2_analyst_view.ipynb">Lab 4.2 · Label the tables and build the analyst view</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D4_2_analyst_view.ipynb">Open in Colab</a></td></tr>
+<tr><td>3</td><td><b>Query plans and indexes</b><br>EXPLAIN shows how the engine will run a query; an index changes a lookup, rarely a scan of everything<ul><li>Read the operators of a query plan from the bottom up</li><li>Find where a filter is applied in a plan</li><li>Predict when an index changes a plan and when it does not</li></ul></td><td><a href="labs/D4_3_plans_and_indexes.ipynb">Lab 4.3 · Read two plans and watch an index change one</a> <span class="muted">(30 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D4_3_plans_and_indexes.ipynb">Open in Colab</a></td></tr>
+<tr><td>4</td><td><b>Testing queries against known answers</b><br>A query is right when it matches answers you worked out by hand on data small enough to check<ul><li>Build a small fixture and work out the expected answer by hand</li><li>Write a test that compares a query's result with the expected rows</li><li>Classify a failing generated query: fan-out, wrong grain or a missing business rule</li></ul></td><td><a href="labs/D4_4_ten_generated_queries.ipynb">Lab 4.4 · Ten generated queries against hand-checked answers</a> <span class="muted">(35 min)</span><br><a href="https://colab.research.google.com/github/SDAIAAcademy/fnd-dat-101/blob/main/labs/D4_4_ten_generated_queries.ipynb">Open in Colab</a></td></tr>
+</table></div>
+</div>
+<div class="day">
+<div class="day-head c-amber"><div><div class="t">Capstone</div><h3>Capstone: the business orders brief</h3></div><a class="btn" href="slides/capstone.html">Open the slides</a></div>
+<div class="scroll"><table><tr><td>For each participant: five minutes of live adaptation of one query, then two of questions on the assumptions note</td></tr></table></div>
+</div>
+<h2>Capstone</h2>
+<div class="two">
+<div><p>A ten-question stakeholder brief on a new synthetic dataset, answered in a repository of tested SQL with a note on assumptions, plus a timed AI-off check and a live adaptation of one query to a changed question</p><p><b>What you submit:</b> Individual. A public GitHub repository link holding the answers to the ten questions of the business orders brief (labs/capstone/): one SQL file per question with a comment on its grain, a pytest test per question against a hand-checked fixture, the assumptions note and the log of any generated SQL and how it was checked, with the history kept. On the capstone day: the timed AI-off check, then five minutes of live adaptation of one query to a changed question and two minutes of questions on the assumptions note.</p><p><b>Format:</b> 5 min talk and demo · 2 min Q&amp;A</p></div>
+<div><h3>Rubric</h3><div class="bar c-teal"><span>Correct answers: the ten queries return the trainer's key on the full business orders data<i style="--w:100%"></i></span><b>35%</b></div><div class="bar c-cyan"><span>Tests: each query has a pytest test against a small fixture whose expected rows were worked out by hand, and the tests pass<i style="--w:57%"></i></span><b>20%</b></div><div class="bar c-coral"><span>Grain: each query states the grain of its result and of every table it joins, and no total is counted twice<i style="--w:43%"></i></span><b>15%</b></div><div class="bar c-purple"><span>Assumptions note: every business rule of the brief stated, applied and traced to the query that uses it<i style="--w:43%"></i></span><b>15%</b></div><div class="bar c-amber"><span>Verification log: every query an assistant wrote or changed is recorded with the test that caught or passed it<i style="--w:29%"></i></span><b>10%</b></div><div class="bar c-green"><span>Minimal exposure: no answer returns a personal-data column the question does not need<i style="--w:14%"></i></span><b>5%</b></div></div>
+</div>
+<h2>Outcomes</h2>
+<p>By the end of the course, participants can:</p>
+<div class="day"><div class="scroll"><table>
+<tr><th></th><th>Outcomes</th><th>Level</th><th>Evidence</th></tr>
+<tr><td><b>LO1</b></td><td>Explain the relational model: tables, keys, constraints, NULL and the grain of a table, given a six-table synthetic delivery schema</td><td>Awareness</td><td>an annotated schema with keys, cardinalities and grain matching the reference</td></tr>
+<tr><td><b>LO2</b></td><td>Identify the output of joins, grouping and NULL comparisons before running them, given small printed tables</td><td>Awareness</td><td>supervised AI-off check, eight of ten correct</td></tr>
+<tr><td><b>LO3</b></td><td>Write queries with filters, joins, grouping, subqueries and common table expressions that answer business questions, given a synthetic dataset of about a million order lines</td><td>Applied</td><td>a query file passing the automatic checker on 16 of 20 questions</td></tr>
+<tr><td><b>LO4</b></td><td>Apply window functions to rank rows, compare periods and compute running and moving totals, given daily order tables</td><td>Applied</td><td>queries matching reference outputs, each partition explained in a comment</td></tr>
+<tr><td><b>LO5</b></td><td>Implement a small schema with keys and constraints, load raw files into it and report rejected rows, given extracts with seeded defects</td><td>Applied</td><td>a definition script and a load log accounting for every rejected row</td></tr>
+<tr><td><b>LO6</b></td><td>Identify silent errors in assistant-written SQL, such as join fan-out, wrong grain and missing business rules, given ten generated queries and a revenue rule documented outside the schema</td><td>Awareness</td><td>a verification note judging each query, with a test result</td></tr>
+</table></div></div>
+<h2>Tools</h2>
+<div class="grid">
+<div class="card c-teal"><h3>Embedded analytical SQL engine</h3><p>DuckDB · SQLite</p></div>
+<div class="card c-cyan"><h3>Query checking</h3><p>pytest comparing result sets · the Academy's query grader</p></div>
+<div class="card c-coral"><h3>Assistant for the text-to-SQL exercises</h3><p>a locally served open-weight model · any approved assistant</p></div>
+</div>
+<h2>Before you start</h2>
+<h3>Prerequisites</h3>
+<ul><li>Comfortable with spreadsheets: filters, sorting and simple formulas</li><li>No programming experience required</li></ul>
+<div class="note tip">The labs are notebooks. Open each one in Google Colab from the table above, or clone the repository and run them locally.</div>
+<h2>Sources</h2>
+<h3>National references</h3>
+<ul><li><a href="https://sdaia.gov.sa/en/SDAIA/about/Documents/PersonalDataProtectionLaw.pdf">Personal Data Protection Law (SDAIA), English text</a></li><li><a href="https://sdaia.gov.sa/Documents/MinmumPDGuideline.pdf">Minimum Personal Data Determination Guideline, version 1.0, August 2024 (SDAIA)</a></li><li><a href="https://sdaia.gov.sa/en/SDAIA/about/Documents/DataClassificationPolicy.pdf">Data Classification Policy, version 1 (National Data Management Office, SDAIA)</a></li><li><a href="https://sdaia.gov.sa/en/SDAIA/about/Files/GenAIGuidelinesForGovernmentENCompressed.pdf">Generative Artificial Intelligence Guidelines for Government, 2025 (SDAIA), section 3.5 Privacy and Security</a></li><li><a href="https://sdaia.gov.sa/en/MediaCenter/KnowledgeCenter/ResearchLibrary/Academic-Programs-Standards-Framework-Q3.pdf">Data &amp; AI Academic Programs Standards Framework, Second Version, September 2026 (SDAIA)</a></li></ul>
+<h3>Engines and tools</h3>
+<ul><li><a href="https://duckdb.org/why_duckdb">DuckDB: Why DuckDB</a></li><li><a href="https://duckdb.org/docs/stable/sql/constraints">DuckDB 2.0 documentation: constraints</a></li><li><a href="https://duckdb.org/docs/stable/sql/functions/window_functions">DuckDB 2.0 documentation: window functions</a></li><li><a href="https://duckdb.org/docs/stable/guides/meta/explain">DuckDB 2.0 documentation: EXPLAIN</a></li><li><a href="https://duckdb.org/docs/2.0/sql/indexes.html">DuckDB 2.0 documentation: indexes</a></li><li><a href="https://duckdb.org/docs/stable/sql/statements/create_view">DuckDB 2.0 documentation: CREATE VIEW</a></li><li><a href="https://duckdb.org/docs/stable/sql/statements/transactions">DuckDB 2.0 documentation: transaction management</a></li><li><a href="https://www.sqlite.org/serverless.html">SQLite: SQLite Is Serverless</a></li><li><a href="https://www.sqlite.org/eqp.html">SQLite: EXPLAIN QUERY PLAN</a></li><li><a href="https://docs.pytest.org/en/stable/">pytest documentation</a></li></ul>
+<h2>Files and links</h2>
+<div class="files">
+<a href="practice.html"><b>practice.html</b><span>Practice questions with feedback</span></a>
+<a href="index.md"><b>index.md</b><span>This page as Markdown, for an AI assistant</span></a>
+<a href="llms.txt"><b>llms.txt</b><span>The course for AI assistants (llms.txt)</span></a>
+<a href="https://github.com/SDAIAAcademy/fnd-dat-101"><b>SDAIAAcademy/fnd-dat-101</b><span>The course repository</span></a>
+</div>
+</main>
+<footer><div class="wrap">SDAIA Academy · Data &amp; AI Foundations Track · SQL and Relational Data<br><span class="muted">Course version 2027.1.0 · engine 1.0.0 · built 2026-11-25 · commit 65f9e39</span></div></footer>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"index.html"},"ai":{"context":{"course":"context/course.md","courseJs":"context/course.js","day":null,"llms":"llms.txt"},"tasks":[],"tools":[]},"features":{},"strings":{}}</script>
+<script src="_engine/academy.js"></script>
+</body>
+</html>

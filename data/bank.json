@@ -1,0 +1,1516 @@
+{
+  "format": "academy-bank",
+  "version": 1,
+  "course": {
+    "id": "fnd-dat-101",
+    "code": "FND-DAT-101",
+    "title": "SQL and Relational Data",
+    "lang": "en",
+    "version": "2027.1.0"
+  },
+  "questions": [
+    {
+      "id": "check-key-q1",
+      "type": "single",
+      "prompt": "The returns desk's return_items has 8 rows. COUNT(DISTINCT return_id) is 5 and COUNT(DISTINCT product_ref) is 5. The distinct pairs (return_id, item_no) number 8. What names one row?",
+      "options": [
+        "return_id alone",
+        "The pair return_id and item_no",
+        "product_ref alone",
+        "No column: the table has no key"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Eight distinct pairs for eight rows: no pair repeats, so the pair names exactly one row.",
+      "misconceptions": [
+        "Takes the identifier-looking name as proof: 5 distinct values for 8 rows means return_id repeats",
+        "",
+        "Equates a product code with a row: the same product can come back in several returns",
+        "Assumes every table must have a single-column key: a pair of columns is a key too"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 1,
+      "slide": "check-key",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-grain-q1",
+      "type": "single",
+      "prompt": "The returns desk inspects some returns once, some twice, and some never. inspections holds return_id, inspected_on and result. Which sentence states its grain?",
+      "options": [
+        "One row per return",
+        "One row per inspection result",
+        "One row per return, inspected or not",
+        "One row per inspection of one return"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Each row records one inspection event. A return can have zero, one or two such rows.",
+      "misconceptions": [
+        "Takes the return_id column for the grain: a return inspected twice has two rows",
+        "Reads the grain from the result column, which is a fact about a row, not what the row stands for",
+        "Includes returns that were never inspected: they have no row at all",
+        ""
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 2,
+      "slide": "check-grain",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-wide-q1",
+      "type": "single",
+      "prompt": "The returns desk's wide table copies the reason label onto every item. A colleague renamed R2 in some rows only, so both labels now appear. What is the right fix?",
+      "options": [
+        "Correct the label once in reasons and rebuild the wide table",
+        "Update the remaining rows of the wide table",
+        "Add DISTINCT to every report on the wide table",
+        "Delete the reasons table and keep the wide one"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "The label has one home. A copy is rebuilt from it; it is never the place to fix a fact.",
+      "misconceptions": [
+        "",
+        "Repairs the copy by hand: the next partial edit recreates the disagreement",
+        "Hides the symptom: queries still return two labels for one code",
+        "Throws away the source of truth: the wide table cannot be rebuilt once reasons is gone"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 3,
+      "slide": "check-wide",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-dates-q1",
+      "type": "single",
+      "prompt": "The returns desk stores inspected_at as a TIMESTAMP. You need every inspection of May 2026, including those late on 31 May.",
+      "options": [
+        "inspected_at BETWEEN '2026-05-01' AND '2026-05-31'",
+        "inspected_at LIKE '2026-05%'",
+        "inspected_at >= '2026-05-01' AND inspected_at < '2026-06-01'",
+        "inspected_at >= '2026-05-01' AND inspected_at <= '2026-06-01'"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "The half-open range keeps all of 31 May and nothing of 1 June, whatever the time of day.",
+      "misconceptions": [
+        "Ends at the first instant of 31 May on a timestamp: the rest of the last day is lost",
+        "Compares text with a pattern: works only while the column is text, and stops working once it is a timestamp",
+        "",
+        "Includes the first instant of June, so an inspection logged at midnight on 1 June is counted in May"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 1,
+      "session": 4,
+      "slide": "check-dates",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "review-day1-q1",
+      "type": "single",
+      "prompt": "returns has 5 rows and 4 distinct order_ref values; inspections can hold two rows for one return.",
+      "options": [
+        "order_ref is a key of returns",
+        "The grain of inspections is one row per return",
+        "Joining returns to inspections can repeat a return",
+        "A join to inspections keeps exactly 5 rows"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "A return inspected twice matches two rows of inspections, so it appears twice after the join.",
+      "misconceptions": [
+        "Takes a column that looks like an identifier for a key: 4 distinct values for 5 rows",
+        "Reads the grain from the first column instead of from what one row records",
+        "",
+        "Believes a join never changes the number of rows of the left table"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 2,
+      "slide": "review-day1",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-case-q1",
+      "type": "single",
+      "prompt": "The returns desk wants the distinct product codes returned in May 2026 that were not returned in June 2026.",
+      "options": [
+        "May's product codes EXCEPT June's product codes",
+        "May's item rows EXCEPT June's item rows",
+        "May's product codes UNION June's product codes",
+        "May's product codes INTERSECT June's product codes"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "The question is about a set of products, so both sides select the product code, and EXCEPT removes June's.",
+      "misconceptions": [
+        "",
+        "Compares whole rows: two item rows of different returns never match, so nothing is removed",
+        "Combines the two sets instead of taking one from the other",
+        "Keeps only what the two months share, the opposite of the question"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 2,
+      "session": 1,
+      "slide": "check-case",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-null-q1",
+      "type": "single",
+      "prompt": "An inspections table has 6 rows. result is 'pass' in 3, 'fail' in 1 and NULL in 2. What does SELECT COUNT(*) FROM inspections WHERE result <> 'pass' return?",
+      "options": [
+        "3",
+        "6",
+        "0",
+        "1"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Only the 'fail' row makes the condition true. For the two NULL rows the condition is unknown, and WHERE keeps only true rows.",
+      "misconceptions": [
+        "Treats NULL as a value that differs from 'pass'; the comparison is unknown, so those rows are dropped",
+        "Counts the passes instead of the rows that are not passes",
+        "Believes any NULL in the column makes the whole query return nothing",
+        ""
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 2,
+      "slide": "check-null",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-group-q1",
+      "type": "single",
+      "prompt": "A table of 40 deliveries covers 6 couriers; courier K9 made only 1 delivery. SELECT courier_id, COUNT(*) FROM deliveries GROUP BY courier_id HAVING COUNT(*) > 1. How many rows come back?",
+      "options": [
+        "39",
+        "5",
+        "6",
+        "0"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Six couriers make six groups; HAVING removes the group whose count is 1.",
+      "misconceptions": [
+        "Counts input rows: GROUP BY returns one row per group, not per delivery",
+        "",
+        "Forgets that HAVING removes the group of the courier with a single delivery",
+        "Thinks HAVING filters rows before grouping, so it applies to single deliveries"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 3,
+      "slide": "check-group",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-join-q1",
+      "type": "single",
+      "prompt": "couriers has 4 rows. shifts has 7 rows: courier A has 3 shifts, B has 2, C has 2, D has none. How many rows does couriers LEFT JOIN shifts return?",
+      "options": [
+        "4",
+        "7",
+        "8",
+        "28"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "Seven matched pairs, plus one row for D with NULL shift columns.",
+      "misconceptions": [
+        "Counts the left table only, as if a join could not repeat its rows",
+        "Counts the matches but drops courier D, as an inner join would",
+        "",
+        "Multiplies the tables as if every courier matched every shift"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 4,
+      "slide": "check-join",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "review-day2-q1",
+      "type": "single",
+      "prompt": "A branches table has 5 rows; 2 branches have no region. SELECT COUNT(*) FROM branches WHERE region NOT IN ('North', NULL).",
+      "options": [
+        "3",
+        "0",
+        "5",
+        "2"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "NOT IN with a NULL in the list is region <> NULL for every row: unknown, so nothing is ever true.",
+      "misconceptions": [
+        "Treats NULL in the list as a value to exclude, as if NOT IN ignored it",
+        "",
+        "Counts the branches without a region as different from North",
+        "Believes the NULL rows are the only ones kept"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 3,
+      "slide": "review-day2",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-fan-out-q1",
+      "type": "single",
+      "prompt": "A clinic sums appointment fees after joining appointments (one row per appointment) to reminders (one row per reminder sent). Some appointments got three reminders. The total is 40% above the ledger.",
+      "options": [
+        "Fees left NULL are counted as zero",
+        "The join drops appointments with no reminder",
+        "Fees are rounded to two decimals",
+        "Each fee is repeated once per reminder"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "After the join the grain is the reminder: an appointment with three reminders carries its fee three times.",
+      "misconceptions": [
+        "Blames NULLs, which make sums smaller, not larger",
+        "An inner join drops appointments without reminders; that lowers the total",
+        "Rounding cannot add 40%",
+        ""
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 3,
+      "session": 1,
+      "slide": "check-fan-out",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-cte-q1",
+      "type": "single",
+      "prompt": "A hotel's chain: stays (one row per stay) joined to charges (one row per charge), then SUM(nightly_rate * nights) per month. The result is far above the ledger.",
+      "options": [
+        "The final GROUP BY month",
+        "The join of stays to charges before summing stay values",
+        "Using WITH instead of a subquery",
+        "Multiplying rate by nights"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A stay with several charges appears once per charge, so its value is summed several times.",
+      "misconceptions": [
+        "Grouping by month is the grain the question asks for",
+        "",
+        "Naming steps cannot change a result; only their content can",
+        "Multiplying two columns of the same row is correct"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 3,
+      "session": 2,
+      "slide": "check-cte",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-rank-q1",
+      "type": "single",
+      "prompt": "Sales per product in each region: in the West, two products tie for third place. The manager wants both shown, and the next product, if any, to be fifth.",
+      "options": [
+        "ROW_NUMBER() and place <= 3",
+        "DENSE_RANK() and place <= 3",
+        "RANK() and place <= 3",
+        "ORDER BY sales DESC LIMIT 3"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "RANK gives ties the same place and skips the next one, as asked.",
+      "misconceptions": [
+        "Gives tied rows different numbers, so one of the tied products is cut",
+        "Keeps both ties but numbers the next product 4, not 5",
+        "",
+        "LIMIT applies to the whole result, not to each region"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 3,
+      "slide": "check-rank",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-frame-q1",
+      "type": "single",
+      "prompt": "A pharmacy's daily sales table has no rows for two closed days. For each day, the report wants the average daily sales of the days that had sales within the last seven calendar days, that day included.",
+      "options": [
+        "AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)",
+        "AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)",
+        "AVG OVER (PARTITION BY day)",
+        "AVG with GROUP BY week"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "RANGE with an interval selects rows by date, so the window always covers seven calendar days.",
+      "misconceptions": [
+        "",
+        "Counts seven rows, which reach back nine calendar days after the closure",
+        "Without ORDER BY the window is the whole table: one average for every row",
+        "A GROUP BY returns one row per week, not a moving value for each day"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 4,
+      "slide": "check-frame",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "review-day3-q1",
+      "type": "single",
+      "prompt": "A bakery ranks products by units sold. Two products tie for second place. The next product should be third.",
+      "options": [
+        "ROW_NUMBER()",
+        "DENSE_RANK()",
+        "RANK()",
+        "NTILE(3)"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "DENSE_RANK gives ties one rank and continues with the next number: 1, 2, 2, 3.",
+      "misconceptions": [
+        "ROW_NUMBER gives every row its own number: one of the tied products becomes third",
+        "",
+        "RANK gives the tie the same number but skips the next: the product after them is fourth",
+        "NTILE splits rows into equal buckets; it does not rank by ties"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 4,
+      "slide": "review-day3",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-load-log-q1",
+      "type": "single",
+      "prompt": "A clinic's appointments file: read 500, loaded 480, rejected 15 (12 unknown patient, 3 invalid date).",
+      "options": [
+        "The load is complete and every row is accounted for",
+        "The transaction rolled back 15 rows",
+        "Five rows are unaccounted for",
+        "The file was loaded twice"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "480 + 15 = 495, not 500. Five rows were neither loaded nor rejected: the log is not finished until read equals loaded plus rejected.",
+      "misconceptions": [
+        "Assumes the totals are fine because every rejection has a reason",
+        "The transaction concerns rows that were inserted; the log counts rows that were not",
+        "",
+        "Unknown patients are a reason to reject, not a sign of a duplicate file"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 1,
+      "slide": "check-load-log",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-view-q1",
+      "type": "single",
+      "prompt": "A gym's members table: member_id, full_name, phone, birth_date, branch, joined_on. The analysts count members per branch and per age band.",
+      "options": [
+        "member_id, branch, age band",
+        "member_id, branch, birth_date",
+        "member_id, branch, birth_date, joined_on",
+        "a copy of the table without full_name"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Two counts need the branch and an age band. The key stays only if a join needs it; nothing else serves the purpose.",
+      "misconceptions": [
+        "",
+        "Keeps the exact birth date, which the age band already serves",
+        "Dropping only the direct identifiers keeps an exact date and the join date the question does not use",
+        "A copy of the table without the name is a second table to secure, and still holds the phone"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 2,
+      "slide": "check-view",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-index-q1",
+      "type": "single",
+      "prompt": "A clinic's appointments table, 2 million rows, an index on patient_id.",
+      "options": [
+        "appointments per month this year",
+        "appointments of doctor D12",
+        "patients whose number ends in 42",
+        "appointments of patient P-1093"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "An exact value of the indexed column: the engine goes to that patient's entries and reads only those rows.",
+      "misconceptions": [
+        "A count by month reads every row; the index has nothing to skip",
+        "The condition is on the doctor, not the indexed column",
+        "A pattern with a leading % cannot use the order of the index",
+        ""
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 4,
+      "session": 3,
+      "slide": "check-index",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "check-test-q1",
+      "type": "single",
+      "prompt": "A pharmacy fixture has six orders, none with two delivery attempts. The generated revenue query matches the hand-checked answer.",
+      "options": [
+        "The query is correct on the full data",
+        "It follows the rule on the cases the fixture holds; repeat attempts are untested",
+        "Nothing: generated queries cannot be trusted",
+        "The fixture is too small to mean anything"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A test proves the cases in the fixture. Fan-out over repeat attempts needs a fixture with repeat attempts.",
+      "misconceptions": [
+        "A fixture proves only the cases it contains",
+        "",
+        "A passing test is evidence; discarding it wastes the check",
+        "The size of a fixture does not decide; its cases do"
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 4,
+      "session": 4,
+      "slide": "check-test",
+      "pool": "checkpoint",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d1-staff-key",
+      "type": "single",
+      "prompt": "A training team keeps a table of course bookings: 640 rows, 410 distinct employee codes, 52 distinct course codes and 640 distinct pairs of employee and course session. Which of these is a key of the table?",
+      "options": [
+        "The pair of employee and course session",
+        "There is no key, since no single column is unique",
+        "The employee code",
+        "The course code"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Six hundred and forty distinct pairs for 640 rows: no pair repeats, so the pair names exactly one booking.",
+      "misconceptions": [
+        "",
+        "Believes a key must be one column; a pair can be the key",
+        "Takes an identifier-looking column as a key although 410 distinct values for 640 rows means it repeats",
+        "Confuses a column that groups rows with one that names a row"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d1-grain-sentence",
+      "type": "single",
+      "prompt": "A fleet team's table has one row each time a vehicle is refuelled, with the vehicle code, the date and the litres. Which sentence states its grain?",
+      "options": [
+        "One row per day",
+        "One row per litre of fuel",
+        "One row per vehicle",
+        "One row per refuelling of one vehicle"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Each row records one refuelling event of one vehicle; the vehicle and the date are facts about that event.",
+      "misconceptions": [
+        "Takes the date column for the grain: several vehicles refuel on one day",
+        "Mistakes a measure in the row for what the row stands for",
+        "Reads the grain from the first column: a vehicle refuelled ten times has ten rows",
+        ""
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d1-fewest-zero",
+      "type": "single",
+      "prompt": "A facilities team counts work orders per building by grouping the work-order table by building and taking the smallest count. It reads 1. Fourteen buildings have no work order at all. What does the query report as the fewest work orders per building?",
+      "options": [
+        "NULL, because some buildings have no rows",
+        "0, because the fourteen buildings are counted",
+        "1, because buildings without work orders are not in the grouped table",
+        "14, the number of buildings that have no work order in the table at all"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "Grouping the work orders only produces groups for buildings that have at least one; counting from the buildings table with a left join would show the zeros.",
+      "misconceptions": [
+        "Expects a NULL for a group that simply does not exist in the result",
+        "Assumes grouping the many side sees rows that do not appear in it",
+        "",
+        "Confuses the count of empty groups with the size of the smallest group"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d1-wide-copy",
+      "type": "tf",
+      "prompt": "In an analytical wide table that repeats each branch's city on every sales row, the right way to correct a branch's city is to update the wide table's rows for that branch.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The wide table is a copy built from the source; the city is corrected once in the branch table and the wide table is rebuilt.",
+      "misconceptions": [
+        "Treats the copy as the home of the fact: a partial update leaves two cities for one branch",
+        ""
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": 1,
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d1-half-open",
+      "type": "single",
+      "prompt": "A help desk stores ticket creation as a TIMESTAMP. A report must count every ticket created in April 2026. Which condition is right?",
+      "options": [
+        "created_at BETWEEN '2026-04-01' AND '2026-04-30'",
+        "created_at >= '2026-04-01' AND created_at < '2026-05-01'",
+        "created_at > '2026-04-01' AND created_at < '2026-04-30'",
+        "MONTH(created_at) = 4, which reads the month of every timestamp directly"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The half-open range from 1 April up to but not including 1 May keeps every instant of April and nothing else.",
+      "misconceptions": [
+        "Forgets that the end date means the first instant of 30 April on a timestamp",
+        "",
+        "Drops the first instant of April and all of 30 April",
+        "Ignores the year: April of another year would be counted too"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 1,
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-case-order",
+      "type": "single",
+      "prompt": "A payroll query bands overtime hours: CASE WHEN hours <= 10 THEN 'low' WHEN hours <= 2 THEN 'minimal' ELSE 'high' END. A worker with 1 hour of overtime gets which band?",
+      "options": [
+        "low",
+        "high",
+        "NULL",
+        "minimal"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "CASE takes the first branch whose condition is true; 1 <= 10 is true, so the second branch is never reached.",
+      "misconceptions": [
+        "",
+        "Reads ELSE as the branch for values the other branches describe badly",
+        "Expects a value matched by two branches to be ambiguous and left empty",
+        "Believes CASE picks the most specific branch rather than the first true one"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 2,
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-null-not-equal",
+      "type": "single",
+      "prompt": "A staff table has 10 rows: 6 in department HR, 2 in IT and 2 with no department recorded. How many rows does WHERE department <> 'HR' keep?",
+      "options": [
+        "0",
+        "10",
+        "4",
+        "2"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Only the two IT rows make the condition true; for the two missing departments it is unknown.",
+      "misconceptions": [
+        "Believes a NULL anywhere in the column empties the whole result",
+        "Ignores the filter for rows that have no value",
+        "Treats a missing department as different from HR; the comparison is unknown and the row is dropped",
+        ""
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-count-column",
+      "type": "tf",
+      "prompt": "In any table, COUNT(*) and COUNT(phone) return the same number.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "COUNT(phone) skips rows where phone is NULL; COUNT(*) counts every row.",
+      "misconceptions": [
+        "Thinks COUNT of a column counts rows, whatever their values",
+        ""
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-having",
+      "type": "single",
+      "prompt": "A clinic wants the doctors who saw more than 200 patients last month. Where does the condition COUNT(*) > 200 belong?",
+      "options": [
+        "In the SELECT list",
+        "In WHERE, before GROUP BY, so fewer rows are grouped",
+        "In HAVING, after GROUP BY doctor",
+        "In ORDER BY"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "The count of each doctor exists only once rows are grouped; HAVING filters those groups.",
+      "misconceptions": [
+        "Thinks computing the count also filters on it",
+        "Believes WHERE can test a count, which only exists after grouping",
+        "",
+        "Confuses sorting the groups with filtering them"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 2,
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-group-rows",
+      "type": "single",
+      "prompt": "A table of 300 library loans covers 4 branches. SELECT branch, COUNT(*) FROM loans WHERE returned = false GROUP BY branch returns rows for how many branches at most?",
+      "options": [
+        "300",
+        "4",
+        "1",
+        "It cannot be known without running it"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "One row per branch that still has a row after WHERE: at most 4.",
+      "misconceptions": [
+        "Counts input rows: a GROUP BY returns one row per group",
+        "",
+        "Thinks the filter collapses the groups into one",
+        "Overlooks that the number of groups cannot exceed the number of distinct branches"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-left-join-count",
+      "type": "single",
+      "prompt": "teams has 3 rows; members has 5 rows: team A has 3 members, team B has 2, team C none. How many rows does teams INNER JOIN members return?",
+      "options": [
+        "5",
+        "15",
+        "3",
+        "6"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Five matched pairs; team C has no member, so the inner join drops it.",
+      "misconceptions": [
+        "",
+        "Multiplies the tables as a cross join would",
+        "Counts the left table, as if a join could not repeat its rows",
+        "Adds a row for team C, as a left join would"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": 2,
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d2-anti",
+      "type": "single",
+      "prompt": "A school wants the courses that no student has enrolled in. Which pattern answers it?",
+      "options": [
+        "courses WHERE EXISTS (an enrolment for that course)",
+        "enrolments GROUP BY course HAVING COUNT(*) = 0, which counts the empty courses",
+        "courses INNER JOIN enrolments",
+        "courses WHERE NOT EXISTS (an enrolment for that course)"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "An anti join keeps the rows of courses for which no enrolment exists.",
+      "misconceptions": [
+        "A semi join keeps courses with at least one enrolment",
+        "Groups that have no rows never appear, so the count is never 0",
+        "Keeps only courses that do have enrolments: the opposite of the question",
+        ""
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 2,
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-fanout-cause",
+      "type": "single",
+      "prompt": "A gym sums membership fees after joining members (one row per member) to visits (one row per visit). The total is several times the fee ledger. What happened?",
+      "options": [
+        "The join changed the fee values",
+        "Members without visits were counted twice",
+        "Each member's fee was repeated once per visit",
+        "NULL fees were counted as zero"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "After the join the grain is the visit, so each fee appears as many times as its member visited.",
+      "misconceptions": [
+        "A join copies values; it never changes them",
+        "An inner join drops members without visits; it does not add them",
+        "",
+        "Zeros cannot raise a total"
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 3,
+      "session": 1,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-fanout-fix",
+      "type": "single",
+      "prompt": "You need total fees of members who visited at least once, each fee counted once. Which query shape is right?",
+      "options": [
+        "Join members to visits and SUM(DISTINCT fee)",
+        "SUM(fee) over members WHERE EXISTS a visit for that member",
+        "SUM(fee) over members LEFT JOIN visits, so members without visits stay in",
+        "Join members to visits and SUM(fee)"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Using visits only as a filter keeps the grain at one row per member.",
+      "misconceptions": [
+        "Merges different members who pay the same fee",
+        "",
+        "Still repeats each fee per visit, and keeps members who never visited",
+        "Sums one fee per visit"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 3,
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-cte-check",
+      "type": "single",
+      "prompt": "A chain of three common table expressions returns a total that looks too high. What is the best first move?",
+      "options": [
+        "Run each step alone and check its row count and grain",
+        "Round every amount to whole riyals",
+        "Add DISTINCT to the final SELECT",
+        "Rewrite it as one query without WITH"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Each named step can be run alone; the step whose grain is wrong is where the total grows.",
+      "misconceptions": [
+        "",
+        "Rounding cannot explain a large excess",
+        "Hides a symptom without finding the step that repeats rows",
+        "Changes the form, not the logic"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 3,
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-rule-outside",
+      "type": "tf",
+      "prompt": "If a query runs without an error on the schema, it follows the business rules of the organisation.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Rules such as which statuses count as revenue are often kept outside the schema; a query can ignore them and still run.",
+      "misconceptions": [
+        "Believes the schema encodes every business rule",
+        ""
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 3,
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-window-rows",
+      "type": "single",
+      "prompt": "A table has 120 rows for 4 warehouses. How many rows does SELECT warehouse, SUM(stock) OVER (PARTITION BY warehouse) FROM stock return?",
+      "options": [
+        "1",
+        "480",
+        "4",
+        "120"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "A window keeps every input row and adds a value computed over its partition.",
+      "misconceptions": [
+        "Thinks the window collapses the table to a single total",
+        "Thinks each row is repeated once per partition",
+        "Confuses a window with GROUP BY, which would collapse each warehouse to one row",
+        ""
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-rank-ties",
+      "type": "single",
+      "prompt": "Scores 90, 85, 85 and 80 are ranked from the highest with DENSE_RANK(). Which places do they get?",
+      "options": [
+        "1, 2, 3, 4",
+        "1, 2, 2, 4",
+        "1, 2, 2, 3",
+        "1, 1, 2, 3"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "DENSE_RANK gives ties the same place and does not skip the next place.",
+      "misconceptions": [
+        "That is ROW_NUMBER, which never repeats a number",
+        "That is RANK, which skips after a tie",
+        "",
+        "Ties only the first two values, which are not equal"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-frame",
+      "type": "single",
+      "prompt": "A daily table of a clinic has no rows for the days it was closed. Which frame averages the last seven calendar days for each day?",
+      "options": [
+        "ROWS BETWEEN 6 PRECEDING AND CURRENT ROW",
+        "RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW",
+        "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+        "PARTITION BY week"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A RANGE frame on the date includes exactly the rows dated within the last seven days.",
+      "misconceptions": [
+        "Counts rows: after closed days it reaches back further than seven days",
+        "",
+        "A running average since the first day, not a moving one",
+        "A partition by week is not a moving window of seven days"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d3-lag-first",
+      "type": "tf",
+      "prompt": "LAG(amount) OVER (PARTITION BY customer ORDER BY day) returns NULL on the first row of every customer.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Each partition starts afresh, and its first row has no previous row to read.",
+      "misconceptions": [
+        "",
+        "Thinks LAG reads the last row of the previous customer"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": 3,
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-constraint-kind",
+      "type": "single",
+      "prompt": "A library's loans table must refuse a loan whose member code is not in the members table. Which constraint does that?",
+      "options": [
+        "A foreign key REFERENCES members (member_code)",
+        "A CHECK on the member code that compares it with the members table",
+        "A PRIMARY KEY on the member code",
+        "NOT NULL on the member code"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "A foreign key refuses any value with no matching row on the referenced side.",
+      "misconceptions": [
+        "",
+        "A CHECK tests a condition on the row itself; it cannot look up another table",
+        "Would allow each member only one loan, and still not test that the member exists",
+        "Refuses only an empty code, not a code that names nobody"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-stage-text",
+      "type": "single",
+      "prompt": "Why does a load of a raw supplier file go first into a staging table with every column as text?",
+      "options": [
+        "Because text columns make the final table smaller",
+        "Because constraints cannot be written on text columns",
+        "So that the bad rows are fixed automatically",
+        "So that every row is read and each bad row gets a reason"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Loaded straight into a constrained table, the insert stops at the first bad row. Staged as text, all rows are in and can be sorted into good and rejected.",
+      "misconceptions": [
+        "Confuses the staging table with the final one, which keeps its proper types",
+        "Text columns can carry constraints; staging simply has none",
+        "Staging finds bad rows; it does not correct them",
+        ""
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 1,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-transaction",
+      "type": "single",
+      "prompt": "A team loads 300 invoices and then their 1,100 invoice lines inside one transaction. The lines insert fails on a constraint and the transaction is rolled back. How many invoices remain loaded?",
+      "options": [
+        "It depends on the order of the rows in the file",
+        "300",
+        "0",
+        "300 minus the invoices of the failing lines"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "A rollback undoes every change of the transaction, the successful statements included.",
+      "misconceptions": [
+        "A rollback undoes the whole transaction regardless of order",
+        "Assumes the first statement was kept because it succeeded",
+        "",
+        "Thinks a rollback removes only the rows related to the error"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-log-balance",
+      "type": "tf",
+      "prompt": "A load log that reads \"read 1,000, loaded 960, rejected 40\" accounts for every row of the file.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Every row read was either loaded or rejected: 960 + 40 = 1,000.",
+      "misconceptions": [
+        "",
+        "Thinks rejected rows are lost rather than accounted for"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 1,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-indirect",
+      "type": "single",
+      "prompt": "A sports club's members table has member_number, full_name, mobile, postcode, birth_date and newsletter (yes or no). Which column is an indirect identifier?",
+      "options": [
+        "mobile",
+        "postcode",
+        "newsletter",
+        "full_name"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A postcode alone does not name anyone, but combined with a birth date it can single a member out.",
+      "misconceptions": [
+        "A mobile number reaches the person by itself: a direct identifier",
+        "",
+        "A yes or no choice identifies no one, even with other columns",
+        "A name points to the person by itself: a direct identifier"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-view-minimum",
+      "type": "single",
+      "prompt": "Analysts of a utility company count meters per district and per installation year. The meters table has meter_id, customer_name, customer_phone, district, installed_on and address. What should their view expose?",
+      "options": [
+        "meter_id, district and the installation year",
+        "meter_id, district, installed_on and address",
+        "A copy of the table with the names replaced by initials",
+        "Every column except customer_name"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Two counts need the district and the year; the key stays only if a join needs it. The minimum necessary for the purpose is the whole view.",
+      "misconceptions": [
+        "",
+        "Keeps an exact date and the address where a year and the district serve the purpose",
+        "A copy is a second table to secure, and initials with an address still identify",
+        "Keeps the phone and the address, which the counts do not use"
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-genai",
+      "type": "single",
+      "prompt": "An analyst wants help from a public generative AI assistant with a query over a Restricted customer table. What may be pasted into it?",
+      "options": [
+        "Twenty sample rows, to show the shape of the data",
+        "A screenshot of the result with the names blurred",
+        "The output of the analyst view, since it has no names, phones or e-mail addresses",
+        "The column names, the business rule as text and the error message"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "Only Public data goes into a generative AI tool: the schema and the rule, never the rows.",
+      "misconceptions": [
+        "Rows of a Restricted table stay out, however few",
+        "A result of Restricted data is still Restricted data",
+        "A view limits columns; its rows keep the level of the table behind it",
+        ""
+      ],
+      "lo": [
+        "LO5"
+      ],
+      "day": 4,
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-index-total",
+      "type": "tf",
+      "prompt": "An index on the store column turns a query that sums every sale of the year by store into a search.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The query reads every row of the year anyway; an index helps a query that picks few rows by an exact value or a range.",
+      "misconceptions": [
+        "Expects any query on an indexed column to search",
+        ""
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 4,
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-plan-bottom",
+      "type": "single",
+      "prompt": "In the plan of a query that joins two tables, filters one of them and groups the result, which operators appear at the bottom of the tree?",
+      "options": [
+        "The projection of the returned columns",
+        "The join",
+        "The scans that read the two tables",
+        "The group by"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "A plan is read from the bottom up: the scans read the tables and pass their rows to the operators above.",
+      "misconceptions": [
+        "The projection is the last step, at the top",
+        "The join needs rows from both scans, so it sits above them",
+        "",
+        "The group needs the joined rows, so it sits above the join"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": 4,
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-fanout-class",
+      "type": "single",
+      "prompt": "A generated query sums the value of shipped parcels after joining parcels to tracking_events, one row per scan of a parcel. On a hand-checked fixture it returns 410.00 where the answer is 205.00. Which kind of failure is it most likely?",
+      "options": [
+        "A missing business rule",
+        "Fan-out from the join to the events",
+        "Wrong grain in the average",
+        "A rounding error"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Each parcel is repeated once per scan event, so every value is summed once per scan: two scans each, twice the total.",
+      "misconceptions": [
+        "A missing rule gives a small, explainable difference; doubling points to repeated rows",
+        "",
+        "There is no average here, and a grain error does not double a sum",
+        "Rounding cannot double a total"
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 4,
+      "session": 4,
+      "level": "analyze",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-expected-source",
+      "type": "single",
+      "prompt": "Where should the expected answer of a test for a generated query come from?",
+      "options": [
+        "By hand, on a fixture small enough to check",
+        "From the total in last month's report",
+        "From running the generated query on the full data",
+        "From a second generated query"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "The expected answer must be independent of SQL: worked out by hand from the rule on tables small enough to print.",
+      "misconceptions": [
+        "",
+        "Last month's report may have been made by a query with the same error",
+        "Compares the query with itself",
+        "Another generated query can share the same mistake"
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 4,
+      "session": 4,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    },
+    {
+      "id": "d4-grain-avg",
+      "type": "single",
+      "prompt": "The question is \"average value per order\". A generated query returns AVG(quantity * unit_price) over order lines. Orders have about four lines each. What is wrong?",
+      "options": [
+        "Nothing: AVG gives the average of the values",
+        "It misses the discount rule, so every line is a little too high",
+        "It double counts lines through a join",
+        "It averages per line, not per order: sum the lines of each order first"
+      ],
+      "correct": [
+        3
+      ],
+      "explanation": "The average is taken at the grain of the line. The question's grain is the order: total each order, then average the totals.",
+      "misconceptions": [
+        "Ignores the grain: the values are per line",
+        "Could also be true, but does not explain a result about four times too small",
+        "There is no join to repeat rows",
+        ""
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": 4,
+      "session": 4,
+      "level": "analyze",
+      "pool": "practice",
+      "weight": 1,
+      "timer": 30
+    }
+  ]
+}

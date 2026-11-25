@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-ax="deck" data-track="foundations">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 3 · Combining safely, then windows · SQL and Relational Data</title>
+<meta name="generator" content="SDAIA Academy engine 1.0.0">
+<link rel="icon" href="../_engine/icon.svg">
+<link rel="alternate" type="text/markdown" href="day3.md">
+<link rel="describedby" href="../llms.txt">
+<link rel="stylesheet" href="../_engine/academy.css">
+</head>
+<body>
+<div class="deck" data-course="SQL and Relational Data" data-track="foundations" data-day="Day 3">
+<section class="slide title" id="title" data-auto="title" data-label="Welcome" data-n="1">
+  <div class="kicker">SDAIA Academy · SQL and Relational Data</div>
+  <h1>Combining safely, then windows</h1>
+  <p class="lead mt">Day 3: Count once, build in steps, then rank and compare without losing rows</p>
+  <div class="meta"><span class="track">Data &amp; AI Foundations Track</span><span>4 teaching days + capstone day</span><span>4 sessions · 4 labs</span><span>FND-DAT-101</span></div>
+  <aside class="notes"><p>Day 3 has two halves. The morning makes totals right: count once, then build answers in steps. The afternoon adds window functions, which compute across rows without collapsing them.</p><p>By the end of session 2 everyone runs the automatic checker over the twenty questions.</p></aside>
+</section>
+
+<section class="slide" id="agenda" data-auto="agenda" data-label="Agenda" data-n="2">
+  <div class="kicker">Today</div>
+  <h2>Combining safely, then windows</h2>
+  <div class="agenda"><div class="item"><div><b>Session 1 · Join fan-out and double counting</b><small>A join to a many side repeats the rows of the one side, and every sum over them grows</small></div></div><div class="item"><div><b>Session 2 · Subqueries and common table expressions</b><small>Build an answer in named steps, each of which you can run and check on its own</small></div></div><div class="item"><div><b>Session 3 · Partitions, ranking, lag and lead</b><small>A window computes over related rows and keeps every row: PARTITION BY, ORDER BY, RANK, LAG</small></div></div><div class="item"><div><b>Session 4 · Running and moving aggregates</b><small>Running totals, week-on-week change and seven-day averages, and the frame that decides them</small></div></div></div>
+</section>
+
+<section class="slide" id="review-day2" data-lo="LO2" data-n="3">
+  <div class="kicker">Review of Day 2</div>
+  <h2>How many rows does this query return?</h2>
+  <div class="quiz" data-type="single" data-lo="LO2" data-id="review-day2-q1">
+    <p class="lead">A <code>branches</code> table has 5 rows; 2 branches have no <code>region</code>. <code>SELECT COUNT(*) FROM branches WHERE region NOT IN ('North', NULL)</code>.</p>
+    <div class="opts">
+      <div class="opt" data-why="Treats NULL in the list as a value to exclude, as if NOT IN ignored it" data-k="A">3</div>
+      <div class="opt" data-ok data-k="B">0</div>
+      <div class="opt" data-why="Counts the branches without a region as different from North" data-k="C">5</div>
+      <div class="opt" data-why="Believes the NULL rows are the only ones kept" data-k="D">2</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> NOT IN with a NULL in the list is <code>region &lt;&gt; NULL</code> for every row: unknown, so nothing is ever true.</div>
+  </div>
+  <aside class="notes"><p>Answer: 0. If the room is split, redo the flow slide of yesterday's session 2 on the board.</p></aside>
+</section>
+
+<!-- Session 1 -->
+
+<section class="slide section" id="s1" data-auto="section" data-session="1" data-n="4">
+  <div class="kicker">Session 1</div>
+  <h1>Join fan-out and double counting</h1>
+  <ul class="bullets outcomes"><li>Detect fan-out by counting rows before and after a join</li><li>Aggregate to the right grain before joining</li><li>Explain a wrong total from the grain of each table it joined</li></ul>
+  <div class="sess-no">01</div>
+</section>
+
+<section class="slide" id="fan-out-picture" data-lo="LO2 LO6" data-n="5" data-session="1">
+  <div class="kicker">Fan-out</div>
+  <h2>A join to a many side repeats every row of the one side</h2>
+  <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th class="num">refund</th><th>inspection</th></tr>
+      <tr><td>T1</td><td class="num">12.00</td><td>pass</td></tr>
+      <tr class="hl"><td>T2</td><td class="num">30.50</td><td>pass</td></tr>
+      <tr class="hl"><td>T2</td><td class="num">30.50</td><td>fail</td></tr>
+      <tr><td>T5</td><td class="num">19.00</td><td>pass</td></tr>
+    </table>
+    <ul class="bullets">
+      <li>T2 was inspected twice, so its refund now sits on <b>two rows</b></li>
+      <li>Every column of <code>returns</code> is repeated, not only the key</li>
+      <li>Nothing warns you: the query runs, the numbers look plausible</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>This is yesterday's inner join slide, with the refund column added. Ask what <code>SUM(refund)</code> over these four rows gives before showing the next slide.</p></aside>
+</section>
+
+<section class="slide" id="fan-out-sum" data-lo="LO2 LO6" data-n="6" data-session="1">
+  <div class="kicker">Double counting</div>
+  <h2>Every sum over a fanned-out join grows</h2>
+  <div class="cols cols-2">
+    <div class="stat center"><div class="big">92.00</div><div class="lbl">SUM(refund) after the join</div></div>
+    <div class="stat center"><div class="big">61.50</div><div class="lbl">the refunds of the inspected returns</div></div>
+  </div>
+  <p class="mt">30.50 counted twice. And T3 and T4 are gone: the join also <b>drops</b> rows with no partner. A fanned-out sum can be too high and too low at once.</p>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>).</p>
+  <aside class="notes"><p>The lab shows the same double effect on the delivery tables, with real money. Do not quote the lab's figures here.</p></aside>
+</section>
+
+<section class="slide" id="detect-fan-out" data-lo="LO3 LO6" data-n="7" data-session="1">
+  <div class="kicker">Detect it</div>
+  <h2>Count rows before and after every join</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> (<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>)              <span class="hljs-keyword">AS</span> before,
+       (<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+          <span class="hljs-keyword">JOIN</span> inspections i <span class="hljs-keyword">ON</span> i.return_id <span class="hljs-operator">=</span> t.return_id) <span class="hljs-keyword">AS</span> after;
+<span class="hljs-comment">-- before 5, after 4: rows were dropped AND repeated</span></code></pre>
+  <ul class="bullets mt">
+    <li>After &gt; before: some rows repeat</li>
+    <li>After &lt; before: some rows lost their partner</li>
+    <li>Equal is not proof: drops and repeats can cancel out, as they nearly do here</li>
+  </ul>
+  <aside class="notes"><p>The last bullet is the reason for the next slide: the reliable check is the grain, not the count alone.</p></aside>
+</section>
+
+<section class="slide" id="aggregate-first" data-lo="LO3 LO6" data-n="8" data-session="1">
+  <div class="kicker">The fix</div>
+  <h2>Bring each side to the grain of the question before joining</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">WITH</span> insp <span class="hljs-keyword">AS</span> (                       <span class="hljs-comment">-- one row per return</span>
+  <span class="hljs-keyword">SELECT</span> return_id, <span class="hljs-built_in">COUNT</span>(<span class="hljs-operator">*</span>) <span class="hljs-keyword">AS</span> inspections
+  <span class="hljs-keyword">FROM</span> inspections <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> return_id
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">SUM</span>(t.refund), <span class="hljs-built_in">SUM</span>(insp.inspections)
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+<span class="hljs-keyword">JOIN</span> insp <span class="hljs-keyword">ON</span> insp.return_id <span class="hljs-operator">=</span> t.return_id;
+<span class="hljs-comment">-- 61.50 and 4: one row per return on both sides</span></code></pre>
+  <div class="callout tip mt-s"><b>Or filter instead of joining.</b> <code>WHERE return_id IN (SELECT ...)</code> or <code>EXISTS</code> keeps each return once.</div>
+  <aside class="notes"><p>Two patterns: aggregate the many side to the one side's grain, or use the many side only as a filter. Question 16 needs the second, question 17 the first.</p></aside>
+</section>
+
+<section class="slide" id="distinct-is-not-a-fix" data-lo="LO6" data-n="9" data-session="1">
+  <div class="kicker">A tempting shortcut</div>
+  <h2>SUM(DISTINCT ...) hides fan-out by accident, and breaks on equal values</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Looks right here</h4><p class="small mb0"><code>SUM(DISTINCT refund)</code> on the joined rows gives 61.50: T2's repeat collapses.</p></div>
+    <div class="card c-coral"><h4>Wrong tomorrow</h4><p class="small mb0">Two different returns with a refund of 12.00 collapse into one. The total is short, and nothing says so.</p></div>
+  </div>
+  <div class="callout warn mt"><b>Rule.</b> DISTINCT removes duplicate values, not duplicate rows of the grain you meant. Fix the grain instead.</div>
+  <aside class="notes"><p>Assistants often reach for DISTINCT when a total looks too large. Lab 4.4 tests ten queries with mistakes of this family.</p></aside>
+</section>
+
+<section class="slide" id="grain-before-join" data-lo="LO2 LO6" data-n="10" data-session="1">
+  <div class="kicker">The habit</div>
+  <h2>Before every join, write the grain of both sides and of the result</h2>
+  <table class="t">
+    <tr><th>Left</th><th>Right</th><th>Result</th><th>Sum left?</th></tr>
+    <tr><td>return</td><td>reason</td><td>return</td><td>yes</td></tr>
+    <tr><td>return</td><td>inspection</td><td>inspection</td><td><b>no</b></td></tr>
+    <tr><td>return</td><td>return (aggregated)</td><td>return</td><td>yes</td></tr>
+  </table>
+  <p class="caption">Each grain is "one row per ..." the word in the cell. "Sum left?": is it safe to sum the left side's money after the join?</p>
+  <aside class="notes"><p>Ask participants to write these three grains as comments above their queries in today's lab. The capstone rubric rewards it.</p></aside>
+</section>
+
+<section class="slide" id="check-fan-out" data-lo="LO6" data-n="11" data-session="1">
+  <div class="kicker">Checkpoint</div>
+  <h2>Why is the total fee too high?</h2>
+  <div class="quiz" data-type="single" data-lo="LO6" data-id="check-fan-out-q1">
+    <p class="lead">A clinic sums appointment fees after joining <code>appointments</code> (one row per appointment) to <code>reminders</code> (one row per reminder sent). Some appointments got three reminders. The total is 40% above the ledger.</p>
+    <div class="opts">
+      <div class="opt" data-why="Blames NULLs, which make sums smaller, not larger" data-k="A">Fees left NULL are counted as zero</div>
+      <div class="opt" data-why="An inner join drops appointments without reminders; that lowers the total" data-k="B">The join drops appointments with no reminder</div>
+      <div class="opt" data-why="Rounding cannot add 40%" data-k="C">Fees are rounded to two decimals</div>
+      <div class="opt" data-ok data-k="D">Each fee is repeated once per reminder</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> After the join the grain is the reminder: an appointment with three reminders carries its fee three times.</div>
+  </div>
+  <aside class="notes"><p>Answer: repetition per reminder. Point out that the second option is also true but moves the total the other way.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-3-1" data-auto="lab" data-lab="3.1" data-label="Lab 3.1" data-n="12" data-session="1">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 3.1 · 35 min</div><h2>Questions 16 and 17: count once</h2><p class="lead small">See a sum grow when order lines meet delivery attempts, then answer two questions that need lines and attempts together without double counting; save them to your answer file</p><a class="nb" href="../labs/D3_1_questions_16_and_17.ipynb">D3_1_questions_16_and_17.ipynb</a></div><ul class="checklist"><li>Count rows before and after joining delivery attempts <span class="min">6 min</span></li><li>Write a prediction for each of the two questions <span class="min">4 min</span></li><li>Question 16: line value of orders that needed a second attempt <span class="min">10 min</span></li><li>Question 17: orders and attempts per store in one result <span class="min">10 min</span></li><li>Save the part file <span class="min">5 min</span></li><li class="stretch">✱ Stretch: Find the share by which the naive sum of line values overstates the true one</li></ul></div>
+  <aside class="notes"><p>The first exercise shows two sums of line value, before and after joining attempts. Ask participants to explain the gap in one sentence before moving on: lines repeated for repeat attempts, and lines of cancelled orders dropped.</p><p>Common failure in question 16: summing after the join with DISTINCT. In question 17: COUNT(*) for orders.</p></aside>
+</section>
+
+<!-- Session 2 -->
+
+<section class="slide section" id="s2" data-auto="section" data-session="2" data-n="13">
+  <div class="kicker">Session 2</div>
+  <h1>Subqueries and common table expressions</h1>
+  <ul class="bullets outcomes"><li>Use a subquery in WHERE and in FROM</li><li>Write a query as a chain of common table expressions</li><li>Check each step of a chain before trusting the last</li></ul>
+  <div class="sess-no">02</div>
+</section>
+
+<section class="slide" id="subquery-where" data-lo="LO3" data-n="14" data-session="2">
+  <div class="kicker">Subqueries</div>
+  <h2>A subquery is a query inside another, used as a value, a list or a table</h2>
+  <table class="t">
+    <tr><th>Where</th><th>Returns</th><th>Returns desk example</th></tr>
+    <tr><td>In <code>WHERE x &gt; (...)</code></td><td>one value</td><td>refunds above the average refund</td></tr>
+    <tr><td>In <code>WHERE x IN (...)</code></td><td>a list</td><td>returns that were inspected</td></tr>
+    <tr><td>In <code>FROM (...)</code></td><td>a table</td><td>items per return, then their average</td></tr>
+  </table>
+  <aside class="notes"><p>The first form must return exactly one value, or the engine refuses. Ask what <code>WHERE refund &gt; (SELECT AVG(refund) FROM returns)</code> keeps: T2 and T5 (above 17.44).</p></aside>
+</section>
+
+<section class="slide" id="correlated" data-lo="LO3" data-n="15" data-session="2">
+  <div class="kicker">Per row</div>
+  <h2>A correlated subquery is evaluated for each row of the outer query</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> t.return_id, t.refund
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> t
+<span class="hljs-keyword">WHERE</span> t.refund <span class="hljs-operator">&gt;</span> (<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">AVG</span>(r.refund)
+                  <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span> r
+                  <span class="hljs-keyword">WHERE</span> r.reason_code <span class="hljs-operator">=</span> t.reason_code);  <span class="hljs-comment">-- the average of its own reason</span></code></pre>
+  <ul class="bullets mt">
+    <li>The inner query refers to <code>t</code>, the row being tested</li>
+    <li>"Above the average of its own group" is the typical use</li>
+    <li>The same answer can be written as a join to a grouped table: often clearer</li>
+  </ul>
+  <aside class="notes"><p>This is the shape of question 18 on another table. The lab's solution uses the grouped-table form; both pass the checker.</p></aside>
+</section>
+
+<section class="slide" id="cte-names-steps" data-lo="LO3" data-n="16" data-session="2">
+  <div class="kicker">Common table expressions</div>
+  <h2>WITH names each step, so a long answer reads top to bottom</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">WITH</span> items <span class="hljs-keyword">AS</span> (                    <span class="hljs-comment">-- step 1: one row per return</span>
+  <span class="hljs-keyword">SELECT</span> return_id, <span class="hljs-built_in">SUM</span>(qty) <span class="hljs-keyword">AS</span> units
+  <span class="hljs-keyword">FROM</span> return_items
+  <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> return_id
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-built_in">AVG</span>(units) <span class="hljs-keyword">FROM</span> items;      <span class="hljs-comment">-- step 2: 3.0 units per return</span></code></pre>
+  <div class="callout tip mt"><b>Read it as a recipe.</b> Each name is a table you could look at on its own. Several steps are separated by commas: <code>WITH a AS (...), b AS (...)</code>.</div>
+  <aside class="notes"><p>A CTE changes nothing the engine can do that a subquery cannot; it changes what a reader can check. That is the point for the capstone, where a reviewer must follow each answer.</p></aside>
+</section>
+
+<section class="slide" id="check-each-step" data-lo="LO3" data-n="17" data-session="2">
+  <div class="kicker">The method</div>
+  <h2>Run each step before you trust the last one</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · First step alone</b>select from it; look at 5 rows; count them</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · Its grain</b>one row per what? is a key unique?</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · Add the next step</b>and repeat</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · The final select</b>compare with your prediction</div>
+  </div>
+  <aside class="notes"><p>Demonstrate on the returns desk: replace the final SELECT with <code>SELECT * FROM items</code>, read the five rows, then put it back.</p></aside>
+</section>
+
+<section class="slide" id="rule-outside-schema" data-lo="LO3 LO6" data-n="18" data-session="2">
+  <div class="kicker">Business rules</div>
+  <h2>Some rules live outside the schema, and the query must carry them</h2>
+  <div class="cols cols-2">
+    <div class="card c-purple"><h4>What the schema says</h4><p class="small mb0">Columns, types, keys, a status column with three values.</p></div>
+    <div class="card c-coral"><h4>What it does not say</h4><p class="small mb0">Which statuses count as revenue, what an empty discount means, which date books the money.</p></div>
+  </div>
+  <p class="mt">The finance controller keeps that in <code>data/revenue_rule.md</code>. A query that ignores it runs without error and returns a number nobody in finance would sign.</p>
+  <aside class="notes"><p>Ask the room to read the rule now, in two minutes. Ask: which of its six points could a query break without any error message? (All of them.)</p></aside>
+</section>
+
+<section class="slide" id="rule-to-steps" data-lo="LO3" data-n="19" data-session="2">
+  <div class="kicker">From rule to query</div>
+  <h2>Turn each point of a rule into one named step</h2>
+  <table class="t">
+    <tr><th>Returns desk rule</th><th>Step</th></tr>
+    <tr><td>Only returns with a decided refund</td><td><code>decided AS (... WHERE refund IS NOT NULL)</code></td></tr>
+    <tr><td>Book on the inspection date, not the receipt date</td><td><code>booked AS (... JOIN inspections ...)</code></td></tr>
+    <tr><td>Count a return once, even if inspected twice</td><td>take the first inspection per return</td></tr>
+  </table>
+  <p class="caption">A parallel rule of the returns desk; the finance rule of the labs is yours to turn into steps.</p>
+  <aside class="notes"><p>Do not show question 19. The capstone brief has its own rule on prices; the same method applies.</p></aside>
+</section>
+
+<section class="slide" id="check-cte" data-lo="LO3" data-n="20" data-session="2">
+  <div class="kicker">Checkpoint</div>
+  <h2>Where is the error in this chain?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3" data-id="check-cte-q1">
+    <p class="lead">A hotel's chain: <code>stays</code> (one row per stay) joined to <code>charges</code> (one row per charge), then <code>SUM(nightly_rate * nights)</code> per month. The result is far above the ledger.</p>
+    <div class="opts">
+      <div class="opt" data-why="Grouping by month is the grain the question asks for" data-k="A">The final GROUP BY month</div>
+      <div class="opt" data-ok data-k="B">The join of stays to charges before summing stay values</div>
+      <div class="opt" data-why="Naming steps cannot change a result; only their content can" data-k="C">Using WITH instead of a subquery</div>
+      <div class="opt" data-why="Multiplying two columns of the same row is correct" data-k="D">Multiplying rate by nights</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> A stay with several charges appears once per charge, so its value is summed several times.</div>
+  </div>
+  <aside class="notes"><p>Answer: the join. Running the first step alone and counting rows against stays would have shown it.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-3-2" data-auto="lab" data-lab="3.2" data-label="Lab 3.2" data-n="21" data-session="2">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 3.2 · 35 min</div><h2>Questions 18 to 20, and the checker</h2><p class="lead small">Predict, then answer the last three questions in steps, one of them by the finance rule; then run the automatic checker over all twenty</p><a class="nb" href="../labs/D3_2_questions_18_to_20.ipynb">D3_2_questions_18_to_20.ipynb</a></div><ul class="checklist"><li>Write a prediction for each of the three questions <span class="min">4 min</span></li><li>Question 18: products above their category's average price <span class="min">8 min</span></li><li>Question 19: net revenue by month of delivery, by the finance rule <span class="min">9 min</span></li><li>Question 20: the five customers with the highest net revenue <span class="min">8 min</span></li><li>Run the checker over all your part files and fix one failure <span class="min">6 min</span></li><li class="stretch">✱ Stretch: Rewrite question 19 as one query without common table expressions and compare how easy each is to check</li></ul></div>
+  <aside class="notes"><p>Question 19 follows the finance rule; this is where the rule outside the schema matters. The checker at the end reads all part files: participants who skipped earlier labs see "missing" lines and can rerun those notebooks.</p><p>The query file is assessed: 16 of 20 is the outcome's mark. Common failure in question 19: the month of ordered_at instead of the delivery date, which loses the July row.</p></aside>
+</section>
+
+<!-- Session 3 -->
+
+<section class="slide section" id="s3" data-auto="section" data-session="3" data-n="22">
+  <div class="kicker">Session 3</div>
+  <h1>Partitions, ranking, lag and lead</h1>
+  <ul class="bullets outcomes"><li>Write a window with a partition and an ordering</li><li>Choose between ROW_NUMBER, RANK and DENSE_RANK at ties</li><li>Compare a row with the one before it using LAG</li></ul>
+  <div class="sess-no">03</div>
+</section>
+
+<section class="slide" id="window-keeps-rows" data-lo="LO4" data-n="23" data-session="3">
+  <div class="kicker">Window functions</div>
+  <h2>A window computes over related rows and keeps every row</h2>
+  <div class="cols cols-2">
+    <div class="card c-purple"><h4>GROUP BY</h4><p class="small mb0">Five returns in, three rows out: one per reason. The detail is gone.</p></div>
+    <div class="card c-teal"><h4>OVER (...)</h4><p class="small mb0">Five returns in, five rows out, each with a value computed from its group.</p></div>
+  </div>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">SELECT</span> return_id, reason_code, refund,
+       <span class="hljs-built_in">SUM</span>(refund) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> reason_code) <span class="hljs-keyword">AS</span> reason_total
+<span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>;</code></pre>
+  <aside class="notes"><p>T1 and T3 both show 20.25 beside their own refunds. Ask what share of its reason's refunds T1 is: 12.00 / 20.25. That division needs the detail and the total on one row, which is what windows are for.</p><p>Sources: DuckDB window functions documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="partition-and-order" data-lo="LO4" data-n="24" data-session="3">
+  <div class="kicker">The two clauses</div>
+  <h2>PARTITION BY says which rows belong together; ORDER BY says in what sequence</h2>
+  <table class="t">
+    <tr><th>Clause</th><th>Question it answers</th><th>Without it</th></tr>
+    <tr><td><code>PARTITION BY region</code></td><td>Whose rows are compared?</td><td>all rows form one window</td></tr>
+    <tr><td><code>ORDER BY day</code></td><td>Which row comes before which?</td><td>ranks and LAG have no meaning</td></tr>
+  </table>
+  <div class="callout tip mt"><b>Say the partition in a comment.</b> "-- partition: one ranking per region, so ..." The window checker of the labs asks for exactly this.</div>
+  <aside class="notes"><p>The outcome's evidence asks for each partition explained in a comment. Make it a habit from the first window they write.</p></aside>
+</section>
+
+<section class="slide" id="three-rankings" data-lo="LO4" data-n="25" data-session="3">
+  <div class="kicker">Ranking</div>
+  <h2>ROW_NUMBER, RANK and DENSE_RANK differ only at ties</h2>
+  <table class="t small">
+    <tr><th>product (units)</th><th class="num">ROW_<br>NUMBER</th><th class="num">RANK</th><th class="num">DENSE_<br>RANK</th></tr>
+    <tr><td>X-101 (4)</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-412 (4)</td><td class="num">2</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-118 (3)</td><td class="num">3</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-205 (3)</td><td class="num">4</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-330 (1)</td><td class="num">5</td><td class="num">5</td><td class="num">3</td></tr>
+  </table>
+  <p class="caption">Returned units per product at the returns desk, ordered by units from the most.</p>
+  <aside class="notes"><p>"Top two" with ROW_NUMBER picks X-101 and X-412 here, but between X-118 and X-205 it would pick by chance without a tie-breaker. RANK keeps ties together and skips the next place.</p></aside>
+</section>
+
+<section class="slide" id="top-n-per-group" data-lo="LO4" data-n="26" data-session="3">
+  <div class="kicker">Top N per group</div>
+  <h2>Rank inside each partition, then keep the first places</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql"><span class="hljs-keyword">WITH</span> ranked <span class="hljs-keyword">AS</span> (
+  <span class="hljs-keyword">SELECT</span> reason_code, return_id, refund,
+         <span class="hljs-built_in">RANK</span>() <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> reason_code <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> refund <span class="hljs-keyword">DESC</span>) <span class="hljs-keyword">AS</span> place
+  <span class="hljs-keyword">FROM</span> <span class="hljs-keyword">returns</span>
+)
+<span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> ranked <span class="hljs-keyword">WHERE</span> place <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;   <span class="hljs-comment">-- the largest refund of each reason</span></code></pre>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>WHERE RANK() OVER (...) = 1</code> is refused: windows are computed after WHERE. Rank in one step, filter in the next, or use <code>QUALIFY</code>.</div>
+  <aside class="notes"><p>QUALIFY is supported by DuckDB and some other engines; the two-step form works everywhere. The stretch of lab 3.3 asks for both.</p></aside>
+</section>
+
+<section class="slide" id="lag-lead" data-lo="LO4" data-n="27" data-session="3">
+  <div class="kicker">Neighbouring rows</div>
+  <h2>LAG reads the previous row of the window; LEAD reads the next</h2>
+  <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th>received_on</th><th class="num">days_since</th></tr>
+      <tr><td>T1</td><td>2026-05-02</td><td class="num">NULL</td></tr>
+      <tr><td>T2</td><td>2026-05-02</td><td class="num">0</td></tr>
+      <tr><td>T3</td><td>2026-05-03</td><td class="num">1</td></tr>
+      <tr><td>T4</td><td>2026-05-04</td><td class="num">1</td></tr>
+      <tr><td>T5</td><td>2026-05-06</td><td class="num">2</td></tr>
+    </table>
+    <pre class="code" data-file="returns desk"><code class="language-sql">received_on
+  <span class="hljs-operator">-</span> <span class="hljs-built_in">LAG</span>(received_on) <span class="hljs-keyword">OVER</span> (
+      <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> received_on, return_id)
+  <span class="hljs-keyword">AS</span> days_since</code></pre>
+  </div>
+  <p class="mt">The first row has no previous row: <b>NULL</b>. With a partition, every partition's first row is NULL.</p>
+  <aside class="notes"><p>Ask what would change if each return belonged to a courier and the question were "days since that courier's previous return": PARTITION BY courier.</p></aside>
+</section>
+
+<section class="slide" id="check-rank" data-lo="LO4" data-n="28" data-session="3">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which ranking keeps every tied product in a "top three"?</h2>
+  <div class="quiz" data-type="single" data-lo="LO4" data-id="check-rank-q1">
+    <p class="lead">Sales per product in each region: in the West, two products tie for third place. The manager wants both shown, and the next product, if any, to be fifth.</p>
+    <div class="opts">
+      <div class="opt" data-why="Gives tied rows different numbers, so one of the tied products is cut" data-k="A">ROW_NUMBER() and place &lt;= 3</div>
+      <div class="opt" data-why="Keeps both ties but numbers the next product 4, not 5" data-k="B">DENSE_RANK() and place &lt;= 3</div>
+      <div class="opt" data-ok data-k="C">RANK() and place &lt;= 3</div>
+      <div class="opt" data-why="LIMIT applies to the whole result, not to each region" data-k="D">ORDER BY sales DESC LIMIT 3</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> RANK gives ties the same place and skips the next one, as asked.</div>
+  </div>
+  <aside class="notes"><p>Answer: RANK. DENSE_RANK is right when the manager wants "the top three different sales values".</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-3-3" data-auto="lab" data-lab="3.3" data-label="Lab 3.3" data-n="29" data-session="3">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 3.3 · 30 min</div><h2>Window drills 1: top items per region</h2><p class="lead small">Rank products within each region, compare three ranking functions at ties, and measure the days between a customer's orders with LAG; each partition explained in a comment</p><a class="nb" href="../labs/D3_3_window_drills_1.ipynb">D3_3_window_drills_1.ipynb</a></div><ul class="checklist"><li>Drill 1: the top three products per region by quantity <span class="min">10 min</span></li><li>Drill 2: ROW_NUMBER, RANK and DENSE_RANK on the same ties <span class="min">6 min</span></li><li>Drill 3: days since the customer's previous order, with LAG <span class="min">8 min</span></li><li>Write the partition comments and save the drills <span class="min">6 min</span></li><li class="stretch">✱ Stretch: Return the top three per region with QUALIFY and with a subquery, and confirm they agree</li></ul></div>
+  <aside class="notes"><p>Insist on the <code>-- partition:</code> comment above each drill; the checker of lab 3.4 refuses a drill without it. Drill 1 filters the rank in a second step: the common failure is a WHERE on the window.</p></aside>
+</section>
+
+<!-- Session 4 -->
+
+<section class="slide section" id="s4" data-auto="section" data-session="4" data-n="30">
+  <div class="kicker">Session 4</div>
+  <h1>Running and moving aggregates</h1>
+  <ul class="bullets outcomes"><li>Compute a running total that restarts in each partition</li><li>Compute a week-on-week change with LAG over weekly totals</li><li>Choose a ROWS or a RANGE frame when days are missing</li></ul>
+  <div class="sess-no">04</div>
+</section>
+
+<section class="slide" id="running-total" data-lo="LO4" data-n="31" data-session="4">
+  <div class="kicker">Running totals</div>
+  <h2>SUM with an ORDER BY in the window adds up as it goes</h2>
+  <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th class="num">refund</th><th class="num">running</th></tr>
+      <tr><td>T1</td><td class="num">12.00</td><td class="num">12.00</td></tr>
+      <tr><td>T2</td><td class="num">30.50</td><td class="num">42.50</td></tr>
+      <tr><td>T3</td><td class="num">8.25</td><td class="num">50.75</td></tr>
+      <tr><td>T4</td><td class="num">NULL</td><td class="num">50.75</td></tr>
+      <tr><td>T5</td><td class="num">19.00</td><td class="num">69.75</td></tr>
+    </table>
+    <ul class="bullets">
+      <li><code>SUM(refund) OVER (ORDER BY return_id)</code></li>
+      <li>T4's unknown refund adds nothing: the total stays</li>
+      <li>Add <code>PARTITION BY month</code> and it restarts each month</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>Month-to-date and year-to-date figures are running totals with a partition by month or year. Drill 5 of the lab is one.</p></aside>
+</section>
+
+<section class="slide" id="period-change" data-lo="LO4" data-n="32" data-session="4">
+  <div class="kicker">Comparing periods</div>
+  <h2>For week-on-week change, aggregate to weeks first, then LAG</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · Daily rows</b>one row per store and day</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · Weekly totals</b>GROUP BY store, week</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · LAG over weeks</b>PARTITION BY store ORDER BY week</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · Change</b>this week minus the previous</div>
+  </div>
+  <div class="callout warn mt"><b>What goes wrong.</b> A first or last week with fewer days looks like a fall or a jump. Say so beside the number, or leave partial weeks out.</div>
+  <aside class="notes"><p>The data of the labs starts on a Thursday and ends on a Tuesday: drill 4 shows both partial weeks. The participants should notice them unprompted; if not, point at the first row.</p></aside>
+</section>
+
+<section class="slide" id="frames" data-lo="LO4" data-n="33" data-session="4">
+  <div class="kicker">Frames</div>
+  <h2>The frame decides which rows a moving average uses</h2>
+  <table class="t">
+    <tr><th>Frame</th><th>Means</th></tr>
+    <tr><td><code>ROWS BETWEEN 6 PRECEDING AND CURRENT ROW</code></td><td>this row and the six rows before it</td></tr>
+    <tr><td><code>RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW</code></td><td>every row whose date is within the last seven days</td></tr>
+  </table>
+  <p class="mt">They agree when every day has exactly one row. They part when a day is missing.</p>
+  <aside class="notes"><p>The default frame with an ORDER BY is "from the first row to the current one" (with peers), which is why SUM gives a running total without a frame clause.</p><p>Sources: DuckDB window functions documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="rows-vs-range" data-lo="LO4" data-n="34" data-session="4">
+  <div class="kicker">Missing days</div>
+  <h2>With a missing day, ROWS reaches too far back; RANGE does not</h2>
+  <table class="t">
+    <tr><th>received_on</th><th class="num">day's refunds</th><th class="num">2 rows</th><th class="num">2 days</th></tr>
+    <tr><td>2026-05-02</td><td class="num">42.50</td><td class="num">42.50</td><td class="num">42.50</td></tr>
+    <tr><td>2026-05-03</td><td class="num">8.25</td><td class="num">25.38</td><td class="num">25.38</td></tr>
+    <tr><td>2026-05-04</td><td class="num">0.00</td><td class="num">4.13</td><td class="num">4.13</td></tr>
+    <tr class="hl"><td>2026-05-06</td><td class="num">19.00</td><td class="num">9.50</td><td class="num">19.00</td></tr>
+  </table>
+  <p class="caption">No return arrived on 5 May. "2 rows" averages 6 May with 4 May; "2 days" averages only 6 May, the one day in its window that has a row.</p>
+  <aside class="notes"><p>A two-day window keeps the table small; the lab does the same with seven days and a store closed for three days. Neither frame treats the missing day as zero; a calendar table does (the stretch).</p></aside>
+</section>
+
+<section class="slide" id="check-frame" data-lo="LO4" data-n="35" data-session="4">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which seven-day average is right after a closed weekend?</h2>
+  <div class="quiz" data-type="single" data-lo="LO4" data-id="check-frame-q1">
+    <p class="lead">A pharmacy's daily sales table has no rows for two closed days. For each day, the report wants the average daily sales of the days that had sales within the last seven calendar days, that day included.</p>
+    <div class="opts">
+      <div class="opt" data-ok data-k="A">AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)</div>
+      <div class="opt" data-why="Counts seven rows, which reach back nine calendar days after the closure" data-k="B">AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)</div>
+      <div class="opt" data-why="Without ORDER BY the window is the whole table: one average for every row" data-k="C">AVG OVER (PARTITION BY day)</div>
+      <div class="opt" data-why="A GROUP BY returns one row per week, not a moving value for each day" data-k="D">AVG with GROUP BY week</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> RANGE with an interval selects rows by date, so the window always covers seven calendar days.</div>
+  </div>
+  <aside class="notes"><p>Answer: RANGE. Note that the question says "days with sales": if it wanted closed days as zeros, neither frame would do without a calendar.</p></aside>
+</section>
+
+<section class="slide lab top" id="lab-3-4" data-auto="lab" data-lab="3.4" data-label="Lab 3.4" data-n="36" data-session="4">
+  <div class="cols cols-2 mid"><div><div class="lab-tag">Lab 3.4 · 35 min</div><h2>Window drills 2: weeks and seven days</h2><p class="lead small">From the daily order table, compute week-on-week change per store, a running total within each month and seven-day averages that stay right across closed days; run the window checker</p><a class="nb" href="../labs/D3_4_window_drills_2.ipynb">D3_4_window_drills_2.ipynb</a></div><ul class="checklist"><li>Drill 4: weekly orders per store and the change from the week before <span class="min">10 min</span></li><li>Drill 5: running net sales per store within each month <span class="min">8 min</span></li><li>Drill 6: seven-day average net sales, ROWS against RANGE <span class="min">10 min</span></li><li>Save the drills and run the window checker <span class="min">7 min</span></li><li class="stretch">✱ Stretch: Fill the closed days with zero rows from a calendar and compare the three seven-day averages</li></ul></div>
+  <aside class="notes"><p>The window checker at the end reads windows1 and windows2 and needs a partition comment in every drill. Store S05 was closed for three days in March: drill 6 is where ROWS and RANGE part.</p></aside>
+</section>
+
+<section class="slide" id="wrap-up" data-n="37" data-session="4">
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 3</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>Count once</h4><p class="small mb0">Bring each side to the question's grain before joining.</p></div>
+    <div class="card c-cyan"><h4>Build in steps</h4><p class="small mb0">Name each step, run it alone, carry the business rule.</p></div>
+    <div class="card c-purple"><h4>Windows keep rows</h4><p class="small mb0">Partition, order, frame: say each in a comment.</p></div>
+  </div>
+  <aside class="notes"><p>Ask who reached 16 of 20 in the checker. Those below it have the guided self-study hour tonight.</p></aside>
+</section>
+
+<section class="slide dark" id="next" data-n="38" data-session="4">
+  <div class="kicker">Next</div>
+  <h2>Day 4: building and checking</h2>
+  <ul class="bullets">
+    <li>Bring the twenty questions to 16 or more and finish the window drills: about an hour</li>
+    <li>Tomorrow: constrained tables, a view for analysts, query plans, and ten generated queries on trial</li>
+  </ul>
+  <aside class="notes"><p>The hour is the guided self-study planned after Day 3.</p></aside>
+</section>
+</div>
+<script type="application/json" id="academy-data">{"v":1,"engine":"1.0.0","build":{"at":"2026-11-25T05:37:20Z","version":"2027.1.0","commit":"65f9e39"},"course":{"id":"fnd-dat-101","code":"FND-DAT-101","title":"SQL and Relational Data","track":"foundations","lang":"en","dir":"ltr","url":"https://sdaiaacademy.github.io/fnd-dat-101/","repo":"SDAIAAcademy/fnd-dat-101","home":"../index.html"},"deck":{"id":"day3","kind":"day","day":3,"label":"Day 3","title":"Combining safely, then windows","prev":"day2.html","next":"day4.html","md":"day3.md","alt":{}},"sessions":[{"n":1,"label":"Session 1","title":"Join fan-out and double counting","slide":"s1","outcomes":["Detect fan-out by counting rows before and after a join","Aggregate to the right grain before joining","Explain a wrong total from the grain of each table it joined"],"minutes":60,"lab":{"id":"3.1","title":"Questions 16 and 17: count once","minutes":35,"href":"../labs/D3_1_questions_16_and_17.ipynb"}},{"n":2,"label":"Session 2","title":"Subqueries and common table expressions","slide":"s2","outcomes":["Use a subquery in WHERE and in FROM","Write a query as a chain of common table expressions","Check each step of a chain before trusting the last"],"minutes":60,"lab":{"id":"3.2","title":"Questions 18 to 20, and the checker","minutes":35,"href":"../labs/D3_2_questions_18_to_20.ipynb"}},{"n":3,"label":"Session 3","title":"Partitions, ranking, lag and lead","slide":"s3","outcomes":["Write a window with a partition and an ordering","Choose between ROW_NUMBER, RANK and DENSE_RANK at ties","Compare a row with the one before it using LAG"],"minutes":60,"lab":{"id":"3.3","title":"Window drills 1: top items per region","minutes":30,"href":"../labs/D3_3_window_drills_1.ipynb"}},{"n":4,"label":"Session 4","title":"Running and moving aggregates","slide":"s4","outcomes":["Compute a running total that restarts in each partition","Compute a week-on-week change with LAG over weekly totals","Choose a ROWS or a RANGE frame when days are missing"],"minutes":60,"lab":{"id":"3.4","title":"Window drills 2: weeks and seven days","minutes":35,"href":"../labs/D3_4_window_drills_2.ipynb"}}],"slides":[{"id":"title","n":1,"title":"Combining safely, then windows","kind":"title","session":0,"hash":"ae56a1bb","md":"#### [day3#title] Combining safely, then windows\n\n*SDAIA Academy · SQL and Relational Data*\n\nDay 3: Count once, build in steps, then rank and compare without losing rows\n\nData & AI Foundations Track · 4 teaching days + capstone day · 4 sessions · 4 labs · FND-DAT-101","notes":"Day 3 has two halves. The morning makes totals right: count once, then build answers in steps. The afternoon adds window functions, which compute across rows without collapsing them.\n\nBy the end of session 2 everyone runs the automatic checker over the twenty questions.","minutes":null,"lo":[]},{"id":"agenda","n":2,"title":"Combining safely, then windows","kind":"content","session":0,"hash":"22d9ecfc","md":"#### [day3#agenda] Combining safely, then windows\n\n*Today*\n\n- **Session 1 · Join fan-out and double counting**: A join to a many side repeats the rows of the one side, and every sum over them grows\n- **Session 2 · Subqueries and common table expressions**: Build an answer in named steps, each of which you can run and check on its own\n- **Session 3 · Partitions, ranking, lag and lead**: A window computes over related rows and keeps every row: PARTITION BY, ORDER BY, RANK, LAG\n- **Session 4 · Running and moving aggregates**: Running totals, week-on-week change and seven-day averages, and the frame that decides them","notes":"","minutes":null,"lo":[]},{"id":"review-day2","n":3,"title":"How many rows does this query return?","kind":"quiz","session":0,"hash":"b7148dab","md":"#### [day3#review-day2] How many rows does this query return?\n\n*Review of Day 2*\n\n**Question:** A `branches` table has 5 rows; 2 branches have no `region`. `SELECT COUNT(*) FROM branches WHERE region NOT IN ('North', NULL)`.\n\n- A. 3\n- B. 0\n- C. 5\n- D. 2","notes":"Answer: 0. If the room is split, redo the flow slide of yesterday's session 2 on the board.","minutes":null,"lo":["LO2"]},{"id":"s1","n":4,"title":"Join fan-out and double counting","kind":"section","session":1,"hash":"755bba9d","md":"#### [day3#s1] Join fan-out and double counting\n\n*Session 1*\n\n- Detect fan-out by counting rows before and after a join\n- Aggregate to the right grain before joining\n- Explain a wrong total from the grain of each table it joined","notes":"","minutes":null,"lo":["LO2","LO3","LO6"]},{"id":"fan-out-picture","n":5,"title":"A join to a many side repeats every row of the one side","kind":"content","session":1,"hash":"0bc13ac8","md":"#### [day3#fan-out-picture] A join to a many side repeats every row of the one side\n\n*Fan-out*\n\n| return_id | refund | inspection |\n| --- | --- | --- |\n| T1 | 12.00 | pass |\n| T2 | 30.50 | pass |\n| T2 | 30.50 | fail |\n| T5 | 19.00 | pass |\n\n- T2 was inspected twice, so its refund now sits on **two rows**\n- Every column of `returns` is repeated, not only the key\n- Nothing warns you: the query runs, the numbers look plausible","notes":"This is yesterday's inner join slide, with the refund column added. Ask what `SUM(refund)` over these four rows gives before showing the next slide.","minutes":null,"lo":["LO2","LO6"]},{"id":"fan-out-sum","n":6,"title":"Every sum over a fanned-out join grows","kind":"content","session":1,"hash":"b254001d","md":"#### [day3#fan-out-sum] Every sum over a fanned-out join grows\n\n*Double counting*\n\n- **92.00** SUM(refund) after the join\n- **61.50** the refunds of the inspected returns\n\n30.50 counted twice. And T3 and T4 are gone: the join also **drops** rows with no partner. A fanned-out sum can be too high and too low at once.\n\nThe returns desk (`_tools/slide_examples.py`).","notes":"The lab shows the same double effect on the delivery tables, with real money. Do not quote the lab's figures here.","minutes":null,"lo":["LO2","LO6"]},{"id":"detect-fan-out","n":7,"title":"Count rows before and after every join","kind":"content","session":1,"hash":"f0106a39","md":"#### [day3#detect-fan-out] Count rows before and after every join\n\n*Detect it*\n\n```sql\n-- file: returns desk\nSELECT (SELECT COUNT(*) FROM returns)              AS before,\n       (SELECT COUNT(*) FROM returns t\n          JOIN inspections i ON i.return_id = t.return_id) AS after;\n-- before 5, after 4: rows were dropped AND repeated\n```\n\n- After > before: some rows repeat\n- After \u003c before: some rows lost their partner\n- Equal is not proof: drops and repeats can cancel out, as they nearly do here","notes":"The last bullet is the reason for the next slide: the reliable check is the grain, not the count alone.","minutes":null,"lo":["LO3","LO6"]},{"id":"aggregate-first","n":8,"title":"Bring each side to the grain of the question before joining","kind":"content","session":1,"hash":"4f36e000","md":"#### [day3#aggregate-first] Bring each side to the grain of the question before joining\n\n*The fix*\n\n```sql\n-- file: returns desk\nWITH insp AS (                       -- one row per return\n  SELECT return_id, COUNT(*) AS inspections\n  FROM inspections GROUP BY return_id\n)\nSELECT SUM(t.refund), SUM(insp.inspections)\nFROM returns t\nJOIN insp ON insp.return_id = t.return_id;\n-- 61.50 and 4: one row per return on both sides\n```\n\n> **Or filter instead of joining.** `WHERE return_id IN (SELECT ...)` or `EXISTS` keeps each return once.","notes":"Two patterns: aggregate the many side to the one side's grain, or use the many side only as a filter. Question 16 needs the second, question 17 the first.","minutes":null,"lo":["LO3","LO6"]},{"id":"distinct-is-not-a-fix","n":9,"title":"SUM(DISTINCT ...) hides fan-out by accident, and breaks on equal values","kind":"content","session":1,"hash":"c0a4a994","md":"#### [day3#distinct-is-not-a-fix] SUM(DISTINCT ...) hides fan-out by accident, and breaks on equal values\n\n*A tempting shortcut*\n\n- **Looks right here.** `SUM(DISTINCT refund)` on the joined rows gives 61.50: T2's repeat collapses.\n- **Wrong tomorrow.** Two different returns with a refund of 12.00 collapse into one. The total is short, and nothing says so.\n\n> **Rule.** DISTINCT removes duplicate values, not duplicate rows of the grain you meant. Fix the grain instead.","notes":"Assistants often reach for DISTINCT when a total looks too large. Lab 4.4 tests ten queries with mistakes of this family.","minutes":null,"lo":["LO6"]},{"id":"grain-before-join","n":10,"title":"Before every join, write the grain of both sides and of the result","kind":"content","session":1,"hash":"1a7674c1","md":"#### [day3#grain-before-join] Before every join, write the grain of both sides and of the result\n\n*The habit*\n\n| Left | Right | Result | Sum left? |\n| --- | --- | --- | --- |\n| return | reason | return | yes |\n| return | inspection | inspection | **no** |\n| return | return (aggregated) | return | yes |\n\nEach grain is \"one row per ...\" the word in the cell. \"Sum left?\": is it safe to sum the left side's money after the join?","notes":"Ask participants to write these three grains as comments above their queries in today's lab. The capstone rubric rewards it.","minutes":null,"lo":["LO2","LO6"]},{"id":"check-fan-out","n":11,"title":"Why is the total fee too high?","kind":"quiz","session":1,"hash":"73d88990","md":"#### [day3#check-fan-out] Why is the total fee too high?\n\n*Checkpoint*\n\n**Question:** A clinic sums appointment fees after joining `appointments` (one row per appointment) to `reminders` (one row per reminder sent). Some appointments got three reminders. The total is 40% above the ledger.\n\n- A. Fees left NULL are counted as zero\n- B. The join drops appointments with no reminder\n- C. Fees are rounded to two decimals\n- D. Each fee is repeated once per reminder","notes":"Answer: repetition per reminder. Point out that the second option is also true but moves the total the other way.","minutes":null,"lo":["LO6"]},{"id":"lab-3-1","n":12,"title":"Questions 16 and 17: count once","kind":"lab","session":1,"hash":"4084577f","md":"#### [day3#lab-3-1] Questions 16 and 17: count once\n\nLab 3.1 · 35 min\n\nSee a sum grow when order lines meet delivery attempts, then answer two questions that need lines and attempts together without double counting; save them to your answer file\n\n[D3_1_questions_16_and_17.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_1_questions_16_and_17.ipynb)\n\n- [ ] Count rows before and after joining delivery attempts (6 min)\n- [ ] Write a prediction for each of the two questions (4 min)\n- [ ] Question 16: line value of orders that needed a second attempt (10 min)\n- [ ] Question 17: orders and attempts per store in one result (10 min)\n- [ ] Save the part file (5 min)\n- [ ] ✱ Stretch: Find the share by which the naive sum of line values overstates the true one","notes":"The first exercise shows two sums of line value, before and after joining attempts. Ask participants to explain the gap in one sentence before moving on: lines repeated for repeat attempts, and lines of cancelled orders dropped.\n\nCommon failure in question 16: summing after the join with DISTINCT. In question 17: COUNT(\\*) for orders.","minutes":null,"lo":[]},{"id":"s2","n":13,"title":"Subqueries and common table expressions","kind":"section","session":2,"hash":"77141d0f","md":"#### [day3#s2] Subqueries and common table expressions\n\n*Session 2*\n\n- Use a subquery in WHERE and in FROM\n- Write a query as a chain of common table expressions\n- Check each step of a chain before trusting the last","notes":"","minutes":null,"lo":["LO3"]},{"id":"subquery-where","n":14,"title":"A subquery is a query inside another, used as a value, a list or a table","kind":"content","session":2,"hash":"c4bd1131","md":"#### [day3#subquery-where] A subquery is a query inside another, used as a value, a list or a table\n\n*Subqueries*\n\n| Where | Returns | Returns desk example |\n| --- | --- | --- |\n| In `WHERE x > (...)` | one value | refunds above the average refund |\n| In `WHERE x IN (...)` | a list | returns that were inspected |\n| In `FROM (...)` | a table | items per return, then their average |","notes":"The first form must return exactly one value, or the engine refuses. Ask what `WHERE refund > (SELECT AVG(refund) FROM returns)` keeps: T2 and T5 (above 17.44).","minutes":null,"lo":["LO3"]},{"id":"correlated","n":15,"title":"A correlated subquery is evaluated for each row of the outer query","kind":"content","session":2,"hash":"d9928768","md":"#### [day3#correlated] A correlated subquery is evaluated for each row of the outer query\n\n*Per row*\n\n```sql\n-- file: returns desk\nSELECT t.return_id, t.refund\nFROM returns t\nWHERE t.refund > (SELECT AVG(r.refund)\n                  FROM returns r\n                  WHERE r.reason_code = t.reason_code);  -- the average of its own reason\n```\n\n- The inner query refers to `t`, the row being tested\n- \"Above the average of its own group\" is the typical use\n- The same answer can be written as a join to a grouped table: often clearer","notes":"This is the shape of question 18 on another table. The lab's solution uses the grouped-table form; both pass the checker.","minutes":null,"lo":["LO3"]},{"id":"cte-names-steps","n":16,"title":"WITH names each step, so a long answer reads top to bottom","kind":"content","session":2,"hash":"d79e104e","md":"#### [day3#cte-names-steps] WITH names each step, so a long answer reads top to bottom\n\n*Common table expressions*\n\n```sql\n-- file: returns desk\nWITH items AS (                    -- step 1: one row per return\n  SELECT return_id, SUM(qty) AS units\n  FROM return_items\n  GROUP BY return_id\n)\nSELECT AVG(units) FROM items;      -- step 2: 3.0 units per return\n```\n\n> **Read it as a recipe.** Each name is a table you could look at on its own. Several steps are separated by commas: `WITH a AS (...), b AS (...)`.","notes":"A CTE changes nothing the engine can do that a subquery cannot; it changes what a reader can check. That is the point for the capstone, where a reviewer must follow each answer.","minutes":null,"lo":["LO3"]},{"id":"check-each-step","n":17,"title":"Run each step before you trust the last one","kind":"content","session":2,"hash":"17160297","md":"#### [day3#check-each-step] Run each step before you trust the last one\n\n*The method*\n\n1. **1 · First step alone** select from it; look at 5 rows; count them\n2. **2 · Its grain** one row per what? is a key unique?\n3. **3 · Add the next step** and repeat\n4. **4 · The final select** compare with your prediction","notes":"Demonstrate on the returns desk: replace the final SELECT with `SELECT * FROM items`, read the five rows, then put it back.","minutes":null,"lo":["LO3"]},{"id":"rule-outside-schema","n":18,"title":"Some rules live outside the schema, and the query must carry them","kind":"content","session":2,"hash":"c4a1d098","md":"#### [day3#rule-outside-schema] Some rules live outside the schema, and the query must carry them\n\n*Business rules*\n\n- **What the schema says.** Columns, types, keys, a status column with three values.\n- **What it does not say.** Which statuses count as revenue, what an empty discount means, which date books the money.\n\nThe finance controller keeps that in `data/revenue_rule.md`. A query that ignores it runs without error and returns a number nobody in finance would sign.","notes":"Ask the room to read the rule now, in two minutes. Ask: which of its six points could a query break without any error message? (All of them.)","minutes":null,"lo":["LO3","LO6"]},{"id":"rule-to-steps","n":19,"title":"Turn each point of a rule into one named step","kind":"content","session":2,"hash":"686a46d9","md":"#### [day3#rule-to-steps] Turn each point of a rule into one named step\n\n*From rule to query*\n\n| Returns desk rule | Step |\n| --- | --- |\n| Only returns with a decided refund | `decided AS (... WHERE refund IS NOT NULL)` |\n| Book on the inspection date, not the receipt date | `booked AS (... JOIN inspections ...)` |\n| Count a return once, even if inspected twice | take the first inspection per return |\n\nA parallel rule of the returns desk; the finance rule of the labs is yours to turn into steps.","notes":"Do not show question 19. The capstone brief has its own rule on prices; the same method applies.","minutes":null,"lo":["LO3"]},{"id":"check-cte","n":20,"title":"Where is the error in this chain?","kind":"quiz","session":2,"hash":"49895c87","md":"#### [day3#check-cte] Where is the error in this chain?\n\n*Checkpoint*\n\n**Question:** A hotel's chain: `stays` (one row per stay) joined to `charges` (one row per charge), then `SUM(nightly_rate * nights)` per month. The result is far above the ledger.\n\n- A. The final GROUP BY month\n- B. The join of stays to charges before summing stay values\n- C. Using WITH instead of a subquery\n- D. Multiplying rate by nights","notes":"Answer: the join. Running the first step alone and counting rows against stays would have shown it.","minutes":null,"lo":["LO3"]},{"id":"lab-3-2","n":21,"title":"Questions 18 to 20, and the checker","kind":"lab","session":2,"hash":"56b5e401","md":"#### [day3#lab-3-2] Questions 18 to 20, and the checker\n\nLab 3.2 · 35 min\n\nPredict, then answer the last three questions in steps, one of them by the finance rule; then run the automatic checker over all twenty\n\n[D3_2_questions_18_to_20.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_2_questions_18_to_20.ipynb)\n\n- [ ] Write a prediction for each of the three questions (4 min)\n- [ ] Question 18: products above their category's average price (8 min)\n- [ ] Question 19: net revenue by month of delivery, by the finance rule (9 min)\n- [ ] Question 20: the five customers with the highest net revenue (8 min)\n- [ ] Run the checker over all your part files and fix one failure (6 min)\n- [ ] ✱ Stretch: Rewrite question 19 as one query without common table expressions and compare how easy each is to check","notes":"Question 19 follows the finance rule; this is where the rule outside the schema matters. The checker at the end reads all part files: participants who skipped earlier labs see \"missing\" lines and can rerun those notebooks.\n\nThe query file is assessed: 16 of 20 is the outcome's mark. Common failure in question 19: the month of ordered_at instead of the delivery date, which loses the July row.","minutes":null,"lo":[]},{"id":"s3","n":22,"title":"Partitions, ranking, lag and lead","kind":"section","session":3,"hash":"556710cd","md":"#### [day3#s3] Partitions, ranking, lag and lead\n\n*Session 3*\n\n- Write a window with a partition and an ordering\n- Choose between ROW_NUMBER, RANK and DENSE_RANK at ties\n- Compare a row with the one before it using LAG","notes":"","minutes":null,"lo":["LO4"]},{"id":"window-keeps-rows","n":23,"title":"A window computes over related rows and keeps every row","kind":"content","session":3,"hash":"f2c1e04c","md":"#### [day3#window-keeps-rows] A window computes over related rows and keeps every row\n\n*Window functions*\n\n- **GROUP BY.** Five returns in, three rows out: one per reason. The detail is gone.\n- **OVER (...).** Five returns in, five rows out, each with a value computed from its group.\n\n```sql\n-- file: returns desk\nSELECT return_id, reason_code, refund,\n       SUM(refund) OVER (PARTITION BY reason_code) AS reason_total\nFROM returns;\n```","notes":"T1 and T3 both show 20.25 beside their own refunds. Ask what share of its reason's refunds T1 is: 12.00 / 20.25. That division needs the detail and the total on one row, which is what windows are for.\n\nSources: DuckDB window functions documentation (in course sources).","minutes":null,"lo":["LO4"]},{"id":"partition-and-order","n":24,"title":"PARTITION BY says which rows belong together; ORDER BY says in what sequence","kind":"content","session":3,"hash":"5bb635d1","md":"#### [day3#partition-and-order] PARTITION BY says which rows belong together; ORDER BY says in what sequence\n\n*The two clauses*\n\n| Clause | Question it answers | Without it |\n| --- | --- | --- |\n| `PARTITION BY region` | Whose rows are compared? | all rows form one window |\n| `ORDER BY day` | Which row comes before which? | ranks and LAG have no meaning |\n\n> **Say the partition in a comment.** \"-- partition: one ranking per region, so ...\" The window checker of the labs asks for exactly this.","notes":"The outcome's evidence asks for each partition explained in a comment. Make it a habit from the first window they write.","minutes":null,"lo":["LO4"]},{"id":"three-rankings","n":25,"title":"ROW_NUMBER, RANK and DENSE_RANK differ only at ties","kind":"content","session":3,"hash":"c8d000ec","md":"#### [day3#three-rankings] ROW_NUMBER, RANK and DENSE_RANK differ only at ties\n\n*Ranking*\n\n| product (units) | ROW_\u003cbr>NUMBER | RANK | DENSE_\u003cbr>RANK |\n| --- | --- | --- | --- |\n| X-101 (4) | 1 | 1 | 1 |\n| X-412 (4) | 2 | 1 | 1 |\n| X-118 (3) | 3 | 3 | 2 |\n| X-205 (3) | 4 | 3 | 2 |\n| X-330 (1) | 5 | 5 | 3 |\n\nReturned units per product at the returns desk, ordered by units from the most.","notes":"\"Top two\" with ROW_NUMBER picks X-101 and X-412 here, but between X-118 and X-205 it would pick by chance without a tie-breaker. RANK keeps ties together and skips the next place.","minutes":null,"lo":["LO4"]},{"id":"top-n-per-group","n":26,"title":"Rank inside each partition, then keep the first places","kind":"content","session":3,"hash":"65b72048","md":"#### [day3#top-n-per-group] Rank inside each partition, then keep the first places\n\n*Top N per group*\n\n```sql\n-- file: returns desk\nWITH ranked AS (\n  SELECT reason_code, return_id, refund,\n         RANK() OVER (PARTITION BY reason_code ORDER BY refund DESC) AS place\n  FROM returns\n)\nSELECT * FROM ranked WHERE place = 1;   -- the largest refund of each reason\n```\n\n> **What goes wrong.** `WHERE RANK() OVER (...) = 1` is refused: windows are computed after WHERE. Rank in one step, filter in the next, or use `QUALIFY`.","notes":"QUALIFY is supported by DuckDB and some other engines; the two-step form works everywhere. The stretch of lab 3.3 asks for both.","minutes":null,"lo":["LO4"]},{"id":"lag-lead","n":27,"title":"LAG reads the previous row of the window; LEAD reads the next","kind":"content","session":3,"hash":"27e03761","md":"#### [day3#lag-lead] LAG reads the previous row of the window; LEAD reads the next\n\n*Neighbouring rows*\n\n| return_id | received_on | days_since |\n| --- | --- | --- |\n| T1 | 2026-05-02 | NULL |\n| T2 | 2026-05-02 | 0 |\n| T3 | 2026-05-03 | 1 |\n| T4 | 2026-05-04 | 1 |\n| T5 | 2026-05-06 | 2 |\n\n```sql\n-- file: returns desk\nreceived_on\n  - LAG(received_on) OVER (\n      ORDER BY received_on, return_id)\n  AS days_since\n```\n\nThe first row has no previous row: **NULL**. With a partition, every partition's first row is NULL.","notes":"Ask what would change if each return belonged to a courier and the question were \"days since that courier's previous return\": PARTITION BY courier.","minutes":null,"lo":["LO4"]},{"id":"check-rank","n":28,"title":"Which ranking keeps every tied product in a \"top three\"?","kind":"quiz","session":3,"hash":"361cce3c","md":"#### [day3#check-rank] Which ranking keeps every tied product in a \"top three\"?\n\n*Checkpoint*\n\n**Question:** Sales per product in each region: in the West, two products tie for third place. The manager wants both shown, and the next product, if any, to be fifth.\n\n- A. ROW_NUMBER() and place \u003c= 3\n- B. DENSE_RANK() and place \u003c= 3\n- C. RANK() and place \u003c= 3\n- D. ORDER BY sales DESC LIMIT 3","notes":"Answer: RANK. DENSE_RANK is right when the manager wants \"the top three different sales values\".","minutes":null,"lo":["LO4"]},{"id":"lab-3-3","n":29,"title":"Window drills 1: top items per region","kind":"lab","session":3,"hash":"178eebb2","md":"#### [day3#lab-3-3] Window drills 1: top items per region\n\nLab 3.3 · 30 min\n\nRank products within each region, compare three ranking functions at ties, and measure the days between a customer's orders with LAG; each partition explained in a comment\n\n[D3_3_window_drills_1.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_3_window_drills_1.ipynb)\n\n- [ ] Drill 1: the top three products per region by quantity (10 min)\n- [ ] Drill 2: ROW_NUMBER, RANK and DENSE_RANK on the same ties (6 min)\n- [ ] Drill 3: days since the customer's previous order, with LAG (8 min)\n- [ ] Write the partition comments and save the drills (6 min)\n- [ ] ✱ Stretch: Return the top three per region with QUALIFY and with a subquery, and confirm they agree","notes":"Insist on the `-- partition:` comment above each drill; the checker of lab 3.4 refuses a drill without it. Drill 1 filters the rank in a second step: the common failure is a WHERE on the window.","minutes":null,"lo":[]},{"id":"s4","n":30,"title":"Running and moving aggregates","kind":"section","session":4,"hash":"b67f646e","md":"#### [day3#s4] Running and moving aggregates\n\n*Session 4*\n\n- Compute a running total that restarts in each partition\n- Compute a week-on-week change with LAG over weekly totals\n- Choose a ROWS or a RANGE frame when days are missing","notes":"","minutes":null,"lo":["LO4"]},{"id":"running-total","n":31,"title":"SUM with an ORDER BY in the window adds up as it goes","kind":"content","session":4,"hash":"8e8421d5","md":"#### [day3#running-total] SUM with an ORDER BY in the window adds up as it goes\n\n*Running totals*\n\n| return_id | refund | running |\n| --- | --- | --- |\n| T1 | 12.00 | 12.00 |\n| T2 | 30.50 | 42.50 |\n| T3 | 8.25 | 50.75 |\n| T4 | NULL | 50.75 |\n| T5 | 19.00 | 69.75 |\n\n- `SUM(refund) OVER (ORDER BY return_id)`\n- T4's unknown refund adds nothing: the total stays\n- Add `PARTITION BY month` and it restarts each month","notes":"Month-to-date and year-to-date figures are running totals with a partition by month or year. Drill 5 of the lab is one.","minutes":null,"lo":["LO4"]},{"id":"period-change","n":32,"title":"For week-on-week change, aggregate to weeks first, then LAG","kind":"content","session":4,"hash":"dc5203d6","md":"#### [day3#period-change] For week-on-week change, aggregate to weeks first, then LAG\n\n*Comparing periods*\n\n1. **1 · Daily rows** one row per store and day\n2. **2 · Weekly totals** GROUP BY store, week\n3. **3 · LAG over weeks** PARTITION BY store ORDER BY week\n4. **4 · Change** this week minus the previous\n\n> **What goes wrong.** A first or last week with fewer days looks like a fall or a jump. Say so beside the number, or leave partial weeks out.","notes":"The data of the labs starts on a Thursday and ends on a Tuesday: drill 4 shows both partial weeks. The participants should notice them unprompted; if not, point at the first row.","minutes":null,"lo":["LO4"]},{"id":"frames","n":33,"title":"The frame decides which rows a moving average uses","kind":"content","session":4,"hash":"ef4c9f46","md":"#### [day3#frames] The frame decides which rows a moving average uses\n\n*Frames*\n\n| Frame | Means |\n| --- | --- |\n| `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` | this row and the six rows before it |\n| `RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW` | every row whose date is within the last seven days |\n\nThey agree when every day has exactly one row. They part when a day is missing.","notes":"The default frame with an ORDER BY is \"from the first row to the current one\" (with peers), which is why SUM gives a running total without a frame clause.\n\nSources: DuckDB window functions documentation (in course sources).","minutes":null,"lo":["LO4"]},{"id":"rows-vs-range","n":34,"title":"With a missing day, ROWS reaches too far back; RANGE does not","kind":"content","session":4,"hash":"3068b5a1","md":"#### [day3#rows-vs-range] With a missing day, ROWS reaches too far back; RANGE does not\n\n*Missing days*\n\n| received_on | day's refunds | 2 rows | 2 days |\n| --- | --- | --- | --- |\n| 2026-05-02 | 42.50 | 42.50 | 42.50 |\n| 2026-05-03 | 8.25 | 25.38 | 25.38 |\n| 2026-05-04 | 0.00 | 4.13 | 4.13 |\n| 2026-05-06 | 19.00 | 9.50 | 19.00 |\n\nNo return arrived on 5 May. \"2 rows\" averages 6 May with 4 May; \"2 days\" averages only 6 May, the one day in its window that has a row.","notes":"A two-day window keeps the table small; the lab does the same with seven days and a store closed for three days. Neither frame treats the missing day as zero; a calendar table does (the stretch).","minutes":null,"lo":["LO4"]},{"id":"check-frame","n":35,"title":"Which seven-day average is right after a closed weekend?","kind":"quiz","session":4,"hash":"5ad84338","md":"#### [day3#check-frame] Which seven-day average is right after a closed weekend?\n\n*Checkpoint*\n\n**Question:** A pharmacy's daily sales table has no rows for two closed days. For each day, the report wants the average daily sales of the days that had sales within the last seven calendar days, that day included.\n\n- A. AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)\n- B. AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n- C. AVG OVER (PARTITION BY day)\n- D. AVG with GROUP BY week","notes":"Answer: RANGE. Note that the question says \"days with sales\": if it wanted closed days as zeros, neither frame would do without a calendar.","minutes":null,"lo":["LO4"]},{"id":"lab-3-4","n":36,"title":"Window drills 2: weeks and seven days","kind":"lab","session":4,"hash":"85c56042","md":"#### [day3#lab-3-4] Window drills 2: weeks and seven days\n\nLab 3.4 · 35 min\n\nFrom the daily order table, compute week-on-week change per store, a running total within each month and seven-day averages that stay right across closed days; run the window checker\n\n[D3_4_window_drills_2.ipynb](https://sdaiaacademy.github.io/fnd-dat-101/labs/D3_4_window_drills_2.ipynb)\n\n- [ ] Drill 4: weekly orders per store and the change from the week before (10 min)\n- [ ] Drill 5: running net sales per store within each month (8 min)\n- [ ] Drill 6: seven-day average net sales, ROWS against RANGE (10 min)\n- [ ] Save the drills and run the window checker (7 min)\n- [ ] ✱ Stretch: Fill the closed days with zero rows from a calendar and compare the three seven-day averages","notes":"The window checker at the end reads windows1 and windows2 and needs a partition comment in every drill. Store S05 was closed for three days in March: drill 6 is where ROWS and RANGE part.","minutes":null,"lo":[]},{"id":"wrap-up","n":37,"title":"Three things to keep from Day 3","kind":"content","session":4,"hash":"1cc8d143","md":"#### [day3#wrap-up] Three things to keep from Day 3\n\n*Wrap-up*\n\n- **Count once.** Bring each side to the question's grain before joining.\n- **Build in steps.** Name each step, run it alone, carry the business rule.\n- **Windows keep rows.** Partition, order, frame: say each in a comment.","notes":"Ask who reached 16 of 20 in the checker. Those below it have the guided self-study hour tonight.","minutes":null,"lo":[]},{"id":"next","n":38,"title":"Day 4: building and checking","kind":"content","session":4,"hash":"b6151615","md":"#### [day3#next] Day 4: building and checking\n\n*Next*\n\n- Bring the twenty questions to 16 or more and finish the window drills: about an hour\n- Tomorrow: constrained tables, a view for analysts, query plans, and ten generated queries on trial","notes":"The hour is the guided self-study planned after Day 3.","minutes":null,"lo":[]}],"activities":[{"id":"review-day2-q1","slide":"review-day2","type":"single","prompt":"A branches table has 5 rows; 2 branches have no region. SELECT COUNT(*) FROM branches WHERE region NOT IN ('North', NULL).","options":[{"key":"A","text":"3"},{"key":"B","text":"0"},{"key":"C","text":"5"},{"key":"D","text":"2"}],"correct":[1],"explanation":"NOT IN with a NULL in the list is region \u003c> NULL for every row: unknown, so nothing is ever true.","misconceptions":["Treats NULL in the list as a value to exclude, as if NOT IN ignored it","","Counts the branches without a region as different from North","Believes the NULL rows are the only ones kept"],"lo":["LO2"]},{"id":"check-fan-out-q1","slide":"check-fan-out","type":"single","prompt":"A clinic sums appointment fees after joining appointments (one row per appointment) to reminders (one row per reminder sent). Some appointments got three reminders. The total is 40% above the ledger.","options":[{"key":"A","text":"Fees left NULL are counted as zero"},{"key":"B","text":"The join drops appointments with no reminder"},{"key":"C","text":"Fees are rounded to two decimals"},{"key":"D","text":"Each fee is repeated once per reminder"}],"correct":[3],"explanation":"After the join the grain is the reminder: an appointment with three reminders carries its fee three times.","misconceptions":["Blames NULLs, which make sums smaller, not larger","An inner join drops appointments without reminders; that lowers the total","Rounding cannot add 40%",""],"lo":["LO6"]},{"id":"check-cte-q1","slide":"check-cte","type":"single","prompt":"A hotel's chain: stays (one row per stay) joined to charges (one row per charge), then SUM(nightly_rate * nights) per month. The result is far above the ledger.","options":[{"key":"A","text":"The final GROUP BY month"},{"key":"B","text":"The join of stays to charges before summing stay values"},{"key":"C","text":"Using WITH instead of a subquery"},{"key":"D","text":"Multiplying rate by nights"}],"correct":[1],"explanation":"A stay with several charges appears once per charge, so its value is summed several times.","misconceptions":["Grouping by month is the grain the question asks for","","Naming steps cannot change a result; only their content can","Multiplying two columns of the same row is correct"],"lo":["LO3"]},{"id":"check-rank-q1","slide":"check-rank","type":"single","prompt":"Sales per product in each region: in the West, two products tie for third place. The manager wants both shown, and the next product, if any, to be fifth.","options":[{"key":"A","text":"ROW_NUMBER() and place \u003c= 3"},{"key":"B","text":"DENSE_RANK() and place \u003c= 3"},{"key":"C","text":"RANK() and place \u003c= 3"},{"key":"D","text":"ORDER BY sales DESC LIMIT 3"}],"correct":[2],"explanation":"RANK gives ties the same place and skips the next one, as asked.","misconceptions":["Gives tied rows different numbers, so one of the tied products is cut","Keeps both ties but numbers the next product 4, not 5","","LIMIT applies to the whole result, not to each region"],"lo":["LO4"]},{"id":"check-frame-q1","slide":"check-frame","type":"single","prompt":"A pharmacy's daily sales table has no rows for two closed days. For each day, the report wants the average daily sales of the days that had sales within the last seven calendar days, that day included.","options":[{"key":"A","text":"AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)"},{"key":"B","text":"AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)"},{"key":"C","text":"AVG OVER (PARTITION BY day)"},{"key":"D","text":"AVG with GROUP BY week"}],"correct":[0],"explanation":"RANGE with an interval selects rows by date, so the window always covers seven calendar days.","misconceptions":["","Counts seven rows, which reach back nine calendar days after the closure","Without ORDER BY the window is the whole table: one average for every row","A GROUP BY returns one row per week, not a moving value for each day"],"lo":["LO4"]}],"ai":{"context":{"course":"../context/course.md","courseJs":"../context/course.js","day":"day3.md","llms":"../llms.txt"},"tasks":[],"tools":[]},"bridge":{"allowedOrigins":[]},"features":{},"strings":{}}</script>
+<script src="../_engine/academy.js"></script>
+</body>
+</html>
