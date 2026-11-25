@@ -1,0 +1,5 @@
+site_id,account_id,region,is_active
+ST01,A001,North,true
+ST02,A001,South,true
+ST03,A002,South,true
+ST04,A004,North,true

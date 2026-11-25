@@ -1,0 +1,9 @@
+order_id,line_no,item_id,qty_ordered
+B01,1,I01,10
+B01,2,I02,2
+B02,1,I01,5
+B03,1,I02,4
+B04,1,I01,3
+B05,1,I02,1
+B06,1,I01,6
+B06,2,I02,1

@@ -37,7 +37,10 @@ You write SQL between the triple quotes of each cell marked ✏️. A cell left 
 | `data/revenue_rule.md` | The finance rule for net revenue, kept outside the schema |
 | `data/mini/` | Six tiny tables to print and predict from |
 | `data/extracts/` | The July extracts with seeded defects, for Day 4 |
+| `data/july/` | The July tables as a correct load leaves them, for lab 4.2 |
+| `data/verification/` | The ten generated-style queries of lab 4.4 |
 | `data/reference/` | The reference results the checks compare with |
+| `capstone/` | The business orders brief: its data generator, starting fixture, query templates and tests |
 | `answers/` | Written by the labs: your answer files (git ignores them) |
 
 The notebooks are generated from the percent-format sources in `labs/_src/` by `labs/_tools/py2nb.py` (`uv run python _tools/py2nb.py` from `labs/`), which also writes the solutions to `labs/solutions/`. Edit the sources, not the notebooks. `uv run python _tools/run_all.py` runs every solution source in strict mode.

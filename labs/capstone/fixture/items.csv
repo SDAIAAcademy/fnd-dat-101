@@ -1,0 +1,5 @@
+item_id,item_name,category,is_active
+I01,"Paper towels, case of 12, standard",Paper,true
+I02,"Hand soap 5 L, standard",Cleaning,true
+I03,"Disposable gloves, box of 100, standard",First aid,true
+I04,"Folders, pack of 25, standard",Stationery,false

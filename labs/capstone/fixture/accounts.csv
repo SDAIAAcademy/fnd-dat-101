@@ -1,0 +1,5 @@
+account_id,segment,region,opened_on,contact_name,contact_phone,contact_email,credit_limit
+A001,school,North,2025-03-01,Synthetic Contact 001,TEL-A001-X,a001@example.invalid,500.00
+A002,office,South,2025-06-15,Synthetic Contact 002,TEL-A002-X,a002@example.invalid,75.00
+A003,clinic,East,2026-01-10,Synthetic Contact 003,TEL-A003-X,a003@example.invalid,400.00
+A004,restaurant,North,2026-02-01,Synthetic Contact 004,TEL-A004-X,a004@example.invalid,1000.00

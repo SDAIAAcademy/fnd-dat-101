@@ -1,0 +1,9 @@
+shipment_id,order_id,line_no,shipped_on,qty_shipped,outcome
+SH01,B01,1,2026-07-21,6,delivered
+SH02,B01,1,2026-07-30,4,delivered
+SH03,B01,2,2026-07-21,2,returned
+SH04,B02,1,2026-08-02,5,delivered
+SH05,B03,1,2026-08-03,4,delivered
+SH06,B04,1,2027-01-02,3,delivered
+SH07,B06,1,2026-09-16,4,delivered
+SH08,B06,2,2026-09-25,1,delivered

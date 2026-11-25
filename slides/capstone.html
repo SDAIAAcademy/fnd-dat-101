@@ -1,90 +1,124 @@
 <section class="slide title" id="title" data-auto="title">
-  <aside class="notes">Today is theirs: keep your own talking to the opening and the closing. Confirm the running order and the demo setup (screen sharing, accounts, a recorded backup) first.</aside>
+  <aside class="notes"><p>Today is the participants'. Keep your own talking to the opening, the reviews and the close. Before anyone arrives: the timed check printed (one per participant, from the trainer's pack), a clone of each capstone repository on the trainer's laptop with <code>capstone/cap.py</code> run, and the list of changed questions for the live adaptations.</p></aside>
 </section>
 
 <section class="slide" id="agenda" data-label="Agenda">
-  <div class="kicker">Capstone</div>
-  <h2>How the presentations run</h2>
+  <div class="kicker">Capstone day</div>
+  <h2>How the day runs</h2>
   <div class="agenda">
-    <div class="item now"><div><b>Expectations and final prep</b><small>the rubric, a last rehearsal, then the first presentations</small></div></div>
-    <div class="item"><div><b>Presentations</b><small>each one timed, with questions after it</small></div></div>
-    <div class="item"><div><b>Review and closing</b><small>peer feedback, the trainer's review, what next</small></div></div>
+    <div class="item now"><div><b>Opening</b><small>the rubric and the format</small></div></div>
+    <div class="item"><div><b>Timed check</b><small>assistant off, on paper</small></div></div>
+    <div class="item"><div><b>Final preparation</b><small>finish the repository, run the tests, push</small></div></div>
+    <div class="item"><div><b>Live adaptations</b><small>one query each, then questions on the assumptions note</small></div></div>
+    <div class="item"><div><b>Reviews and next steps</b><small>peer review, the trainer's review, the follow-up task</small></div></div>
   </div>
+  <aside class="notes"><p>Minutes for a cohort of 16: opening 15, check 40, preparation 120, adaptations 16 × (5 + 2 + 1 changeover) = 128, peer review 50, trainer review 42, follow-up brief 25. Take breaks between blocks, not inside them.</p></aside>
 </section>
 
 <section class="slide" id="rubric" data-label="The rubric">
-  <div class="kicker">How presentations are scored</div>
+  <div class="kicker">How the repository is scored · 30% of the course</div>
   <h2>The rubric</h2>
   <div class="bars">
-    <div class="row"><span>REPLACE: rubric criterion 1 and its weight (the weights add up to 100)</span><div class="bar c-teal" style="--w:100%"></div><span class="val">25%</span></div>
-    <div class="row"><span>REPLACE: rubric criterion 2 and its weight (the weights add up to 100)</span><div class="bar c-cyan" style="--w:100%"></div><span class="val">25%</span></div>
-    <div class="row"><span>REPLACE: rubric criterion 3 and its weight (the weights add up to 100)</span><div class="bar c-coral" style="--w:80%"></div><span class="val">20%</span></div>
-    <div class="row"><span>REPLACE: rubric criterion 4 and its weight (the weights add up to 100)</span><div class="bar c-purple" style="--w:80%"></div><span class="val">20%</span></div>
-    <div class="row"><span>REPLACE: rubric criterion 5 and its weight (the weights add up to 100)</span><div class="bar c-amber" style="--w:40%"></div><span class="val">10%</span></div>
+    <div class="row"><span>Correct: the ten queries match the key on the full data</span><div class="bar c-teal" style="--w:100%"></div><span class="val">35%</span></div>
+    <div class="row"><span>Tests against a fixture checked by hand, and they pass</span><div class="bar c-cyan" style="--w:57%"></div><span class="val">20%</span></div>
+    <div class="row"><span>Grain stated for every query and join</span><div class="bar c-coral" style="--w:43%"></div><span class="val">15%</span></div>
+    <div class="row"><span>Assumptions note: every rule stated, applied and traced</span><div class="bar c-purple" style="--w:43%"></div><span class="val">15%</span></div>
+    <div class="row"><span>Verification log of generated SQL</span><div class="bar c-amber" style="--w:29%"></div><span class="val">10%</span></div>
+    <div class="row"><span>Minimal exposure: no personal data a question does not need</span><div class="bar c-teal" style="--w:14%"></div><span class="val">5%</span></div>
   </div>
-  <div class="callout tip mt"><b>Show results from at least two measured runs.</b> A claim without a number is a plan, not a result.</div>
-  <aside class="notes">Walk through each criterion with one example of what full marks look like.</aside>
+  <aside class="notes"><p>Walk through each criterion with one example of full marks: a q02 whose header says "one row per category; shipments summed to the line before the join", and an expected file whose numbers were worked on paper.</p><p>The repository counts for 30% of the course, the timed check for 30%, the lab query files for 30% and the live adaptation for 10%: see the README.</p></aside>
 </section>
 
 <section class="slide" id="format" data-label="Format">
   <div class="kicker">Format</div>
-  <h2>REPLACE: how many minutes each presentation and its questions take</h2>
+  <h2>Five minutes to adapt one query live, then two minutes of questions</h2>
   <div class="cols cols-3">
-    <div class="card c-teal"><h4>1 · The problem</h4><p class="small mb0">Who, what, why now. One slide.</p></div>
-    <div class="card c-cyan"><h4>2 · What you built</h4><p class="small mb0">Design, decisions, trade-offs. Then the live demo.</p></div>
-    <div class="card c-coral"><h4>3 · What you measured</h4><p class="small mb0">Baseline, improvement, failures found, what comes next.</p></div>
+    <div class="card c-teal"><h4>1 · The change</h4><p class="small mb0">The trainer reads a changed version of one of your ten questions.</p></div>
+    <div class="card c-cyan"><h4>2 · The query</h4><p class="small mb0">You change it, add a fixture row if needed, and run its test.</p></div>
+    <div class="card c-coral"><h4>3 · The reason</h4><p class="small mb0">You say what changed in the grain or the rules.</p></div>
   </div>
-  <div class="callout note mt"><b>Peer feedback.</b> After each talk, everyone writes one strength, one question and one suggestion.</div>
+  <div class="callout note mt"><b>Then two minutes on your assumptions note.</b> Expect "where is this rule applied?" and "why did you decide this?"</div>
+  <aside class="notes"><p>The changed questions are in the trainer's pack, one per query; choose a query the participant did not pick to show. A query that does not finish in five minutes can still score on what was said.</p></aside>
+</section>
+
+<section class="slide dark" id="timed-check" data-label="Timed check">
+  <div class="kicker">Timed check · assistant off</div>
+  <h1>Ten questions · 40 minutes</h1>
+  <div class="timer" data-minutes="40"></div>
+  <p class="lead">Two printed tables, ten short questions. Predict, explain, write one query on paper.</p>
+  <aside class="notes"><p>Laptops closed. Press T to start the timer. Collect the papers when it ends; mark them during the preparation block with the key in the trainer's pack. Pass mark 6 of 10.</p></aside>
+</section>
+
+<section class="slide dark" id="final-prep" data-label="Final preparation">
+  <div class="kicker">Before the first adaptation</div>
+  <h1>Final preparation · 120 minutes</h1>
+  <div class="timer" data-minutes="120"></div>
+  <p class="lead">Run <code>uv run pytest capstone/tests -q</code>, fill in the notes, commit and push.</p>
+  <aside class="notes"><p>Press T to start. Walk the room: check that every repository is public, that its history has more than one commit, and that <code>data/full/</code> is not committed. Pull each repository again at the end of the block.</p></aside>
 </section>
 
 <section class="slide order" id="running-order" data-label="Running order">
   <div class="kicker">Running order</div>
-  <h2>Who presents when</h2>
+  <h2>Who adapts when</h2>
   <table class="t small">
-    <tr><th>#</th><th>Presenter</th><th>Project</th></tr>
-    <tr><td>1</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>2</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>3</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>4</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>5</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>6</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>7</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
-    <tr><td>8</td><td><input placeholder="name"></td><td><input placeholder="Project"></td></tr>
+    <tr><th>#</th><th>Participant</th><th>Query to adapt</th><th>#</th><th>Participant</th><th>Query to adapt</th></tr>
+    <tr><td>1</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>9</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>2</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>10</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>3</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>11</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>4</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>12</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>5</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>13</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>6</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>14</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>7</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>15</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
+    <tr><td>8</td><td><input placeholder="name"></td><td><input placeholder="q"></td><td>16</td><td><input placeholder="name"></td><td><input placeholder="q"></td></tr>
   </table>
   <aside class="notes">Type the names in at the start; the fields can be edited live and are not saved, so keep the list in your notes too.</aside>
 </section>
 
-<section class="slide dark" id="final-prep" data-label="Before the first presentation">
-  <div class="kicker">Before the first presentation</div>
-  <h1>Final prep · 20 minutes</h1>
-  <div class="timer" data-minutes="20"></div>
-  <p class="lead">Rehearse once, record a backup, try the demo on this screen.</p>
-  <aside class="notes">Press T to start the timer. Breaks are not slides: press B when the room needs one.</aside>
+<section class="slide dark presenting" id="now-presenting" data-label="Now adapting">
+  <div class="kicker center">Now adapting</div>
+  <div class="center"><input placeholder="Participant · query"></div>
+  <aside class="notes">Type the participant and the query, read the changed question aloud, and press T to start the five-minute timer. Then two minutes of questions on the assumptions note. Reuse this slide for every participant.</aside>
 </section>
 
-<section class="slide dark presenting" id="now-presenting" data-label="Now presenting">
-  <div class="kicker center">Now presenting</div>
-  <div class="center"><input placeholder="Presenter · project"></div>
-  <aside class="notes">Type the presenter's name and press T to start the timer. Reuse this slide for every presenter.</aside>
+<section class="slide" id="peer-review" data-label="Peer review">
+  <div class="kicker">Peer review · 50 minutes</div>
+  <h2>Run a classmate's tests and read one of their queries against the rules</h2>
+  <ul class="bullets">
+    <li>Clone the repository of the participant after you in the running order</li>
+    <li>Run its tests; pick one query and check its grain comment against the query</li>
+    <li>Write one strength, one question and one suggestion as an issue on their repository</li>
+  </ul>
+  <aside class="notes"><p>Pairs follow the running order: 1 reviews 2, ..., 16 reviews 1. The issue stays on the repository as evidence of the review.</p></aside>
 </section>
 
 <section class="slide" id="review" data-label="Trainer review">
   <div class="kicker">Trainer review</div>
-  <h2>What the presentations showed</h2>
+  <h2>What the repositories showed</h2>
   <div class="cols cols-3">
-    <div class="card c-teal"><h4>Strongest patterns</h4><p class="small mb0">What several projects got right.</p></div>
-    <div class="card c-coral"><h4>Common gaps</h4><p class="small mb0">What most projects would fix next.</p></div>
+    <div class="card c-teal"><h4>Strongest patterns</h4><p class="small mb0">What several repositories got right.</p></div>
+    <div class="card c-coral"><h4>Common gaps</h4><p class="small mb0">The traps most answers fell into.</p></div>
     <div class="card c-purple"><h4>One surprise</h4><p class="small mb0">Something nobody expected.</p></div>
   </div>
-  <aside class="notes">Fill these in from your scoring notes during the last break. Name projects for strengths; keep gaps anonymous.</aside>
+  <aside class="notes">Fill these in from the key comparison during the preparation block. The trainer's pack lists the trap behind each question. Name repositories for strengths; keep gaps anonymous.</aside>
+</section>
+
+<section class="slide" id="follow-up" data-label="The follow-up task">
+  <div class="kicker">Follow-up task · within two weeks</div>
+  <h2>Two new questions from the business orders service, answered the same way</h2>
+  <ul class="bullets">
+    <li>The trainer sends two questions after the course; you add <code>q11.sql</code> and <code>q12.sql</code> to your repository</li>
+    <li>Each with its grain comment, its expected rows worked by hand and a passing test</li>
+    <li>About an hour; the commits on your repository are the record that it was done</li>
+  </ul>
+  <aside class="notes"><p>This is the tracked follow-up task of the course plan (60 minutes of self-study). Note the commit dates when you check it.</p></aside>
 </section>
 
 <section class="slide" id="what-next" data-label="After the course">
   <div class="kicker">After the course</div>
   <h2>Keep going</h2>
   <ul class="bullets">
-    <li><b>Your project stays yours:</b> keep it reproducible and add the next improvement you named today</li>
-    <li><b>Next Academy course:</b> REPLACE: the course that follows this one</li>
+    <li><b>Your repository stays yours:</b> keep its tests running when you change a query</li>
+    <li><b>Next Academy course:</b> FND-DAT-102 Data Wrangling with DataFrames, then FND-DAT-103 Data Formats, Interfaces and Quality Checks</li>
   </ul>
 </section>
 

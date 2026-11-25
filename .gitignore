@@ -42,3 +42,7 @@ labs/data/*.duckdb.wal
 labs/data/*.sqlite
 labs/answers/
 labs/work/
+
+# The capstone data, rebuilt by labs/capstone/prepare_capstone.py, and its results
+labs/capstone/data/full/
+labs/capstone/results/
