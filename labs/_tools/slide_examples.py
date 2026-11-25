@@ -30,6 +30,11 @@ INSERT INTO return_items VALUES
 CREATE TABLE inspections (return_id VARCHAR, inspected_on DATE, result VARCHAR);
 INSERT INTO inspections VALUES
  ('T2','2026-05-03','pass'),('T2','2026-05-04','fail'),('T5','2026-05-07','pass'),('T1','2026-05-02','pass');
+CREATE TABLE stg_returns AS SELECT * FROM (VALUES
+ (1,'T6','O-A21','R1','5.00','2026-05-07'),(2,'T6','O-A22','R2','7.50','2026-05-07'),
+ (3,'','O-A23','R1','4.00','2026-05-08'),(4,'T7','O-A24','R9','3.00','2026-05-08'),
+ (5,'T8','O-A25','R3','-2.00','2026-05-09'),(6,'T9','O-A26','R4','11.00','2026-05-09'))
+ t(row_no, return_id, order_ref, reason_code, refund, received_on);
 """
 
 EXAMPLES = {
@@ -75,7 +80,45 @@ EXAMPLES = {
                           AVG(SUM(COALESCE(refund,0))) OVER (ORDER BY received_on ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS avg_rows,
                           AVG(SUM(COALESCE(refund,0))) OVER (ORDER BY received_on RANGE BETWEEN INTERVAL 1 DAY PRECEDING AND CURRENT ROW) AS avg_range
                         FROM returns GROUP BY received_on ORDER BY received_on""",
+    # Day 4
+    "stage-reject": """SELECT row_no, return_id, CASE
+                         WHEN return_id IS NULL OR return_id = '' THEN 'missing key'
+                         WHEN ROW_NUMBER() OVER (PARTITION BY return_id ORDER BY row_no) > 1 THEN 'duplicate key'
+                         WHEN reason_code NOT IN (SELECT reason_code FROM reasons) THEN 'unknown reason'
+                         WHEN TRY_CAST(refund AS DECIMAL(8,2)) < 0 THEN 'negative refund'
+                       END AS reason FROM stg_returns ORDER BY row_no""",
+    "plan-filter": "EXPLAIN SELECT r.label, SUM(t.refund) FROM returns t JOIN reasons r ON r.reason_code = t.reason_code WHERE t.received_on >= DATE '2026-05-03' GROUP BY r.label",
+    "test-avg-refund": """SELECT AVG(refund) AS generated, AVG(COALESCE(refund, 0)) AS by_the_rule FROM returns""",
 }
+
+
+def transaction_demo(con) -> None:
+    """[transaction-rollback] a three-row insert with one bad row: nothing of it is kept."""
+    before = con.execute("SELECT COUNT(*) FROM returns").fetchone()[0]
+    con.execute("BEGIN TRANSACTION")
+    try:
+        con.execute("INSERT INTO returns VALUES ('T10','O-A30','R1',4.00,'2026-05-10'),"
+                    "('T11','O-A31','R9',2.00,'2026-05-10'),('T12','O-A32','R2',6.00,'2026-05-10')")
+        con.execute("COMMIT")
+    except duckdb.Error as e:
+        con.execute("ROLLBACK")
+        print("[transaction-rollback] refused:", str(e).splitlines()[0][:90])
+    after = con.execute("SELECT COUNT(*) FROM returns").fetchone()[0]
+    print("    returns before", before, "after", after)
+
+
+def index_demo() -> None:
+    """[index-scan-search] the returns in SQLite: a lookup by order before and after an index."""
+    import sqlite3
+    s = sqlite3.connect(":memory:")
+    s.execute("CREATE TABLE returns (return_id TEXT, order_ref TEXT, reason_code TEXT, refund REAL, received_on TEXT)")
+    s.executemany("INSERT INTO returns VALUES (?, ?, ?, ?, ?)",
+                  [("T1", "O-A11", "R1", 12.0, "2026-05-02"), ("T2", "O-A12", "R2", 30.5, "2026-05-02")])
+    q = "EXPLAIN QUERY PLAN SELECT * FROM returns WHERE order_ref = 'O-A15'"
+    print("[index-scan-search] before:", [r[-1] for r in s.execute(q)])
+    s.execute("CREATE INDEX ix_returns_order ON returns (order_ref)")
+    print("    after:", [r[-1] for r in s.execute(q)])
+    print("    total:", [r[-1] for r in s.execute("EXPLAIN QUERY PLAN SELECT SUM(refund) FROM returns")])
 
 
 def main() -> None:
@@ -86,6 +129,8 @@ def main() -> None:
         print(f"[{slide}]", [d[0] for d in cur.description])
         for r in cur.fetchall():
             print("   ", r)
+    transaction_demo(con)
+    index_demo()
 
 
 if __name__ == "__main__":

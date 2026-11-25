@@ -1,0 +1,9 @@
+store_id,region,opened_on,area_m2
+S01,North,2024-03-01,820
+S02,North,2024-09-15,640
+S03,South,2023-11-01,910
+S04,East,2024-01-20,700
+S05,West,2024-06-01,760
+S06,Central,2023-05-10,1050
+S07,Central,2025-02-01,580
+S08,South,2026-04-01,690

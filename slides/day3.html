@@ -94,7 +94,7 @@ JOIN insp ON insp.return_id = t.return_id;
     <div class="card c-coral"><h4>Wrong tomorrow</h4><p class="small mb0">Two different returns with a refund of 12.00 collapse into one. The total is short, and nothing says so.</p></div>
   </div>
   <div class="callout warn mt"><b>Rule.</b> DISTINCT removes duplicate values, not duplicate rows of the grain you meant. Fix the grain instead.</div>
-  <aside class="notes"><p>Assistants often reach for DISTINCT when a total looks too large. Lab 4.4 has a query like that among the ten.</p></aside>
+  <aside class="notes"><p>Assistants often reach for DISTINCT when a total looks too large. Lab 4.4 tests ten queries with mistakes of this family.</p></aside>
 </section>
 
 <section class="slide" id="grain-before-join" data-lo="LO2 LO6">

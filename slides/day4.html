@@ -1,158 +1,415 @@
 <section class="slide title" id="title" data-auto="title">
-  <aside class="notes">REPLACE: welcome; introduce yourself; one question to the room that calibrates the pace; the rhythm of the day</aside>
+  <aside class="notes"><p>Day 4 moves from reading data to building and checking it. Morning: tables that refuse bad rows, and a view that shows the analysts only what they need. Afternoon: how the engine runs a query, and how to prove a query right.</p><p>The last session sets up the capstone method: a test per question against a fixture checked by hand.</p></aside>
 </section>
 
 <section class="slide" id="agenda" data-auto="agenda"></section>
 
-<!-- Session 1 -->
-
-<section class="slide section" id="s1" data-auto="section" data-session="1"></section>
-
-<section class="slide" id="s1-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="review-day3" data-lo="LO3">
+  <div class="kicker">Review of Day 3</div>
+  <h2>Which ranking gives the tied products the same rank, and leaves no gap after them?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3">
+    <p class="lead">A bakery ranks products by units sold. Two products tie for second place. The next product should be third.</p>
+    <div class="opts">
+      <div class="opt" data-why="ROW_NUMBER gives every row its own number: one of the tied products becomes third">ROW_NUMBER()</div>
+      <div class="opt" data-ok>DENSE_RANK()</div>
+      <div class="opt" data-why="RANK gives the tie the same number but skips the next: the product after them is fourth">RANK()</div>
+      <div class="opt" data-why="NTILE splits rows into equal buckets; it does not rank by ties">NTILE(3)</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> DENSE_RANK gives ties one rank and continues with the next number: 1, 2, 2, 3.</div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <aside class="notes"><p>Answer: DENSE_RANK. If many chose RANK, show yesterday's rank-ties slide again: 1, 2, 2, 4.</p></aside>
 </section>
 
-<section class="slide" id="s1-steps">
+<!-- Session 1 -->
+
+<section class="slide section" id="s1" data-label="Session 1 · Loading and transactions" data-auto="section" data-session="1"></section>
+
+<section class="slide" id="constraints-refuse" data-label="Session 1 · Loading and transactions" data-lo="LO5">
+  <div class="kicker">Constraints</div>
+  <h2>A constraint is a rule the database checks on every row, every time</h2>
+  <table class="t">
+    <tr><th>Constraint</th><th>Refuses</th><th>Returns desk example</th></tr>
+    <tr><td><code>PRIMARY KEY</code></td><td>a repeated or empty key</td><td>a second T2</td></tr>
+    <tr><td><code>NOT NULL</code></td><td>an empty value</td><td>a return with no date</td></tr>
+    <tr><td><code>REFERENCES</code></td><td>a value with no row on the one side</td><td>reason R9, which does not exist</td></tr>
+    <tr><td><code>CHECK</code></td><td>a value outside a stated condition</td><td>a refund below zero</td></tr>
+  </table>
+  <div class="callout warn mt"><b>What goes wrong.</b> A rule written only in a document is checked by nobody. Written as a constraint, it holds for every program that writes to the table.</div>
+  <aside class="notes"><p>Recall Day 1: keys and foreign keys were read from the schema. Today they are written. A foreign key also fixes the order of loading: the one side first.</p></aside>
+</section>
+
+<section class="slide" id="stage-first" data-label="Session 1 · Loading and transactions" data-lo="LO5">
   <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
+  <h2>Stage the raw file as text, give each bad row a reason, then insert the rest</h2>
   <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+    <div class="step c-teal"><b>1 · Stage</b>every row as text, numbered in file order</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · Reject</b>a rule gives each bad row one reason</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>3 · Insert</b>the rest, cast to the table's types</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>4 · Log</b>read = loaded + rejected</div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout tip mt frag" data-frag="d"><b>Takeaway.</b> Straight into a constrained table, the load stops at the first bad row. Staged, you see them all at once.</div>
+  <aside class="notes"><p>Press once per step. The staging table has no constraints at all, and every column is text, so nothing is refused while reading.</p></aside>
+</section>
+
+<section class="slide" id="reject-rule" data-label="Session 1 · Loading and transactions" data-lo="LO5">
+  <div class="kicker">A reject rule</div>
+  <h2>CASE gives each row the first reason that applies, so the counts add up</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT row_no, return_id,
+  CASE
+    WHEN return_id = '' THEN 'missing key'
+    WHEN ROW_NUMBER() OVER (
+      PARTITION BY return_id
+      ORDER BY row_no) > 1 THEN 'duplicate key'
+    WHEN reason_code NOT IN
+      (SELECT reason_code FROM reasons)
+      THEN 'unknown reason'
+    WHEN TRY_CAST(refund AS DECIMAL(8,2)) &lt; 0
+      THEN 'negative refund'
+  END AS reason
+FROM stg_returns</code></pre>
+    <table class="t small">
+      <tr><th>row</th><th>return_id</th><th>reason</th></tr>
+      <tr><td>1</td><td>T6</td><td></td></tr>
+      <tr class="hl"><td>2</td><td>T6</td><td>duplicate key</td></tr>
+      <tr class="hl"><td>3</td><td>(empty)</td><td>missing key</td></tr>
+      <tr class="hl"><td>4</td><td>T7</td><td>unknown reason</td></tr>
+      <tr class="hl"><td>5</td><td>T8</td><td>negative refund</td></tr>
+      <tr><td>6</td><td>T9</td><td></td></tr>
+    </table>
+  </div>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>, stage-reject).</p>
+  <aside class="notes"><p>The first T6 is kept and the second rejected: ROW_NUMBER over the file order decides which copy wins. Say aloud that this is a choice, and the lab makes the same one.</p><p>An empty reason means the row is good. The lab's helper keeps the rows with a reason as the reject table.</p></aside>
+</section>
+
+<section class="slide" id="transaction" data-label="Session 1 · Loading and transactions" data-lo="LO5">
+  <div class="kicker">Transactions</div>
+  <h2>A transaction keeps all its changes or none of them</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">BEGIN TRANSACTION;
+INSERT INTO returns VALUES
+  ('T10', 'O-A30', 'R1', 4.00, '2026-05-10'),
+  ('T11', 'O-A31', 'R9', 2.00, '2026-05-10'),
+  ('T12', 'O-A32', 'R2', 6.00, '2026-05-10');
+-- refused: R9 is not a reason
+ROLLBACK;</code></pre>
+    <div>
+      <div class="stat center"><div class="big">5 → 5</div><div class="lbl">rows of returns, before and after</div></div>
+      <p class="small mt">T10 and T12 were valid, and they are not kept either. Then <code>COMMIT</code> makes every change of a transaction permanent at once.</p>
+    </div>
+  </div>
+  <div class="callout warn mt"><b>What goes wrong.</b> Without a transaction, a load that fails halfway leaves orders without their lines, and July's reports count orders with no revenue.</div>
+  <aside class="notes"><p>Ask: which is worse, a month not loaded or a month half-loaded? The half-loaded one, because nobody notices it.</p><p>The same applies to UPDATE and DELETE: the stretch of lab 4.1 corrects a row and rolls it back.</p></aside>
+</section>
+
+<section class="slide" id="load-log" data-label="Session 1 · Loading and transactions" data-lo="LO5">
+  <div class="kicker">The load log</div>
+  <h2>Every row read is either loaded or rejected with a reason</h2>
+  <table class="t">
+    <tr><th>File</th><th class="num">Read</th><th class="num">Loaded</th><th class="num">Rejected</th><th>Reasons</th></tr>
+    <tr><td>returns, staged</td><td class="num">6</td><td class="num">2</td><td class="num">4</td><td>missing key 1 · duplicate key 1 · unknown reason 1 · negative refund 1</td></tr>
+  </table>
+  <ul class="bullets mt">
+    <li>The log is the evidence that nothing was lost <b>silently</b></li>
+    <li>A rejection upstream changes counts downstream: the items of a rejected return are rejected too</li>
+  </ul>
+  <aside class="notes"><p>In the lab, three files are logged. Ask participants to predict, before the log runs, why the order lines will show more unknown orders than were planted in the file.</p></aside>
+</section>
+
+<section class="slide" id="check-load-log" data-label="Session 1 · Loading and transactions" data-lo="LO5">
+  <div class="kicker">Checkpoint</div>
+  <h2>What does this load log tell you?</h2>
+  <div class="quiz" data-type="single" data-lo="LO5">
+    <p class="lead">A clinic's appointments file: read 500, loaded 480, rejected 15 (12 unknown patient, 3 invalid date).</p>
+    <div class="opts">
+      <div class="opt" data-why="Assumes the totals are fine because every rejection has a reason">The load is complete and every row is accounted for</div>
+      <div class="opt" data-why="The transaction concerns rows that were inserted; the log counts rows that were not">The transaction rolled back 15 rows</div>
+      <div class="opt" data-ok>Five rows are unaccounted for</div>
+      <div class="opt" data-why="Unknown patients are a reason to reject, not a sign of a duplicate file">The file was loaded twice</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> 480 + 15 = 495, not 500. Five rows were neither loaded nor rejected: the log is not finished until read equals loaded plus rejected.</div>
+  </div>
+  <aside class="notes"><p>Answer: five unaccounted. The usual cause is a rule that gives no reason to a row it still filters out, for example a WHERE in the insert that the reject rule does not mirror.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-4-1" data-auto="lab" data-lab="4.1">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>Watch for definitions without NOT NULL on the region: the probe for an empty region passes only with it, or with the CHECK. Watch also for rules using NOT IN against a list that can hold an empty value: Day 2's lesson returns.</p><p>Participants who fall behind can run the worked customers rule and come back to orders and lines; lab 4.2 does not depend on this one.</p></aside>
 </section>
 
 <!-- Session 2 -->
 
 <section class="slide section" id="s2" data-auto="section" data-session="2"></section>
 
-<section class="slide" id="s2-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="identifiers" data-lo="LO5">
+  <div class="kicker">Personal data</div>
+  <h2>A column is personal data if it can identify a person, alone or with others</h2>
+  <div class="cols cols-3">
+    <div class="card c-coral"><h4>Direct identifier</h4><p class="small mb0">Points to one person by itself: a name, a phone number, an e-mail address.</p></div>
+    <div class="card c-purple"><h4>Indirect identifier</h4><p class="small mb0">Narrows the group when combined: a date, an area, a key that links all of one person's records.</p></div>
+    <div class="card c-teal"><h4>Neither</h4><p class="small mb0">Describes a choice or the record, and identifies no one on its own.</p></div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <p class="mt">The returns desk's callback list: <code>return_id</code>, <code>caller_name</code>, <code>caller_phone</code>, <code>area</code>, <code>received_on</code>, <code>callback_ok</code>. Which is which?</p>
+  <p class="caption">The Personal Data Protection Law treats data that identifies a person directly or indirectly as personal data.</p>
+  <aside class="notes"><p>Take answers from the room for the six columns. Name and phone are direct; area and the date are indirect; the return number is indirect, because it links to the order and through it to a person; callback_ok is neither.</p><p>The point to land: removing the name does not make a table anonymous.</p></aside>
 </section>
 
-<section class="slide" id="s2-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="minimum-necessary" data-lo="LO5">
+  <div class="kicker">Minimisation</div>
+  <h2>Give each reader the columns the purpose needs, and no more</h2>
+  <ul class="bullets">
+    <li>The law asks that personal data be <b>limited to the minimum necessary</b> for the purpose (PDPL, Article 11, paragraph 3)</li>
+    <li>The Minimum Personal Data guideline adds: restrict <b>access rights</b> to what each role actually needs</li>
+    <li>A purpose is a question: "how many returns per area each week" needs no name and no phone</li>
+    <li>An exact date can often become a week or a month; an exact year, a decade</li>
+  </ul>
+  <div class="callout warn mt"><b>What goes wrong.</b> "Give them a copy without the names" makes a second table to secure, forget and leak. A view is not a copy.</div>
+  <aside class="notes"><p>Both texts are in the README's references. The guideline's point about access rights is the bridge to views: the view is how the rights are narrowed in the database.</p></aside>
+</section>
+
+<section class="slide" id="classification-levels" data-lo="LO5">
+  <div class="kicker">Classification</div>
+  <h2>A level says how much harm disclosure would do, and so how the data is handled</h2>
+  <table class="t">
+    <tr><th>Level</th><th>Disclosure would cause</th></tr>
+    <tr><td>Top Secret</td><td>exceptionally grave damage</td></tr>
+    <tr><td>Secret</td><td>serious damage</td></tr>
+    <tr><td>Restricted</td><td>limited damage, including to an individual; examples include personal data and detailed statements of individual transactions</td></tr>
+    <tr><td>Public</td><td>none of the above</td></tr>
+  </table>
+  <p class="mt small">The four levels of the national Data Classification Policy, written for public entities. Data not yet classified is treated as Restricted until it is. In the labs, the grocery delivery company has adopted the levels as its own rule.</p>
+  <aside class="notes"><p>Be exact about scope: the policy binds public entities. A private company can adopt the levels, and the case company has; that is its rule, not the law's.</p><p>The returns desk's callback list is Restricted: personal data. Its list of reason codes is Public if the company has published it.</p></aside>
+</section>
+
+<section class="slide" id="view" data-lo="LO5">
+  <div class="kicker">Views</div>
+  <h2>A view is a stored query: readers see its columns, never the table behind it</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">CREATE VIEW returns_for_analysts AS
+SELECT return_id,                              -- kept: joins to items; still personal data
+       area,
+       DATE_TRUNC('week', received_on) AS received_week
+FROM callback_list;                            -- no name, no phone, no exact date
+
+-- the test: none of these may appear
+DESCRIBE returns_for_analysts;</code></pre>
+  <div class="callout tip mt-s"><b>Grant the view, not the table.</b> The analysts' role reads the view; the table stays with the desk.</div>
+  <aside class="notes"><p>Two habits: a comment on every kept column saying why, and a test that the banned columns are absent. The lab runs that test.</p><p>The view does not anonymise: the return number still links each row to a person, so the view's output is still Restricted.</p></aside>
+</section>
+
+<section class="slide" id="genai-rule" data-lo="LO5">
+  <div class="kicker">Responsible use</div>
+  <h2>Restricted rows never go into a generative AI tool; the schema can</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>Can go in</h4><p class="small mb0">Public data: column names and types, the business rule as text, an error message, a query with no values from the data.</p></div>
+    <div class="card c-coral"><h4>Stays out</h4><p class="small mb0">Rows of a Restricted table, a view's output, a sample "just to show the shape", a screenshot of a result.</p></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout warn mt"><b>Rule.</b> Only Public data goes into a generative AI tool. Wider use of an assistant inside the company is the company's own rule, written down before anyone relies on it.</div>
+  <aside class="notes"><p>This follows the national guidance on generative AI: nothing classified Restricted or higher goes into such a tool. In this course everything is synthetic, but the habit is the point: practise it as if the rows were real.</p></aside>
+</section>
+
+<section class="slide" id="check-view" data-lo="LO5">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which view gives the analysts what they need, and no more?</h2>
+  <div class="quiz" data-type="single" data-lo="LO5">
+    <p class="lead">A gym's members table: member_id, full_name, phone, birth_date, branch, joined_on. The analysts count members per branch and per age band.</p>
+    <div class="opts">
+      <div class="opt" data-ok>member_id, branch, age band</div>
+      <div class="opt" data-why="Keeps the exact birth date, which the age band already serves">member_id, branch, birth_date</div>
+      <div class="opt" data-why="Dropping only the direct identifiers keeps an exact date and the join date the question does not use">member_id, branch, birth_date, joined_on</div>
+      <div class="opt" data-why="A copy of the table without the name is a second table to secure, and still holds the phone">a copy of the table without full_name</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Two counts need the branch and an age band. The key stays only if a join needs it; nothing else serves the purpose.</div>
+  </div>
+  <aside class="notes"><p>Answer: the first. Ask whether member_id is needed at all for these two counts: strictly, no. Keep it only if the analysts join to visits.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-4-2" data-auto="lab" data-lab="4.2">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The lab opens the July tables as a correct load leaves them, so participants who did not finish lab 4.1 are not blocked.</p><p>Common disagreement: whether the customer number is an identifier. Let the room argue for a minute, then point to the definition: it links every order to one person, so it is indirect.</p></aside>
 </section>
 
 <!-- Session 3 -->
 
 <section class="slide section" id="s3" data-auto="section" data-session="3"></section>
 
-<section class="slide" id="s3-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="explain" data-lo="LO3">
+  <div class="kicker">EXPLAIN</div>
+  <h2>A plan is a tree of operators: read it from the bottom up</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>Seq Scan</b>returns, filter on the date · reasons</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>Hash Join</b>on reason_code</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>Hash Group By</b>by label, sum of refund</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>Projection</b>the columns returned</div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql">EXPLAIN
+SELECT r.label, SUM(t.refund)
+FROM returns t JOIN reasons r ON r.reason_code = t.reason_code
+WHERE t.received_on >= DATE '2026-05-03'
+GROUP BY r.label;</code></pre>
+  <aside class="notes"><p>The plan DuckDB prints for this query, drawn left to right (<code>_tools/slide_examples.py</code>, plan-filter). Run it live if there is time: the boxes in the output are the same four steps, bottom to top.</p></aside>
 </section>
 
-<section class="slide" id="s3-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="filter-in-plan" data-lo="LO3">
+  <div class="kicker">Where the filter is</div>
+  <h2>The engine applies a filter as early as it can, often inside the scan</h2>
+  <ul class="bullets">
+    <li>In the returns plan, the date condition appears in the <b>scan</b> of returns, under <code>Filters:</code></li>
+    <li>Rows that fail it never reach the join: less to match, less to group</li>
+    <li>The numbers after <code>~</code> are the engine's <b>estimates</b>, made before running, not counts</li>
+    <li>A filter on the result of a group (HAVING) cannot move down: it needs the groups first</li>
+  </ul>
+  <div class="callout warn mt"><b>What goes wrong.</b> Reading the estimates as row counts. To count, run the query; to see the shape, read the plan.</div>
+  <aside class="notes"><p>Do not show the lab's plan here: participants find the filter in their own plan of the orders query.</p></aside>
+</section>
+
+<section class="slide" id="scan-search" data-lo="LO3">
+  <div class="kicker">Indexes</div>
+  <h2>An index lets a lookup go straight to its rows instead of reading them all</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk, SQLite"><code class="language-sql">EXPLAIN QUERY PLAN
+SELECT * FROM returns
+WHERE order_ref = 'O-A15';
+-- SCAN returns
+
+CREATE INDEX ix_returns_order
+  ON returns (order_ref);
+-- the same lookup:
+-- SEARCH returns USING INDEX
+--   ix_returns_order (order_ref=?)</code></pre>
+    <ul class="bullets">
+      <li><b>SCAN</b>: every row is read and tested</li>
+      <li><b>SEARCH</b>: the index leads to the matching rows</li>
+      <li>A total over the whole table stays a <b>SCAN</b> with or without the index</li>
+    </ul>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <p class="caption">SQLite, from Python's standard library (<code>_tools/slide_examples.py</code>, index-scan-search). No timings: the plan's shape is what is stable.</p>
+  <aside class="notes"><p>Why SQLite: its plan says SCAN or SEARCH in one line, which makes the change visible. DuckDB, built for analysis, mostly reads whole columns and uses its indexes for keys and constraints.</p></aside>
+</section>
+
+<section class="slide" id="when-index" data-lo="LO3">
+  <div class="kicker">When it helps</div>
+  <h2>An index helps a query that picks few rows by the indexed column</h2>
+  <table class="t">
+    <tr><th>Query on returns, index on order_ref</th><th>Plan</th><th>Why</th></tr>
+    <tr><td><code>WHERE order_ref = 'O-A15'</code></td><td>search</td><td>an exact value of the indexed column</td></tr>
+    <tr><td><code>SUM(refund)</code> over all returns</td><td>scan</td><td>every row is needed anyway</td></tr>
+    <tr><td><code>WHERE order_ref LIKE '%15'</code></td><td>scan</td><td>a pattern starting with % has no place to jump to</td></tr>
+    <tr><td><code>WHERE reason_code = 'R1'</code></td><td>scan</td><td>not the indexed column</td></tr>
+  </table>
+  <div class="callout tip mt"><b>Takeaway.</b> Analytical queries read most of a table, so they rarely gain from an index. Lookups do.</div>
+  <aside class="notes"><p>A two-column index is used from its first column: an index on (area, received_on) helps "area X since May", not "everything since May". The lab's stretch shows it.</p></aside>
+</section>
+
+<section class="slide" id="check-index" data-lo="LO3">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which query can an index on <code>patient_id</code> turn into a search?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3">
+    <p class="lead">A clinic's appointments table, 2 million rows, an index on patient_id.</p>
+    <div class="opts">
+      <div class="opt" data-why="A count by month reads every row; the index has nothing to skip">appointments per month this year</div>
+      <div class="opt" data-why="The condition is on the doctor, not the indexed column">appointments of doctor D12</div>
+      <div class="opt" data-why="A pattern with a leading % cannot use the order of the index">patients whose number ends in 42</div>
+      <div class="opt" data-ok>appointments of patient P-1093</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> An exact value of the indexed column: the engine goes to that patient's entries and reads only those rows.</div>
+  </div>
+  <aside class="notes"><p>Answer: patient P-1093. Ask which index would help the doctor query: one on doctor_id.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-4-3" data-auto="lab" data-lab="4.3">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>Loading the orders into SQLite takes a few seconds; on a slow laptop up to half a minute. Remind participants that no timing is taken: the result to look at is the word SCAN or SEARCH.</p><p>Some will expect the LIKE query to search because the plan names the index. It reads the whole index: still a scan.</p></aside>
 </section>
 
 <!-- Session 4 -->
 
 <section class="slide section" id="s4" data-auto="section" data-session="4"></section>
 
-<section class="slide" id="s4-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="known-answers" data-lo="LO6">
+  <div class="kicker">Testing</div>
+  <h2>A query is right when it matches an answer worked out by hand</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · Fixture</b>tables small enough to print</div>
+    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · Expected</b>the answer on paper, from the rule</div>
+    <div class="arrow frag" data-frag="c">→</div><div class="step c-purple frag" data-frag="c"><b>3 · Run</b>the query on the fixture</div>
+    <div class="arrow frag" data-frag="d">→</div><div class="step c-coral frag" data-frag="d"><b>4 · Compare</b>pass, or find out why</div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <div class="callout tip mt frag" data-frag="d"><b>Takeaway.</b> The expected answer must not come from SQL: another query can share the mistake.</div>
+  <aside class="notes"><p>Ask why the full data will not do: nobody knows its right answer without a query. The fixture must hold the hard cases: a failed attempt, a returned order, a cancelled line, an empty discount.</p></aside>
 </section>
 
-<section class="slide" id="s4-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="three-failures" data-lo="LO6">
+  <div class="kicker">Why queries fail</div>
+  <h2>Most wrong totals are one of three mistakes</h2>
+  <div class="cols cols-3">
+    <div class="card c-coral"><h4>Fan-out</h4><p class="small mb0">A join repeats rows. Returns joined to inspections: T2's refund counted twice.</p></div>
+    <div class="card c-purple"><h4>Wrong grain</h4><p class="small mb0">The right sum at the wrong level: an average per item when the question is per return.</p></div>
+    <div class="card c-cyan"><h4>Missing rule</h4><p class="small mb0">Well formed, but a business rule is left out: the desk's rule says a return with no refund counts as 0.</p></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <aside class="notes"><p>Each has a signature. Fan-out: the total is too high, often by a pattern that matches repeat rows. Grain: an average that is too small or too large by the number of items. Missing rule: a small difference that a rule explains.</p></aside>
+</section>
+
+<section class="slide" id="test-example" data-lo="LO6">
+  <div class="kicker">A test that fails</div>
+  <h2>The average refund per return: the generated query against the rule</h2>
+  <div class="cols cols-2">
+    <div class="stat center"><div class="big">17.44</div><div class="lbl"><code>AVG(refund)</code>: skips T4, whose refund is empty</div></div>
+    <div class="stat center"><div class="big">13.95</div><div class="lbl">by hand, with T4 as 0: 69.75 over 5 returns</div></div>
+  </div>
+  <p class="mt">Test: FAIL. Kind: <b>missing rule</b>. The fix is one <code>COALESCE</code>; finding it took the rule and a fixture.</p>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>, test-avg-refund).</p>
+  <aside class="notes"><p>Day 2's NULL lesson in a new place. Ask: which would a reader of the report have noticed? Neither number looks wrong.</p></aside>
+</section>
+
+<section class="slide" id="verification-note" data-lo="LO6">
+  <div class="kicker">The verification note</div>
+  <h2>Every generated query ships with its test and a judgement</h2>
+  <table class="t small">
+    <tr><th>Query</th><th>Expected</th><th>Got</th><th>Test</th><th>Judgement</th></tr>
+    <tr><td>avg_refund</td><td class="num">13.95</td><td class="num">17.44</td><td>FAIL</td><td>missing rule; empty refund skipped</td></tr>
+    <tr><td>returns_r2</td><td class="num">2</td><td class="num">2</td><td>pass</td><td>ok</td></tr>
+  </table>
+  <ul class="bullets mt">
+    <li>Generated SQL is a <b>draft</b> until it passes a test against answers someone checked by hand</li>
+    <li>The capstone asks for the same: a test per question and a log of any generated SQL and how it was checked</li>
+  </ul>
+  <aside class="notes"><p>The second row is the count of returns with reason R2 on the returns desk: T2 and T5. A pass is recorded too: the note shows what was tested, not only what failed.</p></aside>
+</section>
+
+<section class="slide" id="check-test" data-lo="LO6">
+  <div class="kicker">Checkpoint</div>
+  <h2>A generated query passes its test. What does that show?</h2>
+  <div class="quiz" data-type="single" data-lo="LO6">
+    <p class="lead">A pharmacy fixture has six orders, none with two delivery attempts. The generated revenue query matches the hand-checked answer.</p>
+    <div class="opts">
+      <div class="opt" data-why="A fixture proves only the cases it contains">The query is correct on the full data</div>
+      <div class="opt" data-ok>It follows the rule on the cases the fixture holds; repeat attempts are untested</div>
+      <div class="opt" data-why="A passing test is evidence; discarding it wastes the check">Nothing: generated queries cannot be trusted</div>
+      <div class="opt" data-why="The size of a fixture does not decide; its cases do">The fixture is too small to mean anything</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> A test proves the cases in the fixture. Fan-out over repeat attempts needs a fixture with repeat attempts.</div>
+  </div>
+  <aside class="notes"><p>Answer: the second. The fix is to add an order with a failed attempt to the fixture and run the test again.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-4-4" data-auto="lab" data-lab="4.4">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The ten queries were written for the course to reproduce common mistakes; no model produced them. Say so: the method is what transfers.</p><p>Keep the assistant closed for the expected answers. The ten minutes go mostly to the revenue questions: suggest starting with the delivered orders and their delivered attempt dates.</p><p>Common confusion: v09 and v01 return the same expected number, because the mini tables hold only March.</p></aside>
 </section>
 
 <section class="slide" id="wrap-up">
-  <div class="kicker">Day 4 · wrap-up</div>
-  <h2>Three things to keep</h2>
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 4</h2>
   <div class="cols cols-3">
-    <div class="card c-teal"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-coral"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-purple"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
+    <div class="card c-teal"><h4>Refuse and account</h4><p class="small mb0">Constraints refuse bad rows; the log accounts for every row read.</p></div>
+    <div class="card c-purple"><h4>Expose the minimum</h4><p class="small mb0">A view per purpose, tested; Restricted rows stay out of assistants.</p></div>
+    <div class="card c-coral"><h4>Prove it by hand</h4><p class="small mb0">A query is right when it matches an answer worked out on a fixture.</p></div>
   </div>
+  <aside class="notes"><p>Ask each participant to name one query from the four days they would now test differently.</p></aside>
 </section>
 
-<section class="slide dark" id="next" data-label="Next">
+<section class="slide dark" id="next">
   <div class="kicker">Next</div>
-  <h2>Capstone: Capstone project presentations</h2>
-  <p class="lead">REPLACE: what participants prepare before then; unfinished labs can be finished at home</p>
-  <aside class="notes">REPLACE: accounts, installs or reading participants need before the next unit</aside>
+  <h2>Capstone: the business orders brief</h2>
+  <ul class="bullets">
+    <li>Tonight and before the capstone day: the brief in <code>labs/capstone/</code>, ten questions, a test per question</li>
+    <li>On the day: the timed check with the assistant off, then five minutes adapting one of your queries live</li>
+  </ul>
+  <aside class="notes"><p>Show where the capstone starter repository is and its README. Remind participants that the history of their repository is part of the submission.</p></aside>
 </section>

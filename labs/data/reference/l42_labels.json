@@ -1,0 +1,6 @@
+{
+ "stores": "public; already published by the company",
+ "customers": "restricted; personal data of customers",
+ "orders": "restricted; individual transactions, each linked to one customer",
+ "order_lines": "restricted; the detail of individual transactions, linked to a customer through the order"
+}

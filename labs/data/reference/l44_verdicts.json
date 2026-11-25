@@ -1,0 +1,12 @@
+{
+ "v01": "fan-out; joins every delivery attempt, so orders with a failed attempt count twice or three times",
+ "v02": "missing rule; books revenue on the order date instead of the delivered attempt",
+ "v03": "ok",
+ "v04": "grain; averages lines, the question is per order",
+ "v05": "missing rule; leaves the discount out",
+ "v06": "ok",
+ "v07": "missing rule; counts the returned order as revenue",
+ "v08": "ok",
+ "v09": "ok",
+ "v10": "fan-out; the same repeated attempts inflate the top customer's total"
+}

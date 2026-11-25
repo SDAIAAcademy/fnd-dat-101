@@ -631,7 +631,7 @@
           "lab": {
             "id": "4.1",
             "title": "Load the extracts and log every rejected row",
-            "summary": "Define three constrained tables, load the defective July extracts of customers, orders and order lines through staging tables, and write a load log where every file reads as loaded plus rejected",
+            "summary": "Define three constrained tables, stage the defective July extracts, give each bad row a reason, and log every file as loaded plus rejected",
             "minutes": 35,
             "href": "D4_1_load_with_log.ipynb",
             "steps": [
@@ -674,7 +674,7 @@
           "lab": {
             "id": "4.2",
             "title": "Label the tables and build the analyst view",
-            "summary": "Mark the personal-data columns of the synthetic customer table, label each table with a level under the company's rule, and build a minimal view the analysts can query without names, phones or e-mail",
+            "summary": "Mark the personal-data columns, label each table under the company's rule, and build a view the analysts can query without names, phones or e-mail",
             "minutes": 35,
             "href": "D4_2_analyst_view.ipynb",
             "steps": [
@@ -717,7 +717,7 @@
           "lab": {
             "id": "4.3",
             "title": "Read two plans and watch an index change one",
-            "summary": "Read the plan of a join with a filter in the analytical engine, then watch an index turn a scan into a search in the second engine; plan shapes only, no timings",
+            "summary": "Read a join plan in DuckDB, then watch an index turn a scan into a search in SQLite; plan shapes only, no timings",
             "minutes": 30,
             "href": "D4_3_plans_and_indexes.ipynb",
             "steps": [

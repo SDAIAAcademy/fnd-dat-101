@@ -287,13 +287,20 @@ def save_part(part: str, answers: dict) -> Path:
     return p
 
 
+def read_answers_text(text: str) -> dict:
+    """Split a text of '-- name: key' blocks into {key: sql}."""
+    found = {}
+    for block in re.split(r"(?m)^-- name: ", text)[1:]:
+        key, _, rest = block.partition("\n")
+        sql = "\n".join(l for l in rest.splitlines() if not l.startswith("-- prediction:"))
+        found[key.strip()] = sql.strip().rstrip(";").strip()
+    return found
+
+
 def read_answers(folder: Path = ANSWERS) -> dict:
     found = {}
     for f in sorted(folder.glob("*.sql")):
-        for block in re.split(r"(?m)^-- name: ", f.read_text(encoding="utf-8"))[1:]:
-            key, _, rest = block.partition("\n")
-            sql = "\n".join(l for l in rest.splitlines() if not l.startswith("-- prediction:"))
-            found[key.strip()] = sql.strip().rstrip(";").strip()
+        found.update(read_answers_text(f.read_text(encoding="utf-8")))
     return found
 
 
@@ -461,3 +468,307 @@ def grade_windows(folder: Path = ANSWERS, con=None) -> int:
         present = sum(1 for i in range(1, 7) if not _blank(found.get(f"w{i}", "")))
         assert passed == present, "a window drill of the solution fails"
     return passed
+
+
+# ------------------------------------------------------------------------------ Day 4: loading
+EXTRACTS = DATA / "extracts"
+JULY = DATA / "july"
+
+
+def _probe(con, sql) -> bool:
+    try:
+        con.execute(sql)
+        return True
+    except duckdb.Error:
+        return False
+
+
+def check_definitions(ddl: str) -> int:
+    """Run your definition script in an empty database and try good and bad rows against it."""
+    if _blank(ddl):
+        if STRICT:
+            raise AssertionError("the definition script is blank")
+        _say("not written yet: write the three CREATE TABLE statements, then run this cell again")
+        return 0
+    con = duckdb.connect()
+    con.execute(ddl)
+    probes = [
+        ("a valid customer is accepted", True, "INSERT INTO customers VALUES ('C1','2026-07-01','North','n','p','e',1990,true)"),
+        ("a second customer with the same key is refused", False, "INSERT INTO customers VALUES ('C1','2026-07-02','South','n','p','e',1990,true)"),
+        ("a customer without a key is refused", False, "INSERT INTO customers VALUES (NULL,'2026-07-01','North','n','p','e',1990,true)"),
+        ("a region outside the five is refused", False, "INSERT INTO customers VALUES ('C2','2026-07-01','Nrth','n','p','e',1990,true)"),
+        ("a valid order is accepted", True, "INSERT INTO orders VALUES ('O1','C1','S01','2026-07-01 10:00:00','delivered',9.00)"),
+        ("an order of an unknown customer is refused", False, "INSERT INTO orders VALUES ('O2','C9','S01','2026-07-01 10:00:00','delivered',9.00)"),
+        ("an order with an unknown status is refused", False, "INSERT INTO orders VALUES ('O3','C1','S01','2026-07-01 10:00:00','deliverd',9.00)"),
+        ("a valid line is accepted", True, "INSERT INTO order_lines VALUES ('O1',1,'P0001',2,6.50,NULL,'ok')"),
+        ("a second line with the same order and line number is refused", False, "INSERT INTO order_lines VALUES ('O1',1,'P0002',1,4.00,NULL,'ok')"),
+        ("a line of an unknown order is refused", False, "INSERT INTO order_lines VALUES ('O9',1,'P0001',1,4.00,NULL,'ok')"),
+        ("a quantity of 0 is refused", False, "INSERT INTO order_lines VALUES ('O1',2,'P0001',0,4.00,NULL,'ok')"),
+    ]
+    good = 0
+    for label, accept, sql in probes:
+        ok = _probe(con, sql) == accept
+        good += ok
+        _say(f"{'ok  ' if ok else 'MISS'} {label}")
+    _say(f"definition script: {good} of {len(probes)} probes behave as the rules say")
+    ANSWERS.mkdir(exist_ok=True)
+    (ANSWERS / "july_schema.sql").write_text(ddl.strip() + "\n", encoding="utf-8", newline="\n")
+    if STRICT:
+        assert good == len(probes), "the definition script lets a bad row in or refuses a good one"
+    return good
+
+
+def stage_extracts(con) -> None:
+    """Load the three raw extracts as text, numbered in file order: stg_customers, stg_orders, stg_order_lines."""
+    for t in ["customers", "orders", "order_lines"]:
+        con.execute(f"""CREATE OR REPLACE TABLE stg_{t} AS
+            SELECT ROW_NUMBER() OVER () AS row_no, *
+            FROM read_csv(?, header = true, all_varchar = true)""", [str(EXTRACTS / f"{t}_raw.csv")])
+        n = con.execute(f"SELECT COUNT(*) FROM stg_{t}").fetchone()[0]
+        _say(f"stg_{t}: {n} rows read")
+
+
+KEYS = {"customers": "customer_id", "orders": "order_id", "order_lines": "order_id, line_no"}
+
+
+def july_workspace(ddl: str):
+    """An empty database in memory with your definitions, and the three extracts staged as text."""
+    con = duckdb.connect()
+    if _blank(ddl):
+        _say("no definitions yet: the tables are missing, so the inserts below will fail and roll back")
+    else:
+        con.execute(ddl)
+    stage_extracts(con)
+    return con
+
+
+def rejects(con, table: str, sql: str) -> None:
+    """Keep the staged rows your rule gives a reason as rej_<table>; the others become the view ok_<table>."""
+    if _blank(sql):
+        if STRICT:
+            raise AssertionError(f"the reject rule for {table} is blank")
+        _say(f"rule for {table} not written yet: no row is rejected, so the insert may fail and roll back")
+        con.execute(f"CREATE OR REPLACE TABLE rej_{table} AS SELECT row_no, NULL::VARCHAR AS reason FROM stg_{table} WHERE false")
+    else:
+        con.execute(f"CREATE OR REPLACE TABLE rej_{table} AS SELECT * FROM (\n{sql.strip().rstrip(';')}\n) WHERE reason IS NOT NULL")
+    con.execute(f"CREATE OR REPLACE VIEW ok_{table} AS SELECT * FROM stg_{table} WHERE row_no NOT IN (SELECT row_no FROM rej_{table})")
+    for reason, n in con.execute(f"SELECT reason, COUNT(*) FROM rej_{table} GROUP BY reason ORDER BY reason").fetchall():
+        _say(f"rej_{table}: {n:3d} {reason}")
+    left = con.execute(f"SELECT COUNT(*) FROM ok_{table}").fetchone()[0]
+    _say(f"ok_{table}: {left} rows left to insert")
+
+
+def in_transaction(con, sql: str) -> bool:
+    """Run your statements between BEGIN and COMMIT; if one fails, roll everything back."""
+    if _blank(sql):
+        if STRICT:
+            raise AssertionError("the inserts are blank")
+        _say("not written yet: nothing inserted")
+        return False
+    con.execute("BEGIN TRANSACTION")
+    try:
+        con.execute(sql)
+        con.execute("COMMIT")
+        _say("committed")
+        return True
+    except duckdb.Error as e:
+        con.execute("ROLLBACK")
+        _say("rolled back, nothing kept: " + str(e).splitlines()[0][:160])
+        if STRICT:
+            raise
+        return False
+
+
+def _count(con, table: str) -> int:
+    try:
+        return con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+    except duckdb.Error:
+        return 0
+
+
+def load_log(con) -> list:
+    """Count read, loaded and rejected rows per table and reason; write answers/load_log.csv; compare."""
+    rows = []
+    for t in ["customers", "orders", "order_lines"]:
+        read = _count(con, f"stg_{t}")
+        loaded = _count(con, t)
+        rows.append([t, "loaded", loaded])
+        for reason, n in con.execute(f"SELECT reason, COUNT(*) FROM rej_{t} GROUP BY reason ORDER BY reason").fetchall():
+            rows.append([t, reason, n])
+        rejected = sum(r[2] for r in rows if r[0] == t and r[1] != "loaded")
+        _say(f"{t:12s} read {read:5d} = loaded {loaded:5d} + rejected {rejected:3d}  {'accounted' if read == loaded + rejected else 'NOT ACCOUNTED'}")
+    for r in rows:
+        if r[1] != "loaded":
+            _say(f"   {r[0]:12s} {r[1]:18s} {r[2]:4d}")
+    ANSWERS.mkdir(exist_ok=True)
+    with (ANSWERS / "load_log.csv").open("w", encoding="utf-8", newline="\n") as f:
+        f.write("table,outcome,rows\n" + "".join(f"{a},{b},{c}\n" for a, b, c in rows))
+    ref = json.loads((REF / "load_log.json").read_text(encoding="utf-8"))
+    ok = sorted(map(tuple, rows)) == sorted(map(tuple, ref["rows"]))
+    _say("load log: " + ("matches the expected log" if ok else "differs from the expected log"))
+    if STRICT:
+        assert ok, "the load log differs from the expected log"
+    return rows
+
+
+def july_db():
+    """The July tables as a correct load leaves them (data/july/), in memory, writable."""
+    con = duckdb.connect()
+    money = {"orders": ", types = {'delivery_fee': 'DECIMAL(10,2)'}",
+             "order_lines": ", types = {'unit_price': 'DECIMAL(10,2)', 'discount': 'DECIMAL(10,2)'}"}
+    for t in ["stores", "customers", "orders", "order_lines"]:
+        types = money.get(t, "")
+        con.execute(f"CREATE TABLE {t} AS SELECT * FROM read_csv(?, header = true, nullstr = ''{types})", [str(JULY / f"{t}.csv")])
+    return con
+
+
+def test_view(con, view: str, banned=("full_name", "phone", "email", "birth_year", "joined_on", "marketing_opt_in")) -> bool:
+    """The view exists, and none of the columns the analysts do not need appear in it."""
+    try:
+        cols = view_columns(con, view)
+    except duckdb.Error:
+        if STRICT:
+            raise AssertionError(f"the view {view} does not exist")
+        _say(f"{view}: not created yet")
+        return False
+    found = [c for c in cols if c.lower() in banned]
+    _say(f"{view} columns: {', '.join(cols)}")
+    _say("PASS no name, phone, e-mail, exact birth year, join date or opt-in" if not found
+         else "NOT YET these columns should not be in the view: " + ", ".join(found))
+    if STRICT:
+        assert not found, f"{view} exposes {found}"
+    return not found
+
+
+# ------------------------------------------------------------------------------ Day 4: labels and views
+def _pairs(text: str) -> dict:
+    out = {}
+    for line in text.splitlines():
+        if "|" in line and not line.strip().startswith("--"):
+            k, _, v = line.partition("|")
+            out[k.strip().lower()] = v.strip().lower()
+    return out
+
+
+def check_pairs(key: str, text: str) -> int:
+    """Compare a 'name | answer' table with the reference."""
+    got = _pairs(text)
+    if RECORD:
+        REF.mkdir(parents=True, exist_ok=True)
+        (REF / f"{key}.json").write_text(json.dumps(got, indent=1) + "\n", encoding="utf-8", newline="\n")
+        _say(f"recorded {key}")
+        return 0
+    ref = json.loads((REF / f"{key}.json").read_text(encoding="utf-8"))
+    wrong = 0
+    for k, v in ref.items():
+        g = got.get(k, "")
+        ok = g.split(";")[0].strip().split(",")[0].strip() == v.split(";")[0].strip().split(",")[0].strip()
+        wrong += not ok
+        _say(f"{k:18s} {g.split(';')[0][:28] or '?':28s} {'ok' if ok else 'revisit'}")
+    _say(f"{key}: {len(ref) - wrong} of {len(ref)} agree with the reference")
+    if STRICT:
+        assert not wrong, f"{key} differs from the reference"
+    return wrong
+
+
+def view_columns(con, view: str) -> list[str]:
+    return [r[0] for r in con.execute(f"DESCRIBE {view}").fetchall()]
+
+
+# ------------------------------------------------------------------------------ Day 4: plans
+def sqlite_orders():
+    """The orders table in SQLite (standard library), in memory, without any index."""
+    import csv
+    import sqlite3
+
+    ensure_data()
+    con = sqlite3.connect(":memory:")
+    with (FULL / "orders.csv").open(encoding="utf-8", newline="") as f:
+        r = csv.reader(f)
+        head = next(r)
+        con.execute(f"CREATE TABLE orders ({', '.join(head)})")
+        marks = ", ".join("?" for _ in head)
+        con.executemany(f"INSERT INTO orders VALUES ({marks})", r)
+    return con
+
+
+def plan_sqlite(con, sql: str) -> str:
+    """EXPLAIN QUERY PLAN in SQLite: the detail lines, such as SCAN orders."""
+    if _blank(sql):
+        _say("not written yet")
+        return ""
+    lines = [row[-1] for row in con.execute(sql).fetchall()]
+    for line in lines:
+        _say(line)
+    return "\n".join(lines)
+
+
+def expect_plan(plan: str, word: str, what: str) -> bool:
+    """Does the plan contain the operator word (SCAN, SEARCH, ...)?"""
+    if not plan:
+        _say(f"{what}: no plan yet")
+        if STRICT:
+            raise AssertionError(f"{what}: no plan")
+        return False
+    ok = any(line.strip().upper().startswith(word.upper()) for line in plan.splitlines())
+    _say(("PASS " if ok else "NOT YET ") + f"{what}: the plan {'shows' if ok else 'does not show'} {word}")
+    if STRICT:
+        assert ok, what
+    return ok
+
+
+def plan_duckdb(sql: str, con=None) -> str:
+    if _blank(sql):
+        _say("not written yet")
+        return ""
+    text = "\n".join(r[1] for r in run(sql, con)[1])
+    _say(text)
+    return text
+
+
+# ------------------------------------------------------------------------------ Day 4: tests of generated queries
+VERIFY = DATA / "verification"
+
+
+def generated_queries() -> dict:
+    return read_answers(VERIFY)
+
+
+def _eq(x: str, y: str) -> bool:
+    try:
+        return abs(float(x) - float(y)) < 0.006
+    except ValueError:
+        return x.strip().lower() == y.strip().lower()
+
+
+def run_tests(expected: str, con, queries: dict | None = None) -> dict:
+    """Run each generated query on the mini tables and compare with your hand-checked answer."""
+    want = _pairs(expected)
+    results = {}
+    for key, sql in (queries if queries is not None else generated_queries()).items():
+        got_rows = run(sql, con)[1]
+        got = ", ".join(_fmt(v) for v in got_rows[0]) if got_rows else "(no row)"
+        exp = want.get(key, "")
+        if not exp:
+            verdict = "no expected answer"
+        else:
+            a = [x.strip() for x in got.split(",")]
+            b = [x.strip() for x in exp.split(",")]
+            verdict = "pass" if len(a) == len(b) and all(_eq(x, y) for x, y in zip(a, b)) else "FAIL"
+        results[key] = (exp, got, verdict)
+        _say(f"{key}  expected {exp or '?':16s} got {got:16s} {verdict}")
+    return results
+
+
+def write_note(results: dict, verdicts: str) -> Path:
+    """Write answers/verification_note.md: each query, the test result and your judgement."""
+    judge = _pairs(verdicts)
+    lines = ["# Verification note: ten generated queries", "",
+             "| Query | Expected (by hand) | Got | Test | Judgement |", "|---|---|---|---|---|"]
+    for k, (exp, got, verdict) in results.items():
+        lines.append(f"| {k} | {exp} | {got} | {verdict} | {judge.get(k, '')} |")
+    ANSWERS.mkdir(exist_ok=True)
+    p = ANSWERS / "verification_note.md"
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    _say(f"wrote answers/{p.name}")
+    return p

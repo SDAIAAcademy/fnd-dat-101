@@ -406,6 +406,55 @@ def extracts(rng: Rng):
             {"customers": expect_c, "orders": expect_o, "order_lines": exp})
 
 
+def july_clean(ex):
+    """The rows of the July extracts that a correct load keeps, by the rules of lab 4.1, in Python."""
+    regions = set(REGIONS)
+
+    def valid_date(s):
+        try:
+            date.fromisoformat(s)
+            return True
+        except ValueError:
+            return False
+
+    def valid_ts(s):
+        try:
+            datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+            return True
+        except ValueError:
+            return False
+
+    h, rows = ex["customers_raw"]
+    seen, cust = set(), []
+    for r in rows:
+        if not r[0] or r[0] in seen:
+            seen.add(r[0])
+            continue
+        seen.add(r[0])
+        if r[2] in regions and valid_date(r[1]):
+            cust.append(r)
+    ids = {r[0] for r in cust}
+    ho, orows = ex["orders_raw"]
+    seen, orders = set(), []
+    for r in orows:
+        if r[0] in seen:
+            continue
+        seen.add(r[0])
+        if r[1] in ids and r[4] in ("delivered", "returned", "cancelled") and valid_ts(r[3]):
+            orders.append(r)
+    oids = {r[0] for r in orders}
+    hl, lrows = ex["order_lines_raw"]
+    seen, lines = set(), []
+    for r in lrows:
+        k = (r[0], r[1])
+        if k in seen:
+            continue
+        seen.add(k)
+        if r[0] in oids and r[4].replace(".", "", 1).isdigit() and int(r[3]) > 0:
+            lines.append(r)
+    return {"customers": (h, cust), "orders": (ho, orders), "order_lines": (hl, lines)}
+
+
 def main(argv) -> int:
     small = "--small" in argv
     for name, (h, rows) in MINI.items():
@@ -413,6 +462,18 @@ def main(argv) -> int:
     ex, expect = extracts(Rng(SEED + 1))
     for name, (h, rows) in ex.items():
         write_csv(DATA / "extracts" / f"{name}.csv", h, rows)
+    clean = july_clean(ex)
+    for name, (h, rows) in clean.items():
+        write_csv(DATA / "july" / f"{name}.csv", h, rows)
+    write_csv(DATA / "july" / "stores.csv", ["store_id", "region", "opened_on", "area_m2"],
+              [[s, r, d.isoformat(), a] for s, r, d, a in STORES])
+    rows_log = []
+    for t, e in expect.items():
+        loaded = e["read"] - sum(v for k, v in e.items() if k != "read")
+        assert loaded == len(clean[t][1]), (t, loaded, len(clean[t][1]))
+        rows_log += [[t, "loaded", loaded]] + [[t, k, v] for k, v in e.items() if k != "read" and v]
+    (DATA / "reference").mkdir(parents=True, exist_ok=True)
+    (DATA / "reference" / "load_log.json").write_text(json.dumps({"read": {t: e["read"] for t, e in expect.items()}, "rows": rows_log}, indent=1) + "\n", encoding="utf-8", newline="\n")
     if small:
         print("wrote data/mini and data/extracts")
         return 0

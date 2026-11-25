@@ -1,0 +1,7 @@
+{
+ "bottom_operator": "seq scan",
+ "join_operator": "hash join",
+ "group_operator": "hash group by",
+ "filter_table": "orders",
+ "filter_vs_join": "before"
+}
