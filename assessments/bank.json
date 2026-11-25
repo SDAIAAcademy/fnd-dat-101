@@ -142,6 +142,205 @@
       "level": "apply",
       "pool": "practice",
       "weight": 1
+    },
+    {
+      "id": "d2-case-order",
+      "type": "single",
+      "prompt": "A payroll query bands overtime hours: CASE WHEN hours <= 10 THEN 'low' WHEN hours <= 2 THEN 'minimal' ELSE 'high' END. A worker with 1 hour of overtime gets which band?",
+      "options": [
+        "minimal",
+        "low",
+        "high",
+        "NULL"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "CASE takes the first branch whose condition is true; 1 <= 10 is true, so the second branch is never reached.",
+      "misconceptions": [
+        "Believes CASE picks the most specific branch rather than the first true one",
+        "",
+        "Reads ELSE as the branch for values the other branches describe badly",
+        "Expects a value matched by two branches to be ambiguous and left empty"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": "day2",
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-null-not-equal",
+      "type": "single",
+      "prompt": "A staff table has 10 rows: 6 in department HR, 2 in IT and 2 with no department recorded. How many rows does WHERE department <> 'HR' keep?",
+      "options": [
+        "4",
+        "2",
+        "0",
+        "10"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Only the two IT rows make the condition true; for the two missing departments it is unknown.",
+      "misconceptions": [
+        "Treats a missing department as different from HR; the comparison is unknown and the row is dropped",
+        "",
+        "Believes a NULL anywhere in the column empties the whole result",
+        "Ignores the filter for rows that have no value"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": "day2",
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-count-column",
+      "type": "tf",
+      "prompt": "In any table, COUNT(*) and COUNT(phone) return the same number.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "COUNT(phone) skips rows where phone is NULL; COUNT(*) counts every row.",
+      "misconceptions": [
+        "Thinks COUNT of a column counts rows, whatever their values",
+        ""
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": "day2",
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-having",
+      "type": "single",
+      "prompt": "A clinic wants the doctors who saw more than 200 patients last month. Where does the condition COUNT(*) > 200 belong?",
+      "options": [
+        "In WHERE, before GROUP BY",
+        "In HAVING, after GROUP BY doctor",
+        "In ORDER BY",
+        "In the SELECT list"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The count of each doctor exists only once rows are grouped; HAVING filters those groups.",
+      "misconceptions": [
+        "Believes WHERE can test a count, which only exists after grouping",
+        "",
+        "Confuses sorting the groups with filtering them",
+        "Thinks computing the count also filters on it"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": "day2",
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-group-rows",
+      "type": "single",
+      "prompt": "A table of 300 library loans covers 4 branches. SELECT branch, COUNT(*) FROM loans WHERE returned = false GROUP BY branch returns rows for how many branches at most?",
+      "options": [
+        "300",
+        "4",
+        "1",
+        "It cannot be known without running it"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "One row per branch that still has a row after WHERE: at most 4.",
+      "misconceptions": [
+        "Counts input rows: a GROUP BY returns one row per group",
+        "",
+        "Thinks the filter collapses the groups into one",
+        "Overlooks that the number of groups cannot exceed the number of distinct branches"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": "day2",
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-left-join-count",
+      "type": "single",
+      "prompt": "teams has 3 rows; members has 5 rows: team A has 3 members, team B has 2, team C none. How many rows does teams INNER JOIN members return?",
+      "options": [
+        "3",
+        "6",
+        "5",
+        "15"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "Five matched pairs; team C has no member, so the inner join drops it.",
+      "misconceptions": [
+        "Counts the left table, as if a join could not repeat its rows",
+        "Adds a row for team C, as a left join would",
+        "",
+        "Multiplies the tables as a cross join would"
+      ],
+      "lo": [
+        "LO2"
+      ],
+      "day": "day2",
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d2-anti",
+      "type": "single",
+      "prompt": "A school wants the courses that no student has enrolled in. Which pattern answers it?",
+      "options": [
+        "courses INNER JOIN enrolments",
+        "courses WHERE NOT EXISTS (an enrolment for that course)",
+        "courses WHERE EXISTS (an enrolment for that course)",
+        "enrolments GROUP BY course HAVING COUNT(*) = 0"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "An anti join keeps the rows of courses for which no enrolment exists.",
+      "misconceptions": [
+        "Keeps only courses that do have enrolments: the opposite of the question",
+        "",
+        "A semi join keeps courses with at least one enrolment",
+        "Groups that have no rows never appear, so the count is never 0"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": "day2",
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
     }
   ]
 }

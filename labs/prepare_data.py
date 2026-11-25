@@ -250,7 +250,7 @@ def key_numbers(t) -> dict:
     for o_id, ln, pid, q, price, disc, ls in lines:
         value = q * h(price)
         gross_naive += value
-        fanout += value * attempts.get(o_id, 1)
+        fanout += value * attempts.get(o_id, 0)          # an inner join drops orders without an attempt
         if status[o_id] == "delivered" and ls == "ok":
             v = value - h(disc)
             net += v

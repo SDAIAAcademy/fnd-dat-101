@@ -412,3 +412,24 @@ def mini_sqlite():
             con.executemany(f"INSERT INTO {t} VALUES ({', '.join('?' * len(head))})",
                             [[v if v != "" else None for v in row] for row in r])
     return con
+
+
+# ------------------------------------------------------------------------------ predictions
+def mark_predictions(predictions: str, queries: dict, con) -> int:
+    """Run each query and mark the number you predicted for it."""
+    pred = {}
+    for line in predictions.splitlines():
+        if "|" in line and not line.strip().startswith("--"):
+            k, _, v = line.partition("|")
+            pred[k.strip()] = v.strip()
+    right = 0
+    for k, sql in queries.items():
+        got = run(sql, con)[1][0][0]
+        p = pred.get(k, "")
+        ok = p != "" and p.replace(".", "", 1).lstrip("-").isdigit() and abs(float(p) - float(got)) < 1e-9
+        right += ok
+        _say(f"{k}  predicted {p or '?':>4}  got {_fmt(got):>4}  {'right' if ok else 'missed' if p else 'no prediction'}")
+    _say(f"{right} of {len(queries)} predicted right")
+    if STRICT:
+        assert right == len(queries), "a prediction of the solution is wrong"
+    return right

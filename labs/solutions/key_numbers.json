@@ -31,7 +31,7 @@
   "2026-07": "43235.50"
  },
  "sum_qty_times_price_all_lines": "38559720.28",
- "sum_after_joining_deliveries": "41490004.96",
+ "sum_after_joining_deliveries": "39554367.12",
  "load_log_expected": {
   "customers": {
    "read": 302,
