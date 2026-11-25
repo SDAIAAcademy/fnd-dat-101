@@ -341,6 +341,230 @@
       "level": "apply",
       "pool": "practice",
       "weight": 1
+    },
+    {
+      "id": "d3-fanout-cause",
+      "type": "single",
+      "prompt": "A gym sums membership fees after joining members (one row per member) to visits (one row per visit). The total is several times the fee ledger. What happened?",
+      "options": [
+        "Members without visits were counted twice",
+        "Each member's fee was repeated once per visit",
+        "NULL fees were counted as zero",
+        "The join changed the fee values"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "After the join the grain is the visit, so each fee appears as many times as its member visited.",
+      "misconceptions": [
+        "An inner join drops members without visits; it does not add them",
+        "",
+        "Zeros cannot raise a total",
+        "A join copies values; it never changes them"
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": "day3",
+      "session": 1,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-fanout-fix",
+      "type": "single",
+      "prompt": "You need total fees of members who visited at least once, each fee counted once. Which query shape is right?",
+      "options": [
+        "Join members to visits and SUM(fee)",
+        "Join members to visits and SUM(DISTINCT fee)",
+        "SUM(fee) over members WHERE EXISTS a visit for that member",
+        "SUM(fee) over members LEFT JOIN visits"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "Using visits only as a filter keeps the grain at one row per member.",
+      "misconceptions": [
+        "Sums one fee per visit",
+        "Merges different members who pay the same fee",
+        "",
+        "Still repeats each fee per visit, and keeps members who never visited"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": "day3",
+      "session": 1,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-cte-check",
+      "type": "single",
+      "prompt": "A chain of three common table expressions returns a total that looks too high. What is the best first move?",
+      "options": [
+        "Add DISTINCT to the final SELECT",
+        "Rewrite it as one query without WITH",
+        "Select from the first step alone and check its row count and grain, then the next",
+        "Round every amount to whole riyals"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "Each named step can be run alone; the step whose grain is wrong is where the total grows.",
+      "misconceptions": [
+        "Hides a symptom without finding the step that repeats rows",
+        "Changes the form, not the logic",
+        "",
+        "Rounding cannot explain a large excess"
+      ],
+      "lo": [
+        "LO3"
+      ],
+      "day": "day3",
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-rule-outside",
+      "type": "tf",
+      "prompt": "If a query runs without an error on the schema, it follows the business rules of the organisation.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "Rules such as which statuses count as revenue are often kept outside the schema; a query can ignore them and still run.",
+      "misconceptions": [
+        "Believes the schema encodes every business rule",
+        ""
+      ],
+      "lo": [
+        "LO6"
+      ],
+      "day": "day3",
+      "session": 2,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-window-rows",
+      "type": "single",
+      "prompt": "A table has 120 rows for 4 warehouses. How many rows does SELECT warehouse, SUM(stock) OVER (PARTITION BY warehouse) FROM stock return?",
+      "options": [
+        "4",
+        "120",
+        "1",
+        "480"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A window keeps every input row and adds a value computed over its partition.",
+      "misconceptions": [
+        "Confuses a window with GROUP BY, which would collapse each warehouse to one row",
+        "",
+        "Thinks the window collapses the table to a single total",
+        "Thinks each row is repeated once per partition"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": "day3",
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-rank-ties",
+      "type": "single",
+      "prompt": "Scores 90, 85, 85 and 80 are ranked from the highest with DENSE_RANK(). Which places do they get?",
+      "options": [
+        "1, 2, 3, 4",
+        "1, 2, 2, 4",
+        "1, 2, 2, 3",
+        "1, 1, 2, 3"
+      ],
+      "correct": [
+        2
+      ],
+      "explanation": "DENSE_RANK gives ties the same place and does not skip the next place.",
+      "misconceptions": [
+        "That is ROW_NUMBER, which never repeats a number",
+        "That is RANK, which skips after a tie",
+        "",
+        "Ties only the first two values, which are not equal"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": "day3",
+      "session": 3,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-frame",
+      "type": "single",
+      "prompt": "A daily table of a clinic has no rows for the days it was closed. Which frame averages the last seven calendar days for each day?",
+      "options": [
+        "ROWS BETWEEN 6 PRECEDING AND CURRENT ROW",
+        "RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW",
+        "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+        "PARTITION BY week"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "A RANGE frame on the date includes exactly the rows dated within the last seven days.",
+      "misconceptions": [
+        "Counts rows: after closed days it reaches back further than seven days",
+        "",
+        "A running average since the first day, not a moving one",
+        "A partition by week is not a moving window of seven days"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": "day3",
+      "session": 4,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d3-lag-first",
+      "type": "tf",
+      "prompt": "LAG(amount) OVER (PARTITION BY customer ORDER BY day) returns NULL on the first row of every customer.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        0
+      ],
+      "explanation": "Each partition starts afresh, and its first row has no previous row to read.",
+      "misconceptions": [
+        "",
+        "Thinks LAG reads the last row of the previous customer"
+      ],
+      "lo": [
+        "LO4"
+      ],
+      "day": "day3",
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
     }
   ]
 }

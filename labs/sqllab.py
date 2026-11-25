@@ -433,3 +433,31 @@ def mark_predictions(predictions: str, queries: dict, con) -> int:
     if STRICT:
         assert right == len(queries), "a prediction of the solution is wrong"
     return right
+
+
+# ------------------------------------------------------------------------------ the window drills
+def grade_windows(folder: Path = ANSWERS, con=None) -> int:
+    """The window checker: six drills, each matching its reference and explaining its partition."""
+    found = read_answers(folder)
+    passed = 0
+    for i in range(1, 7):
+        key = f"w{i}"
+        sql = found.get(key, "")
+        if _blank(sql):
+            _say(f"{key}  missing")
+            continue
+        try:
+            ref = reference(key)
+            ok, why = same(run(sql, con)[1], ref["rows"], ref["ordered"])
+        except Exception as e:
+            ok, why = False, f"error: {str(e).splitlines()[0][:90]}"
+        explained = bool(re.search(r"--[^\n]*partition", sql, re.I))
+        if ok and not explained:
+            ok, why = False, "the result matches, but no comment explains the partition (-- partition: ...)"
+        passed += ok
+        _say(f"{key}  {'pass' if ok else 'fail'}  {'' if ok else why}")
+    _say(f"{passed} of 6 drills pass")
+    if STRICT:  # a drill file missing because its lab was not run here is not a failure of this lab
+        present = sum(1 for i in range(1, 7) if not _blank(found.get(f"w{i}", "")))
+        assert passed == present, "a window drill of the solution fails"
+    return passed

@@ -1,158 +1,440 @@
 <section class="slide title" id="title" data-auto="title">
-  <aside class="notes">REPLACE: welcome; introduce yourself; one question to the room that calibrates the pace; the rhythm of the day</aside>
+  <aside class="notes"><p>Day 3 has two halves. The morning makes totals right: count once, then build answers in steps. The afternoon adds window functions, which compute across rows without collapsing them.</p><p>By the end of session 2 everyone runs the automatic checker over the twenty questions.</p></aside>
 </section>
 
 <section class="slide" id="agenda" data-auto="agenda"></section>
+
+<section class="slide" id="review-day2" data-lo="LO2">
+  <div class="kicker">Review of Day 2</div>
+  <h2>How many rows does this query return?</h2>
+  <div class="quiz" data-type="single" data-lo="LO2">
+    <p class="lead">A <code>branches</code> table has 5 rows; 2 branches have no <code>region</code>. <code>SELECT COUNT(*) FROM branches WHERE region NOT IN ('North', NULL)</code>.</p>
+    <div class="opts">
+      <div class="opt" data-why="Treats NULL in the list as a value to exclude, as if NOT IN ignored it">3</div>
+      <div class="opt" data-ok>0</div>
+      <div class="opt" data-why="Counts the branches without a region as different from North">5</div>
+      <div class="opt" data-why="Believes the NULL rows are the only ones kept">2</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> NOT IN with a NULL in the list is <code>region &lt;&gt; NULL</code> for every row: unknown, so nothing is ever true.</div>
+  </div>
+  <aside class="notes"><p>Answer: 0. If the room is split, redo the flow slide of yesterday's session 2 on the board.</p></aside>
+</section>
 
 <!-- Session 1 -->
 
 <section class="slide section" id="s1" data-auto="section" data-session="1"></section>
 
-<section class="slide" id="s1-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
+<section class="slide" id="fan-out-picture" data-lo="LO2 LO6">
+  <div class="kicker">Fan-out</div>
+  <h2>A join to a many side repeats every row of the one side</h2>
   <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th class="num">refund</th><th>inspection</th></tr>
+      <tr><td>T1</td><td class="num">12.00</td><td>pass</td></tr>
+      <tr class="hl"><td>T2</td><td class="num">30.50</td><td>pass</td></tr>
+      <tr class="hl"><td>T2</td><td class="num">30.50</td><td>fail</td></tr>
+      <tr><td>T5</td><td class="num">19.00</td><td>pass</td></tr>
+    </table>
     <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
+      <li>T2 was inspected twice, so its refund now sits on <b>two rows</b></li>
+      <li>Every column of <code>returns</code> is repeated, not only the key</li>
+      <li>Nothing warns you: the query runs, the numbers look plausible</li>
     </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <aside class="notes"><p>This is yesterday's inner join slide, with the refund column added. Ask what <code>SUM(refund)</code> over these four rows gives before showing the next slide.</p></aside>
 </section>
 
-<section class="slide" id="s1-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="fan-out-sum" data-lo="LO2 LO6">
+  <div class="kicker">Double counting</div>
+  <h2>Every sum over a fanned-out join grows</h2>
+  <div class="cols cols-2">
+    <div class="stat center"><div class="big">92.00</div><div class="lbl">SUM(refund) after the join</div></div>
+    <div class="stat center"><div class="big">61.50</div><div class="lbl">the refunds of the inspected returns</div></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <p class="mt">30.50 counted twice. And T3 and T4 are gone: the join also <b>drops</b> rows with no partner. A fanned-out sum can be too high and too low at once.</p>
+  <p class="caption">The returns desk (<code>_tools/slide_examples.py</code>).</p>
+  <aside class="notes"><p>The lab shows the same double effect on the delivery tables, with real money. Do not quote the lab's figures here.</p></aside>
+</section>
+
+<section class="slide" id="detect-fan-out" data-lo="LO3 LO6">
+  <div class="kicker">Detect it</div>
+  <h2>Count rows before and after every join</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">SELECT (SELECT COUNT(*) FROM returns)              AS before,
+       (SELECT COUNT(*) FROM returns t
+          JOIN inspections i ON i.return_id = t.return_id) AS after;
+-- before 5, after 4: rows were dropped AND repeated</code></pre>
+  <ul class="bullets mt">
+    <li>After &gt; before: some rows repeat</li>
+    <li>After &lt; before: some rows lost their partner</li>
+    <li>Equal is not proof: drops and repeats can cancel out, as they nearly do here</li>
+  </ul>
+  <aside class="notes"><p>The last bullet is the reason for the next slide: the reliable check is the grain, not the count alone.</p></aside>
+</section>
+
+<section class="slide" id="aggregate-first" data-lo="LO3 LO6">
+  <div class="kicker">The fix</div>
+  <h2>Bring each side to the grain of the question before joining</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">WITH insp AS (                       -- one row per return
+  SELECT return_id, COUNT(*) AS inspections
+  FROM inspections GROUP BY return_id
+)
+SELECT SUM(t.refund), SUM(insp.inspections)
+FROM returns t
+JOIN insp ON insp.return_id = t.return_id;
+-- 61.50 and 4: one row per return on both sides</code></pre>
+  <div class="callout tip mt-s"><b>Or filter instead of joining.</b> <code>WHERE return_id IN (SELECT ...)</code> or <code>EXISTS</code> keeps each return once.</div>
+  <aside class="notes"><p>Two patterns: aggregate the many side to the one side's grain, or use the many side only as a filter. Question 16 needs the second, question 17 the first.</p></aside>
+</section>
+
+<section class="slide" id="distinct-is-not-a-fix" data-lo="LO6">
+  <div class="kicker">A tempting shortcut</div>
+  <h2>SUM(DISTINCT ...) hides fan-out by accident, and breaks on equal values</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Looks right here</h4><p class="small mb0"><code>SUM(DISTINCT refund)</code> on the joined rows gives 61.50: T2's repeat collapses.</p></div>
+    <div class="card c-coral"><h4>Wrong tomorrow</h4><p class="small mb0">Two different returns with a refund of 12.00 collapse into one. The total is short, and nothing says so.</p></div>
+  </div>
+  <div class="callout warn mt"><b>Rule.</b> DISTINCT removes duplicate values, not duplicate rows of the grain you meant. Fix the grain instead.</div>
+  <aside class="notes"><p>Assistants often reach for DISTINCT when a total looks too large. Lab 4.4 has a query like that among the ten.</p></aside>
+</section>
+
+<section class="slide" id="grain-before-join" data-lo="LO2 LO6">
+  <div class="kicker">The habit</div>
+  <h2>Before every join, write the grain of both sides and of the result</h2>
+  <table class="t">
+    <tr><th>Left side</th><th>Right side</th><th>Result</th><th>Safe to sum the left's money?</th></tr>
+    <tr><td>one row per return</td><td>one row per reason</td><td>one row per return</td><td>yes</td></tr>
+    <tr><td>one row per return</td><td>one row per inspection</td><td>one row per inspection</td><td><b>no</b></td></tr>
+    <tr><td>one row per return</td><td>one row per return (aggregated)</td><td>one row per return</td><td>yes</td></tr>
+  </table>
+  <aside class="notes"><p>Ask participants to write these three grains as comments above their queries in today's lab. The capstone rubric rewards it.</p></aside>
+</section>
+
+<section class="slide" id="check-fan-out" data-lo="LO6">
+  <div class="kicker">Checkpoint</div>
+  <h2>Why is the total fee too high?</h2>
+  <div class="quiz" data-type="single" data-lo="LO6">
+    <p class="lead">A clinic sums appointment fees after joining <code>appointments</code> (one row per appointment) to <code>reminders</code> (one row per reminder sent). Some appointments got three reminders. The total is 40% above the ledger.</p>
+    <div class="opts">
+      <div class="opt" data-why="Blames NULLs, which make sums smaller, not larger">Fees left NULL are counted as zero</div>
+      <div class="opt" data-why="An inner join drops appointments without reminders; that lowers the total">The join drops appointments with no reminder</div>
+      <div class="opt" data-why="Rounding cannot add 40%">Fees are rounded to two decimals</div>
+      <div class="opt" data-ok>Each fee is repeated once per reminder</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> After the join the grain is the reminder: an appointment with three reminders carries its fee three times.</div>
+  </div>
+  <aside class="notes"><p>Answer: repetition per reminder. Point out that the second option is also true but moves the total the other way.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-3-1" data-auto="lab" data-lab="3.1">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The first exercise shows two sums of line value, before and after joining attempts. Ask participants to explain the gap in one sentence before moving on: lines repeated for repeat attempts, and lines of cancelled orders dropped.</p><p>Common failure in question 16: summing after the join with DISTINCT. In question 17: COUNT(*) for orders.</p></aside>
 </section>
 
 <!-- Session 2 -->
 
 <section class="slide section" id="s2" data-auto="section" data-session="2"></section>
 
-<section class="slide" id="s2-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
-  </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+<section class="slide" id="subquery-where" data-lo="LO3">
+  <div class="kicker">Subqueries</div>
+  <h2>A subquery is a query inside another, used as a value, a list or a table</h2>
+  <table class="t">
+    <tr><th>Where</th><th>Returns</th><th>Returns desk example</th></tr>
+    <tr><td>In <code>WHERE x &gt; (...)</code></td><td>one value</td><td>refunds above the average refund</td></tr>
+    <tr><td>In <code>WHERE x IN (...)</code></td><td>a list</td><td>returns that were inspected</td></tr>
+    <tr><td>In <code>FROM (...)</code></td><td>a table</td><td>items per return, then their average</td></tr>
+  </table>
+  <aside class="notes"><p>The first form must return exactly one value, or the engine refuses. Ask what <code>WHERE refund &gt; (SELECT AVG(refund) FROM returns)</code> keeps: T2 and T5 (above 17.44).</p></aside>
 </section>
 
-<section class="slide" id="s2-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
+<section class="slide" id="correlated" data-lo="LO3">
+  <div class="kicker">Per row</div>
+  <h2>A correlated subquery is evaluated for each row of the outer query</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">SELECT t.return_id, t.refund
+FROM returns t
+WHERE t.refund &gt; (SELECT AVG(r.refund)
+                  FROM returns r
+                  WHERE r.reason_code = t.reason_code);  -- the average of its own reason</code></pre>
+  <ul class="bullets mt">
+    <li>The inner query refers to <code>t</code>, the row being tested</li>
+    <li>"Above the average of its own group" is the typical use</li>
+    <li>The same answer can be written as a join to a grouped table: often clearer</li>
+  </ul>
+  <aside class="notes"><p>This is the shape of question 18 on another table. The lab's solution uses the grouped-table form; both pass the checker.</p></aside>
+</section>
+
+<section class="slide" id="cte-names-steps" data-lo="LO3">
+  <div class="kicker">Common table expressions</div>
+  <h2>WITH names each step, so a long answer reads top to bottom</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">WITH items AS (                    -- step 1: one row per return
+  SELECT return_id, SUM(qty) AS units
+  FROM return_items
+  GROUP BY return_id
+)
+SELECT AVG(units) FROM items;      -- step 2: 3.0 units per return</code></pre>
+  <div class="callout tip mt"><b>Read it as a recipe.</b> Each name is a table you could look at on its own. Several steps are separated by commas: <code>WITH a AS (...), b AS (...)</code>.</div>
+  <aside class="notes"><p>A CTE changes nothing the engine can do that a subquery cannot; it changes what a reader can check. That is the point for the capstone, where a reviewer must follow each answer.</p></aside>
+</section>
+
+<section class="slide" id="check-each-step" data-lo="LO3">
+  <div class="kicker">The method</div>
+  <h2>Run each step before you trust the last one</h2>
   <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+    <div class="step c-teal"><b>1 · First step alone</b>select from it; look at 5 rows; count them</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · Its grain</b>one row per what? is a key unique?</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · Add the next step</b>and repeat</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · The final select</b>compare with your prediction</div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <aside class="notes"><p>Demonstrate on the returns desk: replace the final SELECT with <code>SELECT * FROM items</code>, read the five rows, then put it back.</p></aside>
+</section>
+
+<section class="slide" id="rule-outside-schema" data-lo="LO3 LO6">
+  <div class="kicker">Business rules</div>
+  <h2>Some rules live outside the schema, and the query must carry them</h2>
+  <div class="cols cols-2">
+    <div class="card c-purple"><h4>What the schema says</h4><p class="small mb0">Columns, types, keys, a status column with three values.</p></div>
+    <div class="card c-coral"><h4>What it does not say</h4><p class="small mb0">Which statuses count as revenue, what an empty discount means, which date books the money.</p></div>
+  </div>
+  <p class="mt">The finance controller keeps that in <code>data/revenue_rule.md</code>. A query that ignores it runs without error and returns a number nobody in finance would sign.</p>
+  <aside class="notes"><p>Ask the room to read the rule now, in two minutes. Ask: which of its six points could a query break without any error message? (All of them.)</p></aside>
+</section>
+
+<section class="slide" id="rule-to-steps" data-lo="LO3">
+  <div class="kicker">From rule to query</div>
+  <h2>Turn each point of a rule into one named step</h2>
+  <table class="t">
+    <tr><th>Returns desk rule</th><th>Step</th></tr>
+    <tr><td>Only returns with a decided refund</td><td><code>decided AS (... WHERE refund IS NOT NULL)</code></td></tr>
+    <tr><td>Book on the inspection date, not the receipt date</td><td><code>booked AS (... JOIN inspections ...)</code></td></tr>
+    <tr><td>Count a return once, even if inspected twice</td><td>take the first inspection per return</td></tr>
+  </table>
+  <p class="caption">A parallel rule of the returns desk; the finance rule of the labs is yours to turn into steps.</p>
+  <aside class="notes"><p>Do not show question 19. The capstone brief has its own rule on prices; the same method applies.</p></aside>
+</section>
+
+<section class="slide" id="check-cte" data-lo="LO3">
+  <div class="kicker">Checkpoint</div>
+  <h2>Where is the error in this chain?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3">
+    <p class="lead">A hotel's chain: <code>stays</code> (one row per stay) joined to <code>charges</code> (one row per charge), then <code>SUM(nightly_rate * nights)</code> per month. The result is far above the ledger.</p>
+    <div class="opts">
+      <div class="opt" data-why="Grouping by month is the grain the question asks for">The final GROUP BY month</div>
+      <div class="opt" data-ok>The join of stays to charges before summing stay values</div>
+      <div class="opt" data-why="Naming steps cannot change a result; only their content can">Using WITH instead of a subquery</div>
+      <div class="opt" data-why="Multiplying two columns of the same row is correct">Multiplying rate by nights</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> A stay with several charges appears once per charge, so its value is summed several times.</div>
+  </div>
+  <aside class="notes"><p>Answer: the join. Running the first step alone and counting rows against stays would have shown it.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-3-2" data-auto="lab" data-lab="3.2">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>Question 19 follows the finance rule; this is where the rule outside the schema matters. The checker at the end reads all part files: participants who skipped earlier labs see "missing" lines and can rerun those notebooks.</p><p>The query file is assessed: 16 of 20 is the outcome's mark. Common failure in question 19: the month of ordered_at instead of the delivery date, which loses the July row.</p></aside>
 </section>
 
 <!-- Session 3 -->
 
 <section class="slide section" id="s3" data-auto="section" data-session="3"></section>
 
-<section class="slide" id="s3-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
+<section class="slide" id="window-keeps-rows" data-lo="LO4">
+  <div class="kicker">Window functions</div>
+  <h2>A window computes over related rows and keeps every row</h2>
   <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+    <div class="card c-purple"><h4>GROUP BY</h4><p class="small mb0">Five returns in, three rows out: one per reason. The detail is gone.</p></div>
+    <div class="card c-teal"><h4>OVER (...)</h4><p class="small mb0">Five returns in, five rows out, each with a value computed from its group.</p></div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <pre class="code mt" data-file="returns desk"><code class="language-sql">SELECT return_id, reason_code, refund,
+       SUM(refund) OVER (PARTITION BY reason_code) AS reason_total
+FROM returns;</code></pre>
+  <aside class="notes"><p>T1 and T3 both show 20.25 beside their own refunds. Ask what share of its reason's refunds T1 is: 12.00 / 20.25. That division needs the detail and the total on one row, which is what windows are for.</p><p>Sources: DuckDB window functions documentation (in course sources).</p></aside>
 </section>
 
-<section class="slide" id="s3-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="partition-and-order" data-lo="LO4">
+  <div class="kicker">The two clauses</div>
+  <h2>PARTITION BY says which rows belong together; ORDER BY says in what sequence</h2>
+  <table class="t">
+    <tr><th>Clause</th><th>Question it answers</th><th>Without it</th></tr>
+    <tr><td><code>PARTITION BY region</code></td><td>Whose rows are compared?</td><td>all rows form one window</td></tr>
+    <tr><td><code>ORDER BY day</code></td><td>Which row comes before which?</td><td>ranks and LAG have no meaning</td></tr>
+  </table>
+  <div class="callout tip mt"><b>Say the partition in a comment.</b> "-- partition: one ranking per region, so ..." The window checker of the labs asks for exactly this.</div>
+  <aside class="notes"><p>The outcome's evidence asks for each partition explained in a comment. Make it a habit from the first window they write.</p></aside>
+</section>
+
+<section class="slide" id="three-rankings" data-lo="LO4">
+  <div class="kicker">Ranking</div>
+  <h2>ROW_NUMBER, RANK and DENSE_RANK differ only at ties</h2>
+  <table class="t small">
+    <tr><th>product_ref</th><th class="num">units</th><th class="num">ROW_NUMBER</th><th class="num">RANK</th><th class="num">DENSE_RANK</th></tr>
+    <tr><td>X-101</td><td class="num">4</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-412</td><td class="num">4</td><td class="num">2</td><td class="num">1</td><td class="num">1</td></tr>
+    <tr><td>X-118</td><td class="num">3</td><td class="num">3</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-205</td><td class="num">3</td><td class="num">4</td><td class="num">3</td><td class="num">2</td></tr>
+    <tr><td>X-330</td><td class="num">1</td><td class="num">5</td><td class="num">5</td><td class="num">3</td></tr>
+  </table>
+  <p class="caption">Returned units per product at the returns desk, ordered by units from the most.</p>
+  <aside class="notes"><p>"Top two" with ROW_NUMBER picks X-101 and X-412 here, but between X-118 and X-205 it would pick by chance without a tie-breaker. RANK keeps ties together and skips the next place.</p></aside>
+</section>
+
+<section class="slide" id="top-n-per-group" data-lo="LO4">
+  <div class="kicker">Top N per group</div>
+  <h2>Rank inside each partition, then keep the first places</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">WITH ranked AS (
+  SELECT reason_code, return_id, refund,
+         RANK() OVER (PARTITION BY reason_code ORDER BY refund DESC) AS place
+  FROM returns
+)
+SELECT * FROM ranked WHERE place = 1;   -- the largest refund of each reason</code></pre>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>WHERE RANK() OVER (...) = 1</code> is refused: windows are computed after WHERE. Rank in one step, filter in the next, or use <code>QUALIFY</code>.</div>
+  <aside class="notes"><p>QUALIFY is supported by DuckDB and some other engines; the two-step form works everywhere. The stretch of lab 3.3 asks for both.</p></aside>
+</section>
+
+<section class="slide" id="lag-lead" data-lo="LO4">
+  <div class="kicker">Neighbouring rows</div>
+  <h2>LAG reads the previous row of the window; LEAD reads the next</h2>
+  <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th>received_on</th><th class="num">days_since</th></tr>
+      <tr><td>T1</td><td>2026-05-02</td><td class="num">NULL</td></tr>
+      <tr><td>T2</td><td>2026-05-02</td><td class="num">0</td></tr>
+      <tr><td>T3</td><td>2026-05-03</td><td class="num">1</td></tr>
+      <tr><td>T4</td><td>2026-05-04</td><td class="num">1</td></tr>
+      <tr><td>T5</td><td>2026-05-06</td><td class="num">2</td></tr>
+    </table>
+    <pre class="code" data-file="returns desk"><code class="language-sql">received_on
+  - LAG(received_on) OVER (
+      ORDER BY received_on, return_id)
+  AS days_since</code></pre>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <p class="mt">The first row has no previous row: <b>NULL</b>. With a partition, every partition's first row is NULL.</p>
+  <aside class="notes"><p>Ask what would change if each return belonged to a courier and the question were "days since that courier's previous return": PARTITION BY courier.</p></aside>
+</section>
+
+<section class="slide" id="check-rank" data-lo="LO4">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which ranking keeps every tied product in a "top three"?</h2>
+  <div class="quiz" data-type="single" data-lo="LO4">
+    <p class="lead">Sales per product in each region: in the West, two products tie for third place. The manager wants both shown, and the next product, if any, to be fifth.</p>
+    <div class="opts">
+      <div class="opt" data-why="Gives tied rows different numbers, so one of the tied products is cut">ROW_NUMBER() and place &lt;= 3</div>
+      <div class="opt" data-why="Keeps both ties but numbers the next product 4, not 5">DENSE_RANK() and place &lt;= 3</div>
+      <div class="opt" data-ok>RANK() and place &lt;= 3</div>
+      <div class="opt" data-why="LIMIT applies to the whole result, not to each region">ORDER BY sales DESC LIMIT 3</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> RANK gives ties the same place and skips the next one, as asked.</div>
+  </div>
+  <aside class="notes"><p>Answer: RANK. DENSE_RANK is right when the manager wants "the top three different sales values".</p></aside>
 </section>
 
 <section class="slide lab" id="lab-3-3" data-auto="lab" data-lab="3.3">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>Insist on the <code>-- partition:</code> comment above each drill; the checker of lab 3.4 refuses a drill without it. Drill 1 filters the rank in a second step: the common failure is a WHERE on the window.</p></aside>
 </section>
 
 <!-- Session 4 -->
 
 <section class="slide section" id="s4" data-auto="section" data-session="4"></section>
 
-<section class="slide" id="s4-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
+<section class="slide" id="running-total" data-lo="LO4">
+  <div class="kicker">Running totals</div>
+  <h2>SUM with an ORDER BY in the window adds up as it goes</h2>
   <div class="cols cols-2">
+    <table class="t small">
+      <tr><th>return_id</th><th class="num">refund</th><th class="num">running</th></tr>
+      <tr><td>T1</td><td class="num">12.00</td><td class="num">12.00</td></tr>
+      <tr><td>T2</td><td class="num">30.50</td><td class="num">42.50</td></tr>
+      <tr><td>T3</td><td class="num">8.25</td><td class="num">50.75</td></tr>
+      <tr><td>T4</td><td class="num">NULL</td><td class="num">50.75</td></tr>
+      <tr><td>T5</td><td class="num">19.00</td><td class="num">69.75</td></tr>
+    </table>
     <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
+      <li><code>SUM(refund) OVER (ORDER BY return_id)</code></li>
+      <li>T4's unknown refund adds nothing: the total stays</li>
+      <li>Add <code>PARTITION BY month</code> and it restarts each month</li>
     </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <aside class="notes"><p>Month-to-date and year-to-date figures are running totals with a partition by month or year. Drill 5 of the lab is one.</p></aside>
 </section>
 
-<section class="slide" id="s4-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
+<section class="slide" id="period-change" data-lo="LO4">
+  <div class="kicker">Comparing periods</div>
+  <h2>For week-on-week change, aggregate to weeks first, then LAG</h2>
   <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+    <div class="step c-teal"><b>1 · Daily rows</b>one row per store and day</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · Weekly totals</b>GROUP BY store, week</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · LAG over weeks</b>PARTITION BY store ORDER BY week</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · Change</b>this week minus the previous</div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout warn mt"><b>What goes wrong.</b> A first or last week with fewer days looks like a fall or a jump. Say so beside the number, or leave partial weeks out.</div>
+  <aside class="notes"><p>The data of the labs starts on a Thursday and ends on a Tuesday: drill 4 shows both partial weeks. The participants should notice them unprompted; if not, point at the first row.</p></aside>
+</section>
+
+<section class="slide" id="frames" data-lo="LO4">
+  <div class="kicker">Frames</div>
+  <h2>The frame decides which rows a moving average uses</h2>
+  <table class="t">
+    <tr><th>Frame</th><th>Means</th></tr>
+    <tr><td><code>ROWS BETWEEN 6 PRECEDING AND CURRENT ROW</code></td><td>this row and the six rows before it</td></tr>
+    <tr><td><code>RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW</code></td><td>every row whose date is within the last seven days</td></tr>
+  </table>
+  <p class="mt">They agree when every day has exactly one row. They part when a day is missing.</p>
+  <aside class="notes"><p>The default frame with an ORDER BY is "from the first row to the current one" (with peers), which is why SUM gives a running total without a frame clause.</p><p>Sources: DuckDB window functions documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="rows-vs-range" data-lo="LO4">
+  <div class="kicker">Missing days</div>
+  <h2>With a missing day, ROWS reaches too far back; RANGE does not</h2>
+  <table class="t">
+    <tr><th>received_on</th><th class="num">day's refunds</th><th class="num">2 rows</th><th class="num">2 days</th></tr>
+    <tr><td>2026-05-02</td><td class="num">42.50</td><td class="num">42.50</td><td class="num">42.50</td></tr>
+    <tr><td>2026-05-03</td><td class="num">8.25</td><td class="num">25.38</td><td class="num">25.38</td></tr>
+    <tr><td>2026-05-04</td><td class="num">0.00</td><td class="num">4.13</td><td class="num">4.13</td></tr>
+    <tr class="hl"><td>2026-05-06</td><td class="num">19.00</td><td class="num">9.50</td><td class="num">19.00</td></tr>
+  </table>
+  <p class="caption">No return arrived on 5 May. "2 rows" averages 6 May with 4 May; "2 days" averages only 6 May, the one day in its window that has a row.</p>
+  <aside class="notes"><p>A two-day window keeps the table small; the lab does the same with seven days and a store closed for three days. Neither frame treats the missing day as zero; a calendar table does (the stretch).</p></aside>
+</section>
+
+<section class="slide" id="check-frame" data-lo="LO4">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which seven-day average is right after a closed weekend?</h2>
+  <div class="quiz" data-type="single" data-lo="LO4">
+    <p class="lead">A pharmacy's daily sales table has no rows for two closed days. The report wants the average of each day's sales over the last seven calendar days with sales.</p>
+    <div class="opts">
+      <div class="opt" data-ok>AVG OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)</div>
+      <div class="opt" data-why="Counts seven rows, which reach back nine calendar days after the closure">AVG OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)</div>
+      <div class="opt" data-why="Without ORDER BY the window is the whole table: one average for every row">AVG OVER (PARTITION BY day)</div>
+      <div class="opt" data-why="A GROUP BY returns one row per week, not a moving value for each day">AVG with GROUP BY week</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> RANGE with an interval selects rows by date, so the window always covers seven calendar days.</div>
+  </div>
+  <aside class="notes"><p>Answer: RANGE. Note that the question says "days with sales": if it wanted closed days as zeros, neither frame would do without a calendar.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-3-4" data-auto="lab" data-lab="3.4">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The window checker at the end reads windows1 and windows2 and needs a partition comment in every drill. Store S05 was closed for three days in March: drill 6 is where ROWS and RANGE part.</p></aside>
 </section>
 
 <section class="slide" id="wrap-up">
-  <div class="kicker">Day 3 · wrap-up</div>
-  <h2>Three things to keep</h2>
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 3</h2>
   <div class="cols cols-3">
-    <div class="card c-teal"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-coral"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-purple"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
+    <div class="card c-teal"><h4>Count once</h4><p class="small mb0">Bring each side to the question's grain before joining.</p></div>
+    <div class="card c-cyan"><h4>Build in steps</h4><p class="small mb0">Name each step, run it alone, carry the business rule.</p></div>
+    <div class="card c-purple"><h4>Windows keep rows</h4><p class="small mb0">Partition, order, frame: say each in a comment.</p></div>
   </div>
+  <aside class="notes"><p>Ask who reached 16 of 20 in the checker. Those below it have the guided self-study hour tonight.</p></aside>
 </section>
 
-<section class="slide dark" id="next" data-label="Next">
+<section class="slide dark" id="next">
   <div class="kicker">Next</div>
-  <h2>Day 4: REPLACE: the theme of this unit, in a few words</h2>
-  <p class="lead">REPLACE: what participants prepare before then; unfinished labs can be finished at home</p>
-  <aside class="notes">REPLACE: accounts, installs or reading participants need before the next unit</aside>
+  <h2>Day 4: building and checking</h2>
+  <ul class="bullets">
+    <li>Bring the twenty questions to 16 or more and finish the window drills: about an hour</li>
+    <li>Tomorrow: constrained tables, a view for analysts, query plans, and ten generated queries on trial</li>
+  </ul>
+  <aside class="notes"><p>The hour is the guided self-study planned after Day 3.</p></aside>
 </section>

@@ -501,7 +501,7 @@
           "lab": {
             "id": "3.2",
             "title": "Questions 18 to 20, and the checker",
-            "summary": "Predict, then answer the last three questions with subqueries and common table expressions, among them net revenue by the finance rule; then run the automatic checker over all twenty",
+            "summary": "Predict, then answer the last three questions in steps, one of them by the finance rule; then run the automatic checker over all twenty",
             "minutes": 35,
             "href": "D3_2_questions_18_to_20.ipynb",
             "steps": [
