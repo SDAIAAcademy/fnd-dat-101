@@ -1,0 +1,11 @@
+delivery_id,order_id,attempt_no,courier_id,attempted_at,outcome
+D01,O01,1,K01,2026-03-01 11:00:00,delivered
+D02,O02,1,K01,2026-03-02 21:30:00,failed
+D03,O02,2,K02,2026-03-03 12:10:00,delivered
+D04,O03,1,K03,2026-03-02 22:15:00,delivered
+D05,O05,1,K03,2026-03-03 23:40:00,failed
+D06,O05,2,K04,2026-03-04 19:00:00,failed
+D07,O05,3,K03,2026-03-05 18:30:00,delivered
+D08,O06,1,K02,2026-03-04 15:00:00,delivered
+D09,O07,1,K01,2026-03-04 18:20:00,delivered
+D10,O08,1,K04,2026-03-05 12:00:00,delivered

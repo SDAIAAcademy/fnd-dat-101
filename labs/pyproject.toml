@@ -1,0 +1,12 @@
+[project]
+name = "fnd-dat-101-labs"
+version = "2027.1.0"
+description = "Labs of FND-DAT-101 SQL and Relational Data"
+requires-python = ">=3.11"
+dependencies = [
+  "duckdb==2.0.1",
+  "pytest==9.2.0",
+]
+
+[tool.uv]
+package = false

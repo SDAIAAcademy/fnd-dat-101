@@ -1,0 +1,58 @@
+{
+ "rows": {
+  "stores": 8,
+  "products": 1200,
+  "customers": 40000,
+  "orders": 250000,
+  "order_lines": 1000855,
+  "deliveries": 256293
+ },
+ "orders_by_status": {
+  "delivered": 229898,
+  "returned": 7541,
+  "cancelled": 12561
+ },
+ "orders_with_more_than_one_attempt": 16461,
+ "max_attempts": 3,
+ "lines_discount_null": 750624,
+ "lines_cancelled": 19947,
+ "customers_without_region": 1196,
+ "customers_never_ordered": 8117,
+ "products_without_category": 12,
+ "products_never_sold": 40,
+ "net_revenue_rule": "33897742.29",
+ "net_revenue_by_delivery_month": {
+  "2026-01": "4868163.96",
+  "2026-02": "4756062.07",
+  "2026-03": "5472400.89",
+  "2026-04": "5819729.76",
+  "2026-05": "6435347.64",
+  "2026-06": "6502802.47",
+  "2026-07": "43235.50"
+ },
+ "sum_qty_times_price_all_lines": "38559720.28",
+ "sum_after_joining_deliveries": "41490004.96",
+ "load_log_expected": {
+  "customers": {
+   "read": 302,
+   "missing key": 3,
+   "duplicate key": 2,
+   "unknown region": 2,
+   "invalid date": 1
+  },
+  "orders": {
+   "read": 902,
+   "duplicate key": 2,
+   "unknown customer": 8,
+   "invalid status": 3,
+   "invalid timestamp": 2
+  },
+  "order_lines": {
+   "read": 2703,
+   "duplicate key": 3,
+   "unknown order": 32,
+   "invalid quantity": 4,
+   "invalid price": 2
+  }
+ }
+}

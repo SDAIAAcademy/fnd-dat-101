@@ -1,0 +1,9 @@
+order_id,customer_id,store_id,ordered_at,status,delivery_fee
+O01,C001,S01,2026-03-01 09:15:00,delivered,9.00
+O02,C001,S01,2026-03-02 18:40:00,delivered,0.00
+O03,C002,S02,2026-03-02 20:05:00,delivered,9.00
+O04,C002,S02,2026-03-03 11:30:00,cancelled,9.00
+O05,C003,S02,2026-03-03 22:50:00,delivered,0.00
+O06,C004,S01,2026-03-04 13:10:00,returned,9.00
+O07,C005,S01,2026-03-04 16:45:00,delivered,9.00
+O08,C003,S02,2026-03-05 10:20:00,delivered,9.00

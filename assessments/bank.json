@@ -3,24 +3,24 @@
   "version": 1,
   "questions": [
     {
-      "id": "q-example-1",
+      "id": "d1-staff-key",
       "type": "single",
-      "prompt": "REPLACE: a practice question on LO1, as a short scenario",
+      "prompt": "A training team keeps a table of course bookings: 640 rows, 410 distinct employee codes, 52 distinct course codes and 640 distinct pairs of employee and course session. Which of these is a key of the table?",
       "options": [
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: the right answer",
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: a wrong option that a common misconception makes tempting"
+        "The employee code",
+        "The course code",
+        "The pair of employee and course session",
+        "There is no key, since no single column is unique"
       ],
       "correct": [
-        1
+        2
       ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
+      "explanation": "Six hundred and forty distinct pairs for 640 rows: no pair repeats, so the pair names exactly one booking.",
       "misconceptions": [
-        "REPLACE: the misconception behind this option",
+        "Takes an identifier-looking column as a key although 410 distinct values for 640 rows means it repeats",
+        "Confuses a column that groups rows with one that names a row",
         "",
-        "REPLACE: the misconception behind this option",
-        "REPLACE: the misconception behind this option"
+        "Believes a key must be one column; a pair can be the key"
       ],
       "lo": [
         "LO1"
@@ -32,135 +32,114 @@
       "weight": 1
     },
     {
-      "id": "q-example-2",
-      "type": "tf",
-      "prompt": "REPLACE: a statement on LO2 that is true",
+      "id": "d1-grain-sentence",
+      "type": "single",
+      "prompt": "A fleet team's table has one row each time a vehicle is refuelled, with the vehicle code, the date and the litres. Which sentence states its grain?",
       "options": [
-        "True",
-        "False"
+        "One row per vehicle",
+        "One row per refuelling of one vehicle",
+        "One row per day",
+        "One row per litre of fuel"
       ],
       "correct": [
-        0
+        1
       ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
+      "explanation": "Each row records one refuelling event of one vehicle; the vehicle and the date are facts about that event.",
       "misconceptions": [
+        "Reads the grain from the first column: a vehicle refuelled ten times has ten rows",
         "",
-        "REPLACE: the misconception behind this option"
+        "Takes the date column for the grain: several vehicles refuel on one day",
+        "Mistakes a measure in the row for what the row stands for"
       ],
       "lo": [
-        "LO2"
+        "LO1"
       ],
       "day": "day1",
-      "session": 1,
+      "session": 2,
       "level": "understand",
       "pool": "practice",
       "weight": 1
     },
     {
-      "id": "q-example-3",
+      "id": "d1-fewest-zero",
       "type": "single",
-      "prompt": "REPLACE: a practice question on LO3, as a short scenario",
+      "prompt": "A facilities team counts work orders per building by grouping the work-order table by building and taking the smallest count. It reads 1. Fourteen buildings have no work order at all. What does the query report as the fewest work orders per building?",
       "options": [
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: the right answer",
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: a wrong option that a common misconception makes tempting"
+        "0, because the fourteen buildings are counted",
+        "1, because buildings without work orders are not in the grouped table",
+        "14, the number of buildings without work orders",
+        "NULL, because some buildings have no rows"
       ],
       "correct": [
         1
       ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
+      "explanation": "Grouping the work orders only produces groups for buildings that have at least one; counting from the buildings table with a left join would show the zeros.",
       "misconceptions": [
-        "REPLACE: the misconception behind this option",
+        "Assumes grouping the many side sees rows that do not appear in it",
         "",
-        "REPLACE: the misconception behind this option",
-        "REPLACE: the misconception behind this option"
+        "Confuses the count of empty groups with the size of the smallest group",
+        "Expects a NULL for a group that simply does not exist in the result"
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": "day1",
+      "session": 2,
+      "level": "apply",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d1-wide-copy",
+      "type": "tf",
+      "prompt": "In an analytical wide table that repeats each branch's city on every sales row, the right way to correct a branch's city is to update the wide table's rows for that branch.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The wide table is a copy built from the source; the city is corrected once in the branch table and the wide table is rebuilt.",
+      "misconceptions": [
+        "Treats the copy as the home of the fact: a partial update leaves two cities for one branch",
+        ""
+      ],
+      "lo": [
+        "LO1"
+      ],
+      "day": "day1",
+      "session": 3,
+      "level": "understand",
+      "pool": "practice",
+      "weight": 1
+    },
+    {
+      "id": "d1-half-open",
+      "type": "single",
+      "prompt": "A help desk stores ticket creation as a TIMESTAMP. A report must count every ticket created in April 2026. Which condition is right?",
+      "options": [
+        "created_at BETWEEN '2026-04-01' AND '2026-04-30'",
+        "created_at >= '2026-04-01' AND created_at < '2026-05-01'",
+        "created_at > '2026-04-01' AND created_at < '2026-04-30'",
+        "MONTH(created_at) = 4"
+      ],
+      "correct": [
+        1
+      ],
+      "explanation": "The half-open range from 1 April up to but not including 1 May keeps every instant of April and nothing else.",
+      "misconceptions": [
+        "Forgets that the end date means the first instant of 30 April on a timestamp",
+        "",
+        "Drops the first instant of April and all of 30 April",
+        "Ignores the year: April of another year would be counted too"
       ],
       "lo": [
         "LO3"
       ],
       "day": "day1",
-      "session": 1,
+      "session": 4,
       "level": "apply",
-      "pool": "practice",
-      "weight": 1
-    },
-    {
-      "id": "q-example-4",
-      "type": "tf",
-      "prompt": "REPLACE: a statement on LO4 that is true",
-      "options": [
-        "True",
-        "False"
-      ],
-      "correct": [
-        0
-      ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
-      "misconceptions": [
-        "",
-        "REPLACE: the misconception behind this option"
-      ],
-      "lo": [
-        "LO4"
-      ],
-      "day": "day1",
-      "session": 1,
-      "level": "understand",
-      "pool": "practice",
-      "weight": 1
-    },
-    {
-      "id": "q-example-5",
-      "type": "single",
-      "prompt": "REPLACE: a practice question on LO5, as a short scenario",
-      "options": [
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: the right answer",
-        "REPLACE: a wrong option that a common misconception makes tempting",
-        "REPLACE: a wrong option that a common misconception makes tempting"
-      ],
-      "correct": [
-        1
-      ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
-      "misconceptions": [
-        "REPLACE: the misconception behind this option",
-        "",
-        "REPLACE: the misconception behind this option",
-        "REPLACE: the misconception behind this option"
-      ],
-      "lo": [
-        "LO5"
-      ],
-      "day": "day1",
-      "session": 1,
-      "level": "apply",
-      "pool": "practice",
-      "weight": 1
-    },
-    {
-      "id": "q-example-6",
-      "type": "tf",
-      "prompt": "REPLACE: a statement on LO6 that is true",
-      "options": [
-        "True",
-        "False"
-      ],
-      "correct": [
-        0
-      ],
-      "explanation": "REPLACE: why the right answer is right, in one sentence",
-      "misconceptions": [
-        "",
-        "REPLACE: the misconception behind this option"
-      ],
-      "lo": [
-        "LO6"
-      ],
-      "day": "day1",
-      "session": 1,
-      "level": "understand",
       "pool": "practice",
       "weight": 1
     }

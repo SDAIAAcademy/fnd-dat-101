@@ -11,7 +11,11 @@ Exercise regions (code cells only):
     # BEGIN SOLUTION
     ...reference code...
     # END SOLUTION
-Student notebooks (labs/*.ipynb) get a placeholder that raises NotImplementedError;
+    -- BEGIN SOLUTION     (inside a SQL string: the same, for a query or a prediction)
+    ...reference query...
+    -- END SOLUTION
+Student notebooks (labs/*.ipynb) get a placeholder that raises NotImplementedError (Python) or
+an empty query with one comment line (SQL), which the helper treats as "not written yet";
 solution notebooks (labs/solutions/*.ipynb) keep the code, minus the markers.
 """
 
@@ -29,6 +33,15 @@ def strip_solutions(lines: list[str], student: bool) -> list[str]:
     out, inside = [], False
     for line in lines:
         tag = line.strip()
+        if tag == "-- BEGIN SOLUTION":
+            inside = True
+            if student:
+                indent = line[: len(line) - len(line.lstrip())]
+                out.append(f"{indent}-- ✏️ write your answer here")
+            continue
+        if tag == "-- END SOLUTION":
+            inside = False
+            continue
         if tag == "# BEGIN SOLUTION":
             inside = True
             if student:

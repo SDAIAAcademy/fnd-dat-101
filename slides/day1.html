@@ -1,158 +1,501 @@
 <section class="slide title" id="title" data-auto="title">
-  <aside class="notes">REPLACE: welcome; introduce yourself; one question to the room that calibrates the pace; the rhythm of the day</aside>
+  <aside class="notes"><p>Welcome the room and introduce yourself. Ask one calibrating question: "Who has used a filter or a pivot table in a spreadsheet this month?" Most hands should go up: that is the prerequisite, and it is enough.</p><p>The rhythm of every day: four sessions of an hour, each about 25 minutes of ideas and then a lab of 30 or 35 minutes. Predictions are written before queries run, always.</p></aside>
 </section>
 
 <section class="slide" id="agenda" data-auto="agenda"></section>
+
+<section class="slide" id="setup-check">
+  <div class="kicker">Before the first session</div>
+  <h2>One notebook proves your setup works</h2>
+  <div class="cols cols-2">
+    <div class="stack">
+      <p>Open <code>labs/00_setup_check.ipynb</code> in Colab or on your laptop and run every cell. It writes the company's six tables, builds the database file and runs one query.</p>
+      <ul class="bullets">
+        <li>It ends with <b>setup ok</b> and the six table names</li>
+        <li>The first run takes about half a minute; later runs reuse the file</li>
+        <li>No model, no key and no account is needed for any lab</li>
+      </ul>
+    </div>
+    <div class="card c-teal"><h4>On a laptop</h4><p class="small mb0">From the <code>labs</code> folder: <code>uv run --with jupyterlab jupyter lab</code>, then open the notebook. In Colab the first cell clones the course and installs the two packages.</p></div>
+  </div>
+  <aside class="notes"><p>Ask everyone to run the setup notebook during the welcome. Walk the room: the usual failure in Colab is running a later cell before the first one; the fix is Runtime, Run all.</p><p>On a laptop the usual failure is opening the notebook from the wrong folder. The setup cell climbs to <code>labs/</code> by itself, but only from inside the course folder.</p></aside>
+</section>
 
 <!-- Session 1 -->
 
 <section class="slide section" id="s1" data-auto="section" data-session="1"></section>
 
-<section class="slide" id="s1-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
-  </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+<section class="slide" id="table-holds-one-kind" data-lo="LO1">
+  <div class="kicker">What a table is</div>
+  <h2>A table holds rows of one kind, each with the same columns</h2>
+  <table class="t small">
+    <tr><th>return_id</th><th>order_ref</th><th>reason_code</th><th class="num">refund</th><th>received_on</th></tr>
+    <tr><td>T1</td><td>O-A11</td><td>R1</td><td class="num">12.00</td><td>2026-05-02</td></tr>
+    <tr><td>T2</td><td>O-A12</td><td>R2</td><td class="num">30.50</td><td>2026-05-02</td></tr>
+    <tr><td>T3</td><td>O-A15</td><td>R1</td><td class="num">8.25</td><td>2026-05-03</td></tr>
+    <tr><td>T4</td><td>O-A15</td><td>R3</td><td class="num">NULL</td><td>2026-05-04</td></tr>
+    <tr><td>T5</td><td>O-A20</td><td>R2</td><td class="num">19.00</td><td>2026-05-06</td></tr>
+  </table>
+  <p class="caption">The company's returns desk: the <code>returns</code> table. The slides use this department; the labs use the delivery tables.</p>
+  <div class="callout tip mt-s"><b>Unlike a sheet.</b> No merged cells, no totals row, no colour that means something. Every fact sits in a column with a name.</div>
+  <aside class="notes"><p>Contrast with a spreadsheet: a sheet lets anything go in any cell. A table promises that each row is one returned parcel and each column one fact about it.</p><p>Point at T4: the refund is NULL, unknown, because the refund has not been decided yet. Day 2 spends a session on that word.</p></aside>
 </section>
 
-<section class="slide" id="s1-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="types-decide-what-fits" data-lo="LO1">
+  <div class="kicker">Types</div>
+  <h2>Every column has a type, and the type decides what fits</h2>
+  <table class="t small">
+    <tr><th>Type</th><th>Holds</th><th>Example</th></tr>
+    <tr><td><code>VARCHAR</code></td><td>text</td><td><code>'R1'</code></td></tr>
+    <tr><td><code>INTEGER</code></td><td>whole numbers</td><td><code>3</code></td></tr>
+    <tr><td><code>DECIMAL(8,2)</code></td><td>exact amounts, two decimals</td><td><code>30.50</code></td></tr>
+    <tr><td><code>DATE</code>, <code>TIMESTAMP</code></td><td>a day; a day and a time of day</td><td><code>DATE '2026-05-02'</code></td></tr>
+    <tr><td><code>BOOLEAN</code></td><td>true or false</td><td><code>true</code></td></tr>
+  </table>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> An amount stored as text sorts as text: <code>'9.00'</code> comes after <code>'30.50'</code>. A date stored as text cannot be compared with a range.</div>
+  <aside class="notes"><p>Money is DECIMAL, never a floating-point number: 0.1 plus 0.2 is not exactly 0.3 in floating point, and finance notices.</p><p>Ask: which column of the returns table would break first if it were stored as text? (received_on: ranges stop working.)</p></aside>
+</section>
+
+<section class="slide" id="key-names-one-row" data-lo="LO1">
+  <div class="kicker">Keys</div>
+  <h2>A key is a column, or a set of columns, that names exactly one row</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>A single-column key</h4><p class="small mb0"><code>return_id</code> in <code>returns</code>: no two returns share it. Declared as <code>PRIMARY KEY</code>, the engine refuses a second T3.</p></div>
+    <div class="card c-cyan"><h4>A composite key</h4><p class="small mb0"><code>(return_id, item_no)</code> in <code>return_items</code>: a return has several items, so the return alone does not name an item; the pair does.</p></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout note mt"><b>Not a key.</b> <code>order_ref</code> looks like an identifier, but one order can be returned twice: O-A15 appears in T3 and T4.</div>
+  <aside class="notes"><p>Ask the room to find the repeated order reference on the previous slide before you show the callout.</p><p>The point for the lab: a column called something_id is a candidate, not a proof. The proof is a count.</p></aside>
+</section>
+
+<section class="slide" id="key-by-counting" data-lo="LO1">
+  <div class="kicker">Proof, not belief</div>
+  <h2>Test a candidate key by counting rows and distinct values</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT COUNT(*)                  AS n_rows,
+       COUNT(DISTINCT order_ref) AS n_refs
+FROM returns;
+-- n_rows 5, n_refs 4</code></pre>
+    <ul class="bullets">
+      <li>Equal numbers: no value repeats, <b>the candidate holds</b></li>
+      <li>Fewer distinct values: some value repeats, <b>not a key</b></li>
+      <li>For a pair, count the rows of <code>SELECT DISTINCT a, b</code>: 8 pairs for 8 rows of <code>return_items</code></li>
+    </ul>
+  </div>
+  <div class="callout tip mt"><b>Habit.</b> Before you trust a key, count. It takes one query.</div>
+  <aside class="notes"><p>Run it live on the returns desk if you have the slide examples open (<code>labs/_tools/slide_examples.py</code> prints these numbers).</p><p>Do not show the counts of the delivery tables: lab 1.1 asks for them.</p></aside>
+</section>
+
+<section class="slide" id="foreign-key-points" data-lo="LO1">
+  <div class="kicker">Between tables</div>
+  <h2>A foreign key points at a row that must exist in another table</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>return_items</b><code>return_id</code> T5</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>returns</b>row T5 must exist</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>reasons</b>its <code>reason_code</code> R2 must exist</div>
+  </div>
+  <p class="mt">Declared with <code>REFERENCES returns (return_id)</code>, an item for a return that does not exist is refused. Without it, the item would sit in the table, joined to nothing, and every total would quietly miss it.</p>
+  <aside class="notes"><p>A foreign key is a promise about two tables at once. It is why the order of loading matters on Day 4: the one side first, then the many side.</p></aside>
+</section>
+
+<section class="slide" id="constraints-refuse" data-lo="LO1">
+  <div class="kicker">Constraints</div>
+  <h2>Constraints refuse rows that make no sense, before anyone queries them</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>NOT NULL</h4><p class="small mb0">The value must be there: every return has a received date.</p></div>
+    <div class="card c-cyan"><h4>PRIMARY KEY, UNIQUE</h4><p class="small mb0">No two rows share the value.</p></div>
+    <div class="card c-purple"><h4>REFERENCES</h4><p class="small mb0">The value exists in the other table.</p></div>
+    <div class="card c-amber"><h4>CHECK</h4><p class="small mb0">A rule on the value: <code>qty &gt; 0</code>, <code>refund &gt;= 0</code>.</p></div>
+    <div class="card c-coral"><h4>Type</h4><p class="small mb0">Only that kind of value: no text in a date.</p></div>
+    <div class="card c-green"><h4>The message</h4><p class="small mb0">A refusal names the rule it broke. Read it.</p></div>
+  </div>
+  <aside class="notes"><p>Demo on the returns desk: <code>INSERT INTO return_items VALUES ('T1', 2, 'X-999', 0)</code>. The engine answers "CHECK constraint failed" and names the expression. Then try a second <code>('T1', 1, ...)</code> and read the key violation.</p><p>Sources: DuckDB constraints documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="six-tables" data-lo="LO1">
+  <div class="kicker">The case study</div>
+  <h2>The grocery delivery company keeps its orders in six tables</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>stores</h4><p class="small mb0">Eight dispatch stores across five regions</p></div>
+    <div class="card c-teal"><h4>products</h4><p class="small mb0">The catalogue: names, categories, list prices</p></div>
+    <div class="card c-teal"><h4>customers</h4><p class="small mb0">Registered customers, with personal data</p></div>
+    <div class="card c-cyan"><h4>orders</h4><p class="small mb0">Placed by a customer at a store, with a status</p></div>
+    <div class="card c-cyan"><h4>order_lines</h4><p class="small mb0">Products, quantities, prices, discounts</p></div>
+    <div class="card c-cyan"><h4>deliveries</h4><p class="small mb0">What happened when a courier went out</p></div>
+  </div>
+  <p class="caption">Synthetic: January to June 2026, about a million order lines. People appear only as codes and roles.</p>
+  <aside class="notes"><p>Introduce the roles, never names: the head of commercial reporting, who sent twenty questions; the finance controller, who owns the revenue rule; the data protection officer, who returns on Day 4; and the analyst, which is each participant.</p><p>Keep the keys and grains for the labs: do not answer them here.</p></aside>
+</section>
+
+<section class="slide" id="check-key" data-lo="LO1">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which column is a key of return_items?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1">
+    <p class="lead">The returns desk's <code>return_items</code> has 8 rows. <code>COUNT(DISTINCT return_id)</code> is 5 and <code>COUNT(DISTINCT product_ref)</code> is 5. The distinct pairs <code>(return_id, item_no)</code> number 8. What names one row?</p>
+    <div class="opts">
+      <div class="opt" data-why="Takes the identifier-looking name as proof: 5 distinct values for 8 rows means return_id repeats">return_id alone</div>
+      <div class="opt" data-ok>The pair return_id and item_no</div>
+      <div class="opt" data-why="Equates a product code with a row: the same product can come back in several returns">product_ref alone</div>
+      <div class="opt" data-why="Assumes every table must have a single-column key: a pair of columns is a key too">No column: the table has no key</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Eight distinct pairs for eight rows: no pair repeats, so the pair names exactly one row.</div>
+  </div>
+  <aside class="notes"><p>Answer: the pair. If many pick "no key", go back to the composite key card: a key can have two columns.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-1-1" data-auto="lab" data-lab="1.1">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>Watch for participants who stop at the first table: each table has a candidate key to test. The mini tables in task 4 are in memory: nothing they break there touches the company's database, which opens read-only.</p><p>Debrief after the lab: order_lines repeats its order_id because an order has several lines; deliveries repeats it because an order can need several attempts. Two reasons, two grains: the next session.</p></aside>
 </section>
 
 <!-- Session 2 -->
 
 <section class="slide section" id="s2" data-auto="section" data-session="2"></section>
 
-<section class="slide" id="s2-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="grain-one-row" data-lo="LO1">
+  <div class="kicker">Grain</div>
+  <h2>The grain is what one row stands for</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>returns</h4><p class="small mb0">One row per <b>returned parcel</b></p></div>
+    <div class="card c-cyan"><h4>return_items</h4><p class="small mb0">One row per <b>item inside one return</b></p></div>
+    <div class="card c-purple"><h4>inspections</h4><p class="small mb0">One row per <b>inspection of one return</b>; a return can be inspected twice</p></div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <div class="callout tip mt"><b>Say it in one sentence.</b> "One row per ..." If you cannot finish the sentence, you cannot sum the table safely.</div>
+  <aside class="notes"><p>Grain is the single most useful word of the course. Every wrong total on Day 3 is a grain mistake.</p><p>Ask: what is the grain of a monthly sales report? (One row per month, or per month and store: the report must say which.)</p></aside>
 </section>
 
-<section class="slide" id="s2-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="grain-sentences" data-lo="LO1">
+  <div class="kicker">Writing it down</div>
+  <h2>A good grain sentence names the thing and the one it belongs to</h2>
+  <table class="t">
+    <tr><th>Vague</th><th>Precise</th></tr>
+    <tr><td>"Items"</td><td>One row per item inside one return</td></tr>
+    <tr><td>"Inspection data"</td><td>One row per inspection of one return, on one day</td></tr>
+    <tr><td>"Refunds by reason"</td><td>One row per reason code, with the sum of refunds</td></tr>
+  </table>
+  <p class="caption">The precise sentence tells you the key: the thing, plus whatever tells two of them apart.</p>
+  <aside class="notes"><p>Read the vague column aloud and ask the room to improve each before revealing the precise one.</p></aside>
+</section>
+
+<section class="slide" id="cardinality-kinds" data-lo="LO1">
+  <div class="kicker">Cardinality</div>
+  <h2>Cardinality says how many rows of one table meet one row of another</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>One to one</h4><p class="small mb0">Each return has exactly one decision letter.</p></div>
+    <div class="card c-cyan"><h4>One to many</h4><p class="small mb0">Each return has one or more items.</p></div>
+    <div class="card c-purple"><h4>Many to many</h4><p class="small mb0">Products and returns: resolved through <code>return_items</code>.</p></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout note mt"><b>Write it as a range.</b> "Items per return: 1..3" says more than "one to many": it gives the fewest and the most.</div>
+  <aside class="notes"><p>The range notation is what lab 1.2 asks for. The fewest is often 0, and 0 is where queries go wrong.</p></aside>
+</section>
+
+<section class="slide" id="measure-cardinality" data-lo="LO1">
+  <div class="kicker">Measure it</div>
+  <h2>Group the many side by the key of the one side, then read the smallest and largest group</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">SELECT MIN(n) AS fewest, MAX(n) AS most
+FROM (SELECT return_id, COUNT(*) AS n
+      FROM return_items
+      GROUP BY return_id);
+-- fewest 1, most 3</code></pre>
+  <div class="callout warn mt"><b>What goes wrong.</b> This query only sees returns that have items. A return with no item would not appear in the inner result, so "fewest" can never read 0 here.</div>
+  <aside class="notes"><p>Walk through the inner query first: it is a small table of its own, one row per return. Then the outer query reads two numbers from it.</p></aside>
+</section>
+
+<section class="slide" id="fewest-is-the-trap" data-lo="LO1">
+  <div class="kicker">The zero case</div>
+  <h2>To see the zeros, count from the one side</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT r.reason_code,
+       COUNT(t.return_id) AS returns
+FROM reasons r
+LEFT JOIN returns t
+  ON t.reason_code = r.reason_code
+GROUP BY r.reason_code;</code></pre>
+    <table class="t small">
+      <tr><th>reason_code</th><th class="num">returns</th></tr>
+      <tr><td>R1</td><td class="num">2</td></tr>
+      <tr><td>R2</td><td class="num">2</td></tr>
+      <tr><td>R3</td><td class="num">1</td></tr>
+      <tr class="hl"><td>R4</td><td class="num">0</td></tr>
+    </table>
+  </div>
+  <p class="mt">Reasons to returns: <b>0..2</b>. Grouping <code>returns</code> alone would have said 1..2 and hidden R4.</p>
+  <aside class="notes"><p>The LEFT JOIN is a preview of Day 2; today it is enough to know it keeps every row of the left table. COUNT of a column counts only the rows where it is not NULL, which is why R4 shows 0.</p></aside>
+</section>
+
+<section class="slide" id="join-takes-finest-grain" data-lo="LO1">
+  <div class="kicker">Looking ahead</div>
+  <h2>A join takes the grain of its finest table</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>returns</b>5 rows, one per return</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>join inspections</b>a return inspected twice appears twice</div>
+    <div class="arrow">→</div>
+    <div class="step c-coral"><b>sum of refunds</b>counts that refund twice</div>
+  </div>
+  <div class="callout tip mt"><b>Keep for Day 3.</b> Before every join, write the grain of each side. If the result's grain is finer than the question's, aggregate first.</div>
+  <aside class="notes"><p>Plant the seed only: the full treatment is session 3.1. Ask which pairs of the delivery tables could do the same thing; the stretch of lab 1.2 asks exactly that.</p></aside>
+</section>
+
+<section class="slide" id="check-grain" data-lo="LO1">
+  <div class="kicker">Checkpoint</div>
+  <h2>What is the grain of the inspections table?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1">
+    <p class="lead">The returns desk inspects some returns once, some twice, and some never. <code>inspections</code> holds <code>return_id</code>, <code>inspected_on</code> and <code>result</code>. Which sentence states its grain?</p>
+    <div class="opts">
+      <div class="opt" data-why="Takes the return_id column for the grain: a return inspected twice has two rows">One row per return</div>
+      <div class="opt" data-why="Reads the grain from the result column, which is a fact about a row, not what the row stands for">One row per inspection result</div>
+      <div class="opt" data-why="Includes returns that were never inspected: they have no row at all">One row per return, inspected or not</div>
+      <div class="opt" data-ok>One row per inspection of one return</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> Each row records one inspection event. A return can have zero, one or two such rows.</div>
+  </div>
+  <aside class="notes"><p>Answer: one row per inspection of one return. If "one row per return" is popular, ask how many rows a return inspected twice has.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-1-2" data-auto="lab" data-lab="1.2">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The annotated schema of this lab is assessed (one of the five lab files). Its check compares keys and the fewest..most ranges with the reference; the grain sentences are read by the trainer.</p><p>Common failure: "fewest" orders per customer written as 1. Point them to the LEFT JOIN of the zero-case slide. Debrief: cancelled orders have no delivery attempt, so attempts per order start at 0.</p></aside>
 </section>
 
 <!-- Session 3 -->
 
-<section class="slide section" id="s3" data-auto="section" data-session="3"></section>
+<section class="slide section" id="s3" data-label="Session 3 · Wide tables and engines" data-auto="section" data-session="3"></section>
 
-<section class="slide" id="s3-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
-  </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+<section class="slide" id="normal-forms-brief" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">Normal forms, in brief</div>
+  <h2>Normalised tables store each fact once</h2>
+  <table class="t">
+    <tr><th>Form</th><th>The rule, in plain words</th><th>Returns desk example</th></tr>
+    <tr><td>First</td><td>One value per cell; no lists inside a cell</td><td>Items in their own rows, not "X-101, X-205" in one cell</td></tr>
+    <tr><td>Second</td><td>Every column depends on the whole key</td><td>The reason label is not in <code>return_items</code>: it depends on the return, not the item</td></tr>
+    <tr><td>Third</td><td>No column depends on another non-key column</td><td>The label lives in <code>reasons</code>, reached through <code>reason_code</code></td></tr>
+  </table>
+  <aside class="notes"><p>Keep this brief: the entry asks for normal forms "in brief". The idea to keep is the third column: each fact has one home.</p><p>Sources: SDAIA Academic Programs Standards Framework, DM-Relational topics include normalisation motivation (in course sources).</p></aside>
 </section>
 
-<section class="slide" id="s3-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="update-anomaly" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">Why it matters</div>
+  <h2>A fact written many times can disagree with itself</h2>
+  <div class="cols cols-2">
+    <div class="card c-coral"><h4>Reason label copied onto every item</h4><p class="small mb0">Rename R2 from "wrong item" to "wrong product". Change 3 of the 5 rows that carry it and the table now holds both labels for the same code.</p></div>
+    <div class="card c-teal"><h4>Label stored once in reasons</h4><p class="small mb0">Change one row. Every query that joins to <code>reasons</code> sees the new label at once.</p></div>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <div class="callout warn mt"><b>The update anomaly.</b> It needs no bug: only a partial fix, which is what busy people make.</div>
+  <aside class="notes"><p>Lab 1.3 makes this happen on purpose with a store's region in a wide table.</p></aside>
+</section>
+
+<section class="slide" id="analytical-tables-wide" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">The other side</div>
+  <h2>Analytical tables are wide on purpose</h2>
+  <ul class="bullets">
+    <li><b>Read far more than written</b>: an analysis reads millions of rows and changes none</li>
+    <li><b>Fewer joins</b> for every question: the category and region already sit on the line</li>
+    <li><b>Built from the normalised source</b> on a schedule, never edited by hand</li>
+    <li>Columnar engines store each column apart, so <b>unused wide columns cost little</b> to read</li>
+  </ul>
+  <div class="callout tip mt"><b>The rule.</b> A wide table is a copy. When it is wrong, fix the source and rebuild the copy.</div>
+  <aside class="notes"><p>This is why analysts and database designers argue: both are right for their workload. The entry asks why analytical tables are wider; this slide is that answer.</p></aside>
+</section>
+
+<section class="slide" id="embedded-vs-server" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">Where the engine runs</div>
+  <h2>An embedded engine runs inside your program; a server runs apart and you connect to it</h2>
+  <div class="cols cols-2">
+    <div class="card c-teal"><h4>Embedded</h4><ul class="bullets small"><li>A library in your Python process</li><li>The database is a file</li><li>Nothing to install or administer</li><li>One writer at a time, on one machine</li></ul></div>
+    <div class="card c-purple"><h4>Client-server</h4><ul class="bullets small"><li>A separate server process, often another machine</li><li>Accounts, permissions, network</li><li>Many users reading and writing at once</li><li>Someone runs and backs it up</li></ul></div>
+  </div>
+  <p class="caption">The SQL you learn here runs on both, with small differences of dialect.</p>
+  <aside class="notes"><p>SQLite's own documentation describes it as serverless: no separate server process to install or manage. DuckDB's documentation says it runs embedded within a host process.</p><p>Sources: SQLite "SQLite Is Serverless"; DuckDB "Why DuckDB" (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="two-embedded-engines" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">The tool slot</div>
+  <h2>Two embedded engines, built for different work</h2>
+  <table class="t">
+    <tr><th></th><th>Analytical engine (DuckDB)</th><th>Transactional engine (SQLite)</th></tr>
+    <tr><td>Built for</td><td>Scans and aggregates over many rows</td><td>Many small reads and writes</td></tr>
+    <tr><td>Stores</td><td>Column by column, processed in batches</td><td>Row by row</td></tr>
+    <tr><td>In this course</td><td>Every lab on the full data</td><td>Lab 1.3 on the mini tables; lab 4.3 for indexes</td></tr>
+  </table>
+  <p class="caption">Examples of a capability, not endorsements. Either engine is free and runs on a laptop processor.</p>
+  <aside class="notes"><p>DuckDB's documentation describes a columnar, vectorised execution engine. SQLite ships inside Python's standard library, which is why lab 1.3 needs no install for it.</p><p>Sources: DuckDB "Why DuckDB"; SQLite documentation (in course sources).</p></aside>
+</section>
+
+<section class="slide" id="check-wide" data-label="Session 3 · Wide tables and engines" data-lo="LO1">
+  <div class="kicker">Checkpoint</div>
+  <h2>The wide returns table shows two labels for R2. What do you do?</h2>
+  <div class="quiz" data-type="single" data-lo="LO1">
+    <p class="lead">The returns desk's wide table copies the reason label onto every item. A colleague renamed R2 in some rows only, so both labels now appear. What is the right fix?</p>
+    <div class="opts">
+      <div class="opt" data-ok>Correct the label once in reasons and rebuild the wide table</div>
+      <div class="opt" data-why="Repairs the copy by hand: the next partial edit recreates the disagreement">Update the remaining rows of the wide table</div>
+      <div class="opt" data-why="Hides the symptom: queries still return two labels for one code">Add DISTINCT to every report on the wide table</div>
+      <div class="opt" data-why="Throws away the source of truth: the wide table cannot be rebuilt once reasons is gone">Delete the reasons table and keep the wide one</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> The label has one home. A copy is rebuilt from it; it is never the place to fix a fact.</div>
+  </div>
+  <aside class="notes"><p>Answer: fix the source and rebuild. The second option is tempting because it works today; ask what happens next month.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-1-3" data-auto="lab" data-lab="1.3">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The wide table is built in memory from the read-only database, so the partial update in task 3 cannot damage anything. If the join in task 1 fails, the notebook builds the table so later tasks run.</p><p>Debrief: one store now carries two regions in the wide table, while <code>stores</code> still has one row for it. That is the update anomaly of the earlier slide, made by a partial fix.</p></aside>
 </section>
 
 <!-- Session 4 -->
 
 <section class="slide section" id="s4" data-auto="section" data-session="4"></section>
 
-<section class="slide" id="s4-idea">
-  <div class="kicker">REPLACE: the question this slide answers</div>
-  <h2>REPLACE: one idea, stated as a sentence</h2>
-  <div class="cols cols-2">
-    <ul class="bullets">
-      <li>REPLACE: at most six bullets, each a complete thought</li>
-      <li>REPLACE: bold the key phrase; numbers come from the lab run, not from memory</li>
-    </ul>
-    <div class="card c-teal"><h4>In the case study</h4><p class="small mb0">REPLACE: tie the idea to the case study and its data</p></div>
+<section class="slide" id="logical-order" data-lo="LO3">
+  <div class="kicker">How a query is read</div>
+  <h2>You write SELECT first, but the engine reads FROM first</h2>
+  <div class="flow">
+    <div class="step c-teal"><b>1 · FROM</b>which table</div>
+    <div class="arrow">→</div>
+    <div class="step c-cyan"><b>2 · WHERE</b>which rows</div>
+    <div class="arrow">→</div>
+    <div class="step c-purple"><b>3 · SELECT</b>which columns, computed how</div>
+    <div class="arrow">→</div>
+    <div class="step c-amber"><b>4 · ORDER BY, LIMIT</b>in which order, how many</div>
   </div>
-  <div class="callout warn mt"><b>What goes wrong.</b> REPLACE: the failure participants will hit, and how to recognise it</div>
-  <aside class="notes">REPLACE: what to say, the demo to run, the question to ask the room, the common failure and its fix</aside>
+  <div class="callout tip mt"><b>Read in this order</b> when you predict a result: start with the table, then cross out rows, then pick columns.</div>
+  <aside class="notes"><p>Day 2 adds GROUP BY and HAVING between WHERE and SELECT. Tell the room this now so the order does not change on them later.</p></aside>
 </section>
 
-<section class="slide" id="s4-steps">
-  <div class="kicker">Step by step</div>
-  <h2>REPLACE: a process, shown one step per key press</h2>
-  <div class="flow">
-    <div class="step c-teal"><b>1 · REPLACE: name</b>REPLACE: what happens first</div>
-    <div class="arrow frag" data-frag="b">→</div><div class="step c-cyan frag" data-frag="b"><b>2 · REPLACE: name</b>REPLACE: the next piece</div>
-    <div class="arrow frag" data-frag="c">→</div><div class="step c-coral frag" data-frag="c"><b>3 · REPLACE: name</b>REPLACE: the result</div>
+<section class="slide" id="where-keeps-true" data-lo="LO3">
+  <div class="kicker">Filters</div>
+  <h2>WHERE keeps the rows for which the condition is true</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT return_id, refund
+FROM returns
+WHERE reason_code = 'R1'
+  AND refund &gt;= 10;
+-- T1 12.00</code></pre>
+    <ul class="bullets">
+      <li>Comparisons: <code>=</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&gt;=</code></li>
+      <li>Combine with <code>AND</code>, <code>OR</code>, <code>NOT</code>; use brackets when you mix them</li>
+      <li>A list: <code>reason_code IN ('R1', 'R2')</code></li>
+      <li>Text is in single quotes; column names are not</li>
+    </ul>
   </div>
-  <div class="callout tip mt frag"><b>Takeaway.</b> REPLACE: the one sentence to remember</div>
-  <aside class="notes">Press once per step and say what each step adds before the next one appears. REPLACE: the example to walk through</aside>
+  <aside class="notes"><p>Ask the room to predict the result before you reveal the comment line. T3 is R1 too, but its refund is 8.25. T4's refund is NULL: Day 2 explains why it is not kept by either <code>&gt;= 10</code> or <code>&lt; 10</code>.</p></aside>
+</section>
+
+<section class="slide" id="text-patterns" data-lo="LO3">
+  <div class="kicker">Text</div>
+  <h2>= matches exactly; LIKE and ILIKE match a pattern</h2>
+  <table class="t">
+    <tr><th>Condition</th><th>Keeps</th></tr>
+    <tr><td><code>product_ref = 'X-101'</code></td><td>exactly that code</td></tr>
+    <tr><td><code>product_ref LIKE 'X-1%'</code></td><td>codes starting with X-1; <code>%</code> is any run of characters</td></tr>
+    <tr><td><code>label ILIKE '%item%'</code></td><td>"item" anywhere, in any letter case</td></tr>
+    <tr><td><code>LOWER(label) = 'late'</code></td><td>"late", "Late", "LATE"</td></tr>
+  </table>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>LIKE</code> is case-sensitive in most engines: <code>LIKE '%Item%'</code> misses "wrong item".</div>
+  <aside class="notes"><p>ILIKE is supported by DuckDB and several other engines but not by every one; LOWER on both sides works everywhere.</p></aside>
+</section>
+
+<section class="slide" id="half-open-dates" data-lo="LO3">
+  <div class="kicker">Dates and times</div>
+  <h2>Filter a period with a half-open range: from the first day, up to but not including the next</h2>
+  <pre class="code" data-file="returns desk"><code class="language-sql">SELECT COUNT(*)
+FROM returns
+WHERE received_on &gt;= DATE '2026-05-02'
+  AND received_on &lt;  DATE '2026-05-04';
+-- 3 returns: T1, T2, T3</code></pre>
+  <div class="callout warn mt"><b>What goes wrong.</b> On a timestamp column, <code>BETWEEN '2026-05-02' AND '2026-05-03'</code> stops at the first instant of 3 May and drops the rest of that day.</div>
+  <aside class="notes"><p>received_on is a DATE, so here BETWEEN would happen to work. The delivery tables use TIMESTAMP for ordered_at and attempted_at, where it does not. The stretch of lab 1.4 asks why.</p></aside>
+</section>
+
+<section class="slide" id="order-needs-tiebreak" data-lo="LO3">
+  <div class="kicker">Sorting</div>
+  <h2>ORDER BY needs a tie-breaker before LIMIT can be trusted</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT return_id, received_on
+FROM returns
+ORDER BY received_on DESC,
+         return_id
+LIMIT 2;
+-- T5 2026-05-06
+-- T4 2026-05-04</code></pre>
+    <ul class="bullets">
+      <li><code>DESC</code> from the highest; ascending is the default</li>
+      <li>T1 and T2 share a date: without <code>return_id</code> their order is not defined</li>
+      <li><code>LIMIT n</code> keeps the first n rows after sorting</li>
+    </ul>
+  </div>
+  <aside class="notes"><p>Without a tie-breaker, a top ten can differ between runs or engines when two rows tie at the tenth place. The checker of the twenty questions expects the stated order exactly.</p></aside>
+</section>
+
+<section class="slide" id="expressions" data-lo="LO3">
+  <div class="kicker">Expressions</div>
+  <h2>An expression computes a new value for each row</h2>
+  <div class="cols cols-2">
+    <pre class="code" data-file="returns desk"><code class="language-sql">SELECT return_id,
+       COALESCE(refund, 0) AS refund_or_zero,
+       date_trunc('month', received_on) AS month,
+       UPPER(reason_code) AS code
+FROM returns;</code></pre>
+    <ul class="bullets">
+      <li>Arithmetic: <code>qty * price</code></li>
+      <li><code>COALESCE(x, 0)</code>: x, or 0 when x is NULL; T4 shows 0.00</li>
+      <li><code>date_trunc('month', d)</code>: the first day of d's month</li>
+      <li><code>AS name</code> names the new column</li>
+    </ul>
+  </div>
+  <div class="callout warn mt-s"><b>What goes wrong.</b> <code>refund - 1</code> on T4 is NULL, not -1: anything combined with NULL is NULL.</div>
+  <aside class="notes"><p>COALESCE is the tool lab 1.4 needs for a line value with an empty discount. Use refund here, never the lab's discount column.</p></aside>
+</section>
+
+<section class="slide" id="predict-first" data-lo="LO3 LO2">
+  <div class="kicker">The habit of the course</div>
+  <h2>Write your prediction before you run the query</h2>
+  <div class="cols cols-3">
+    <div class="card c-teal"><h4>How many rows?</h4><p class="small mb0">One, a handful, about a sixth of the table</p></div>
+    <div class="card c-cyan"><h4>Roughly what value?</h4><p class="small mb0">An order of magnitude, a sign, a range</p></div>
+    <div class="card c-purple"><h4>Which first row?</h4><p class="small mb0">After the sort you asked for</p></div>
+  </div>
+  <div class="callout tip mt"><b>Why.</b> A result that surprises you is either a discovery or a bug. Without a prediction you cannot tell that you were surprised.</div>
+  <aside class="notes"><p>Predictions are written with the assistant off: the entry's AI policy. They are part of the answer file and the trainer reads them, but they are not marked right or wrong.</p></aside>
+</section>
+
+<section class="slide" id="check-dates" data-lo="LO3">
+  <div class="kicker">Checkpoint</div>
+  <h2>Which filter counts every inspection made in May 2026?</h2>
+  <div class="quiz" data-type="single" data-lo="LO3">
+    <p class="lead">The returns desk stores <code>inspected_at</code> as a TIMESTAMP. You need every inspection of May 2026, including those late on 31 May.</p>
+    <div class="opts">
+      <div class="opt" data-why="Ends at the first instant of 31 May on a timestamp: the rest of the last day is lost">inspected_at BETWEEN '2026-05-01' AND '2026-05-31'</div>
+      <div class="opt" data-why="Compares text with a pattern: works only while the column is text, and stops working once it is a timestamp">inspected_at LIKE '2026-05%'</div>
+      <div class="opt" data-ok>inspected_at &gt;= '2026-05-01' AND inspected_at &lt; '2026-06-01'</div>
+      <div class="opt" data-why="Includes the first instant of June, so an inspection logged at midnight on 1 June is counted in May">inspected_at &gt;= '2026-05-01' AND inspected_at &lt;= '2026-06-01'</div>
+    </div>
+    <div class="callout tip why"><b>Why.</b> The half-open range keeps all of 31 May and nothing of 1 June, whatever the time of day.</div>
+  </div>
+  <aside class="notes"><p>Answer: the half-open range. The LIKE option is a spreadsheet habit; it fails silently or with a type error on a real timestamp column.</p></aside>
 </section>
 
 <section class="slide lab" id="lab-1-4" data-auto="lab" data-lab="1.4">
-  <aside class="notes">REPLACE: what to watch for while participants work, the typical problems, and the fallback for anyone who did not finish an earlier lab</aside>
+  <aside class="notes"><p>The four answers go to <code>answers/part1.sql</code>, which the checker of lab 3.2 reads. Predictions first, with the assistant off.</p><p>Common failures: question 1 with LIKE and a capital C, which misses lower-case names; question 2 with BETWEEN ending on 31 March; question 4 without COALESCE, which leaves lines empty. Debrief with the comparison cell the notebook runs after question 4.</p></aside>
 </section>
 
 <section class="slide" id="wrap-up">
-  <div class="kicker">Day 1 · wrap-up</div>
-  <h2>Three things to keep</h2>
+  <div class="kicker">Wrap-up</div>
+  <h2>Three things to keep from Day 1</h2>
   <div class="cols cols-3">
-    <div class="card c-teal"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-coral"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
-    <div class="card c-purple"><h4>Remember</h4><p class="small mb0">REPLACE: one idea participants keep</p></div>
+    <div class="card c-teal"><h4>Count, then trust</h4><p class="small mb0">A key is proven by COUNT(*) against COUNT(DISTINCT).</p></div>
+    <div class="card c-cyan"><h4>Say the grain</h4><p class="small mb0">"One row per ..." before every sum and every join.</p></div>
+    <div class="card c-purple"><h4>Predict first</h4><p class="small mb0">Rows, value or first row, written before you run.</p></div>
   </div>
+  <aside class="notes"><p>Ask each participant to say aloud the grain of one of the six tables before they leave.</p></aside>
 </section>
 
-<section class="slide dark" id="next" data-label="Next">
+<section class="slide dark" id="next">
   <div class="kicker">Next</div>
-  <h2>Day 2: REPLACE: the theme of this unit, in a few words</h2>
-  <p class="lead">REPLACE: what participants prepare before then; unfinished labs can be finished at home</p>
-  <aside class="notes">REPLACE: accounts, installs or reading participants need before the next unit</aside>
+  <h2>Day 2: one table, then two</h2>
+  <ul class="bullets">
+    <li>Finish the annotated schema and questions 1 to 4 if you did not: about 30 minutes</li>
+    <li>Keep <code>answers/part1.sql</code>: the checker reads it on Day 3</li>
+    <li>Tomorrow: CASE, NULL, groups and the four kinds of join</li>
+  </ul>
+  <aside class="notes"><p>The 30 minutes are part of the guided self-study the course plans after each day.</p></aside>
 </section>

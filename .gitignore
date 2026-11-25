@@ -34,3 +34,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 /*.log
+
+# Lab data built on each computer (labs/prepare_data.py, labs/sqllab.py) and answers written by the labs
+labs/data/full/
+labs/data/*.duckdb
+labs/data/*.duckdb.wal
+labs/data/*.sqlite
+labs/answers/
+labs/work/
