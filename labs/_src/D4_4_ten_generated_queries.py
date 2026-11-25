@@ -183,5 +183,12 @@ else:
 # against answers someone worked out by hand.
 # </details>
 #
+# <details><summary>4. Your colleague generated the queries. Should they also write the expected answers?</summary>
+#
+# No. Segregation of duties: the person who produced a query does not also produce the answer it
+# is tested against, or one misunderstanding of the rule passes both. You worked them out; a
+# reviewer signs the verification note.
+# </details>
+#
 # **Carry forward**: the method. The capstone asks for a test per question against a fixture you
 # check by hand.

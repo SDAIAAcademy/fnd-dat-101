@@ -255,5 +255,12 @@ if not U._blank(STRETCH):
 # orders with no revenue until someone noticed.
 # </details>
 #
+# <details><summary>4. Who should sign off the load log before July is reported?</summary>
+#
+# Someone other than the person who wrote the reject rules: segregation of duties. The owner of
+# the data, for example the finance controller for orders, reads the log and the rejected rows
+# and accepts the load; the loader does not approve their own work.
+# </details>
+#
 # **Carry forward**: `answers/july_schema.sql` and `answers/load_log.csv`. Lab 4.2 opens the July
 # tables as a correct load leaves them.

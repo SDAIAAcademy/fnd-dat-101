@@ -93,9 +93,9 @@ U.check_pairs("l42_identifiers", IDENTIFIERS)
 #
 # | Level | The company's rule |
 # |---|---|
-# | Top Secret, Secret | disclosure would cause serious or exceptional damage; none of the company's sales data reaches these |
-# | Restricted | disclosure would cause limited damage to the company or to a person: personal data of customers, and records of individual transactions |
-# | Public | disclosure causes no damage: the company has published it already |
+# | Top Secret, Secret | unauthorised disclosure has an exceptionally serious and irreparable effect, or a serious effect; none of the company's sales data reaches these |
+# | Restricted | unauthorised disclosure has a limited negative effect on the company or on a person: personal data of customers, and records of individual transactions |
+# | Public | disclosure has none of these effects: what the company has published, and what the data owner has labelled Public (the schema descriptions and the written business rules) |
 # | not yet labelled | treated as Restricted until it is labelled |
 #
 # The store list (store, region, opening date, floor area) is printed on the company's public
@@ -247,6 +247,13 @@ if not U._blank(STRETCH):
 #
 # The rows are Restricted: they stay out of public generative AI tools. The analyst can give the
 # assistant the column names and ask for the chart code, then run it on the rows locally.
+# </details>
+#
+# <details><summary>4. You built the view. Who should grant the analysts access to it?</summary>
+#
+# Not you. Segregation of duties: the person who builds the view does not also approve who reads
+# it. The data protection officer, or the owner of the customer data, reviews the view's columns
+# against the purpose and grants the access.
 # </details>
 #
 # **Carry forward**: nothing; lab 4.3 starts from the company's database.

@@ -4,7 +4,7 @@
 
 - Google Colab: open a notebook from the course page; its first cell clones this repository, installs the two packages and writes the data.
 - Locally: install uv, clone the repository, then from `labs/` run `uv run --with jupyterlab jupyter lab` and open a notebook. The first run writes the six synthetic tables (`prepare_data.py`, about ten seconds) and builds `data/delivery.duckdb`.
-- Start with `00_setup_check.ipynb`: it ends with **setup ok**.
+- Start with `00_setup_check.ipynb`: it ends with **setup ok**. Then the pre-work, `00_prework_drills.ipynb`: ten first queries on the mini tables, about two hours, assistant off.
 
 You write SQL between the triple quotes of each cell marked ✏️. A cell left blank shows the reference result, so the next cells still run. The reference version of every notebook is in `solutions/`.
 

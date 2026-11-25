@@ -170,11 +170,11 @@ ROLLBACK;</code></pre>
   <div class="kicker">Classification</div>
   <h2>A level says how much harm disclosure would do, and so how the data is handled</h2>
   <table class="t">
-    <tr><th>Level</th><th>Disclosure would cause</th></tr>
-    <tr><td>Top Secret</td><td>exceptionally grave damage</td></tr>
-    <tr><td>Secret</td><td>serious damage</td></tr>
-    <tr><td>Restricted</td><td>limited damage, including to an individual; examples include personal data and detailed statements of individual transactions</td></tr>
-    <tr><td>Public</td><td>none of the above</td></tr>
+    <tr><th>Level</th><th>Impact</th><th>Unauthorised disclosure has</th></tr>
+    <tr><td>Top Secret</td><td>high</td><td>an exceptionally serious and irreparable effect</td></tr>
+    <tr><td>Secret</td><td>medium</td><td>a serious effect</td></tr>
+    <tr><td>Restricted</td><td>low</td><td>a limited negative effect, including on an individual; examples include personally identifiable information and detailed statements of individual transactions</td></tr>
+    <tr><td>Public</td><td>none</td><td>none of these effects</td></tr>
   </table>
   <p class="mt small">The four levels of the national Data Classification Policy, written for public entities. Data not yet classified is treated as Restricted until it is. In the labs, the grocery delivery company has adopted the levels as its own rule.</p>
   <aside class="notes"><p>Be exact about scope: the policy binds public entities. A private company can adopt the levels, and the case company has; that is its rule, not the law's.</p><p>The returns desk's callback list is Restricted: personal data. Its list of reason codes is Public if the company has published it.</p></aside>
@@ -199,11 +199,11 @@ DESCRIBE returns_for_analysts;</code></pre>
   <div class="kicker">Responsible use</div>
   <h2>Restricted rows never go into a generative AI tool; the schema can</h2>
   <div class="cols cols-2">
-    <div class="card c-teal"><h4>Can go in</h4><p class="small mb0">Public data: column names and types, the business rule as text, an error message, a query with no values from the data.</p></div>
+    <div class="card c-teal"><h4>Can go in</h4><p class="small mb0">What the company has labelled Public: column names and types, the written business rules, an error message, a query with no values from the data.</p></div>
     <div class="card c-coral"><h4>Stays out</h4><p class="small mb0">Rows of a Restricted table, a view's output, a sample "just to show the shape", a screenshot of a result.</p></div>
   </div>
-  <div class="callout warn mt"><b>Rule.</b> Only Public data goes into a generative AI tool. Wider use of an assistant inside the company is the company's own rule, written down before anyone relies on it.</div>
-  <aside class="notes"><p>This follows the national guidance on generative AI: nothing classified Restricted or higher goes into such a tool. In this course everything is synthetic, but the habit is the point: practise it as if the rows were real.</p></aside>
+  <div class="callout warn mt"><b>Rule.</b> Only Public data goes into a generative AI tool. Which descriptions count as Public is the company's own labelling, written down before anyone relies on it.</div>
+  <aside class="notes"><p>The rule follows SDAIA's guidance on generative AI as the Academy applies it: nothing classified Restricted or higher goes into such a tool. The company in the labs has labelled its schema descriptions, its written rules and error messages Public; that labelling is its own rule. Everything in the course is synthetic, but practise the habit as if the rows were real.</p><p>Segregation of duties: the person who wants to use the assistant does not decide the label; the data owner does.</p></aside>
 </section>
 
 <section class="slide" id="check-view" data-lo="LO5">

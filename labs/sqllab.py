@@ -662,7 +662,9 @@ def check_pairs(key: str, text: str) -> int:
     wrong = 0
     for k, v in ref.items():
         g = got.get(k, "")
-        ok = g.split(";")[0].strip().split(",")[0].strip() == v.split(";")[0].strip().split(",")[0].strip()
+        a = [x.strip() for x in g.split(";")[0].split(",")]
+        b = [x.strip() for x in v.split(";")[0].split(",")]
+        ok = len(a) == len(b) and all(_eq(x, y) for x, y in zip(a, b))
         wrong += not ok
         _say(f"{k:18s} {g.split(';')[0][:28] or '?':28s} {'ok' if ok else 'revisit'}")
     _say(f"{key}: {len(ref) - wrong} of {len(ref)} agree with the reference")

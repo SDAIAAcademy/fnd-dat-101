@@ -88,6 +88,7 @@ EXAMPLES = {
                          WHEN TRY_CAST(refund AS DECIMAL(8,2)) < 0 THEN 'negative refund'
                        END AS reason FROM stg_returns ORDER BY row_no""",
     "plan-filter": "EXPLAIN SELECT r.label, SUM(t.refund) FROM returns t JOIN reasons r ON r.reason_code = t.reason_code WHERE t.received_on >= DATE '2026-05-03' GROUP BY r.label",
+    "verification-note": "SELECT COUNT(*) AS returns_r2 FROM returns WHERE reason_code = 'R2'",
     "test-avg-refund": """SELECT AVG(refund) AS generated, AVG(COALESCE(refund, 0)) AS by_the_rule FROM returns""",
 }
 
@@ -119,6 +120,8 @@ def index_demo() -> None:
     s.execute("CREATE INDEX ix_returns_order ON returns (order_ref)")
     print("    after:", [r[-1] for r in s.execute(q)])
     print("    total:", [r[-1] for r in s.execute("EXPLAIN QUERY PLAN SELECT SUM(refund) FROM returns")])
+    print("[when-index] like:", [r[-1] for r in s.execute("EXPLAIN QUERY PLAN SELECT * FROM returns WHERE order_ref LIKE '%15'")])
+    print("    other column:", [r[-1] for r in s.execute("EXPLAIN QUERY PLAN SELECT * FROM returns WHERE reason_code = 'R1'")])
 
 
 def main() -> None:
