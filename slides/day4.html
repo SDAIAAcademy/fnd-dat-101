@@ -106,9 +106,10 @@ ROLLBACK;</code></pre>
   <div class="kicker">The load log</div>
   <h2>Every row read is either loaded or rejected with a reason</h2>
   <table class="t">
-    <tr><th>File</th><th class="num">Read</th><th class="num">Loaded</th><th class="num">Rejected</th><th>Reasons</th></tr>
-    <tr><td>returns, staged</td><td class="num">6</td><td class="num">2</td><td class="num">4</td><td>missing key 1 · duplicate key 1 · unknown reason 1 · negative refund 1</td></tr>
+    <tr><th>File</th><th class="num">Read</th><th class="num">Loaded</th><th class="num">Rejected</th></tr>
+    <tr><td>returns</td><td class="num">6</td><td class="num">2</td><td class="num">4</td></tr>
   </table>
+  <p class="small mt-s">Rejected by reason: missing key 1 · duplicate key 1 · unknown reason 1 · negative refund 1</p>
   <ul class="bullets mt">
     <li>The log is the evidence that nothing was lost <b>silently</b></li>
     <li>A rejection upstream changes counts downstream: the items of a rejected return are rejected too</li>
@@ -362,9 +363,9 @@ CREATE INDEX ix_returns_order
   <div class="kicker">The verification note</div>
   <h2>Every generated query ships with its test and a judgement</h2>
   <table class="t small">
-    <tr><th>Query</th><th>Expected</th><th>Got</th><th>Test</th><th>Judgement</th></tr>
-    <tr><td>avg_refund</td><td class="num">13.95</td><td class="num">17.44</td><td>FAIL</td><td>missing rule; empty refund skipped</td></tr>
-    <tr><td>returns_r2</td><td class="num">2</td><td class="num">2</td><td>pass</td><td>ok</td></tr>
+    <tr><th>Query</th><th class="num">Expected</th><th class="num">Got</th><th>Test · judgement</th></tr>
+    <tr><td>avg_refund</td><td class="num">13.95</td><td class="num">17.44</td><td>FAIL · missing rule</td></tr>
+    <tr><td>returns_r2</td><td class="num">2</td><td class="num">2</td><td>pass · ok</td></tr>
   </table>
   <ul class="bullets mt">
     <li>Generated SQL is a <b>draft</b> until it passes a test against answers someone checked by hand</li>
